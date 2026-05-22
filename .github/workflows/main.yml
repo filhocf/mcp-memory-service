@@ -150,6 +150,17 @@ jobs:
         echo "=== DEBUG: Final GITHUB_OUTPUT contents ==="
         cat $GITHUB_OUTPUT
 
+  # Security scan
+  security:
+    runs-on: ubuntu-latest
+    name: Security check (bandit)
+    steps:
+    - uses: actions/checkout@v6
+    - name: Security check (bandit)
+      run: |
+        pip install bandit
+        bandit -r src/ -ll -ii
+
   # Test uvx compatibility
   test-uvx-compatibility:
     runs-on: ubuntu-latest
