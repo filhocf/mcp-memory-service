@@ -2,28 +2,57 @@
   "mir": {
     "locale": "pt_BR",
     "terms": [
-      "F001", "F002", "F003", "F004", "F005", "F008", "F013", "F014", "F020", "F022",
-      "V07", "V08",
-      "SICAR", "SNCR", "SIGEF", "CAF", "CAR",
-      "floresta tipo B", "floresta pública",
-      "terra indígena", "TI",
-      "terra quilombola", "TQ",
-      "unidade de conservação", "UC",
-      "embargo", "IBAMA",
-      "PRODES", "desmatamento",
-      "trabalho escravo", "lista suja",
-      "Tô em Dia", "regularidade",
-      "Roma Connect", "WSO2",
-      "Produção Certa", "ZARC",
+      "F001",
+      "F002",
+      "F003",
+      "F004",
+      "F005",
+      "F008",
+      "F013",
+      "F014",
+      "F020",
+      "F022",
+      "V07",
+      "V08",
+      "SICAR",
+      "SNCR",
+      "SIGEF",
+      "CAF",
+      "CAR",
+      "floresta tipo B",
+      "floresta pública",
+      "terra indígena",
+      "TI",
+      "terra quilombola",
+      "TQ",
+      "unidade de conservação",
+      "UC",
+      "embargo",
+      "IBAMA",
+      "PRODES",
+      "desmatamento",
+      "trabalho escravo",
+      "lista suja",
+      "Tô em Dia",
+      "regularidade",
+      "Roma Connect",
+      "WSO2",
+      "Produção Certa",
+      "ZARC",
       "PostGIS"
     ]
   },
   "rer": {
     "locale": "en",
     "terms": [
-      "CAR", "SICAR", "DPG",
-      "geoserver", "calc_engine", "core",
-      "install.sh", "docker compose",
+      "CAR",
+      "SICAR",
+      "DPG",
+      "geoserver",
+      "calc_engine",
+      "core",
+      "install.sh",
+      "docker compose",
       "Rural Environmental Registry",
       "Kubernetes"
     ]
@@ -31,33 +60,71 @@
   "mcr": {
     "locale": "pt_BR",
     "terms": [
-      "MCR", "Tô em Dia", "regularidade",
-      "BCB", "Banco Central",
-      "crédito rural", "PRONAF", "PRONAMP",
-      "impedimento", "restrição",
+      "MCR",
+      "Tô em Dia",
+      "regularidade",
+      "BCB",
+      "Banco Central",
+      "crédito rural",
+      "PRONAF",
+      "PRONAMP",
+      "impedimento",
+      "restrição",
       "painel regularidade",
-      "DataLake", "Kafka"
+      "DataLake",
+      "Kafka"
     ]
   },
   "daia": {
     "locale": "pt_BR",
     "terms": [
-      "DAIA", "AI Assistant",
-      "Ollama", "ModelArts",
-      "pipeline", "enforcement",
-      "PadrãoTIC", "TechDocs", "Olímpia"
+      "DAIA",
+      "AI Assistant",
+      "Ollama",
+      "ModelArts",
+      "pipeline",
+      "enforcement",
+      "PadrãoTIC",
+      "TechDocs",
+      "Olímpia"
     ]
   },
   "roma-connect": {
     "locale": "pt_BR,en",
     "terms": [
-      "Roma Connect", "HCSO", "Huawei Cloud",
-      "API Group", "custom backend",
-      "bind domínio", "certificado SSL"
+      "Roma Connect",
+      "HCSO",
+      "Huawei Cloud",
+      "API Group",
+      "custom backend",
+      "bind domínio",
+      "certificado SSL"
     ]
   },
   "default": {
     "locale": "pt_BR,en",
     "terms": []
+  },
+  "docs-shared": {
+    "locale": "pt_BR,en",
+    "terms": [
+      "PadrãoTIC",
+      "TechDocs",
+      "Olímpia",
+      "Conexão",
+      "LGPD",
+      "governança",
+      "arquitetura corporativa",
+      "DevSecOps",
+      "ModelArts",
+      "Huawei Cloud",
+      "RITM",
+      "CHG",
+      "ServiceNow",
+      "Pronto",
+      "VPN",
+      "certificado digital",
+      "Active Directory"
+    ]
   }
 }
