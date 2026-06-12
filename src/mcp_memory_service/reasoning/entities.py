@@ -7,6 +7,7 @@ Integrated into maintain cycle as batch extraction step.
 
 import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List, Dict, Any
 
 @dataclass
@@ -29,7 +30,22 @@ class EntityExtractor:
     CamelCase/ALLCAPS removed per review feedback (too many false positives).
     """
 
-    def extract_entities(self, content: str, metadata: Dict[str, Any] | None = None) -> List[Entity]:
+    _store_terms_cache: dict | None = None
+
+    @classmethod
+    def _load_store_terms(cls, store: str) -> list:
+        """Load entity terms for a specific store from store_terms.json."""
+        if cls._store_terms_cache is None:
+            terms_path = Path(__file__).parent.parent / "data" / "store_terms.json"
+            if terms_path.exists():
+                import json
+                cls._store_terms_cache = json.loads(terms_path.read_text(encoding='utf-8'))
+            else:
+                cls._store_terms_cache = {}
+        store_config = cls._store_terms_cache.get(store, cls._store_terms_cache.get("default", {}))
+        return store_config.get("terms", []) if isinstance(store_config, dict) else []
+
+    def extract_entities(self, content: str, metadata: Dict[str, Any] | None = None, store: str = "default") -> List[Entity]:
         metadata = metadata or {}
         entities: List[Entity] = []
         seen: set = set()
@@ -70,6 +86,12 @@ class EntityExtractor:
                 # Word boundary match to avoid false positives (e.g., "roma" in "aroma")
                 if re.search(r'(?<![a-zA-Z0-9_-])' + re.escape(term) + r'(?![a-zA-Z0-9_-])', content, re.IGNORECASE):
                     _add(term, 'custom', 'config')
+
+        # Per-store domain terms (from store_terms.json)
+        store_terms = self._load_store_terms(store)
+        for term in store_terms:
+            if re.search(r'(?<![a-zA-Z0-9_-])' + re.escape(term) + r'(?![a-zA-Z0-9_-])', content, re.IGNORECASE):
+                _add(term, 'domain', 'store_terms')
 
         return entities
 

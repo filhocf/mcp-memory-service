@@ -766,7 +766,8 @@ class MemoryService:
                 return
 
             extractor = EntityExtractor()
-            entities = extractor.extract_entities(memory.content, memory.metadata)
+            store = getattr(memory, 'store', 'default') or 'default'
+            entities = extractor.extract_entities(memory.content, memory.metadata, store=store)
             if not entities:
                 return
 

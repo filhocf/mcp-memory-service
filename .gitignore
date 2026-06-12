@@ -204,6 +204,7 @@ package-lock.json
 .npm
 .mcp.json.disabled
 data/
+!src/mcp_memory_service/data/
 
 # GitHub wiki clone (managed separately)
 .wiki/
