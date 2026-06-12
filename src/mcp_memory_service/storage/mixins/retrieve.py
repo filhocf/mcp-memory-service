@@ -168,6 +168,9 @@ class RetrieveMixin:
                         created_at,
                     )
 
+                    # Temporal decay: recent memories rank higher
+                    relevance_score = relevance_score * effective_confidence
+
                     memory.record_access(query)
                     results.append(MemoryQueryResult(
                         memory=memory,
