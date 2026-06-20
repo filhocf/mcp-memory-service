@@ -1657,3 +1657,84 @@ async def handle_delete_before_date(server, arguments: dict) -> List[types.TextC
             type="text",
             text=f"Error deleting memories: {str(e)}"
         )]
+
+
+async def handle_memory_context(server, arguments: dict) -> list:
+    """Return most relevant memories+beliefs for a task within a token budget.
+
+    Combines: task-relevant search + active beliefs + mistake notes.
+    Truncates to fit budget_tokens (4 chars ≈ 1 token).
+    """
+    import types as t
+    from mcp import types
+
+    task = arguments.get("task", "")
+    budget_tokens = arguments.get("budget_tokens", 4000)
+    agent_id = arguments.get("agent_id", "kiro")
+    budget_chars = budget_tokens * 4
+
+    sections = []
+    chars_used = 0
+
+    try:
+        # 1. Active beliefs (highest priority — behavioral rules)
+        beliefs = await server.memory_service.retrieve_memories(
+            query=task or "conventions preferences avoidances",
+            n_results=10,
+            memory_type="belief",
+        )
+        if beliefs and hasattr(beliefs, "memories"):
+            belief_lines = []
+            for mem in beliefs.memories:
+                content = mem.get("content", "") if isinstance(mem, dict) else getattr(mem, "content", "")
+                if content and not content.startswith("Association between"):
+                    belief_lines.append(f"- {content[:200]}")
+            if belief_lines:
+                section = "## Active Beliefs\n" + "\n".join(belief_lines[:7])
+                sections.append(section)
+                chars_used += len(section)
+
+        # 2. Relevant mistake notes
+        mistake_results = await server.memory_service.retrieve_memories(
+            query=task or "errors mistakes",
+            n_results=5,
+            memory_type="mistake",
+        )
+        if mistake_results and hasattr(mistake_results, "memories"):
+            mistake_lines = []
+            for mem in mistake_results.memories:
+                content = mem.get("content", "") if isinstance(mem, dict) else getattr(mem, "content", "")
+                if content:
+                    mistake_lines.append(f"- ⚠️ {content[:200]}")
+            if mistake_lines:
+                section = "## Mistake Notes\n" + "\n".join(mistake_lines[:5])
+                sections.append(section)
+                chars_used += len(section)
+
+        # 3. Task-relevant memories (fill remaining budget)
+        remaining_chars = budget_chars - chars_used - 100
+        if remaining_chars > 200 and task:
+            memories = await server.memory_service.retrieve_memories(task, n_results=20)
+            mem_lines = []
+            if memories and hasattr(memories, "memories"):
+                for mem in memories.memories:
+                    content = mem.get("content", "") if isinstance(mem, dict) else getattr(mem, "content", "")
+                    if not content or content.startswith("Association between"):
+                        continue
+                    line = f"- {content[:300]}"
+                    if chars_used + len(line) > budget_chars:
+                        break
+                    mem_lines.append(line)
+                    chars_used += len(line)
+            if mem_lines:
+                section = "## Relevant Context\n" + "\n".join(mem_lines)
+                sections.append(section)
+
+        result = f"=== MEMORY CONTEXT (budget: {budget_tokens} tokens, task: {task[:50]}) ===\n\n"
+        result += "\n\n".join(sections) if sections else "(no relevant context found)"
+        result += f"\n\n=== END ({chars_used // 4} tokens used of {budget_tokens}) ==="
+
+        return [types.TextContent(type="text", text=result)]
+
+    except Exception as e:
+        return [types.TextContent(type="text", text=f"Error: {e}")]

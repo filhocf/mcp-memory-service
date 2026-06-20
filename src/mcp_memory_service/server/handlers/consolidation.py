@@ -66,6 +66,18 @@ async def handle_consolidate_memories(server, arguments: dict) -> List[types.Tex
         else:
             report = await server.consolidator.consolidate(time_horizon)
 
+        # Derive beliefs piggybacking on consolidation (fork-only)
+        import os
+        if os.getenv("MCP_BELIEFS_ENABLED", "false").lower() == "true":
+            try:
+                from ...consolidation.belief_service import BeliefService
+                belief_svc = BeliefService(server.storage)
+                belief_stats = await belief_svc.derive_beliefs()
+                if belief_stats.get("created") or belief_stats.get("promoted"):
+                    logger.info(f"Belief derivation: {belief_stats}")
+            except Exception as be:
+                logger.warning(f"Belief derivation error (non-fatal): {be}")
+
         # Format response
         result = f"""Consolidation completed successfully!
 

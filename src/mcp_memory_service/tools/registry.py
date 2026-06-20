@@ -1236,4 +1236,41 @@ Examples:
                     },
         annotations={'readOnlyHint': True},
     ),
+    ToolDef(
+        name="memory_context",
+        description="""Return task-relevant memories, beliefs, and mistake notes within a token budget.
+
+USE THIS WHEN:
+- Starting a task and need relevant context injected efficiently
+- Want beliefs + mistakes + memories combined in one call
+- Need to stay within a token budget for prompt injection
+
+Returns formatted text ready for system prompt injection.
+
+Examples:
+{"task": "implement NLI backend", "budget_tokens": 4000}
+{"task": "fix Jenkins pipeline MIR", "budget_tokens": 2000, "agent_id": "kiro"}
+""",
+        input_schema={
+                        "type": "object",
+                        "properties": {
+                            "task": {
+                                "type": "string",
+                                "description": "Description of the current task (used for relevance search)"
+                            },
+                            "budget_tokens": {
+                                "type": "integer",
+                                "default": 4000,
+                                "description": "Maximum tokens for the returned context"
+                            },
+                            "agent_id": {
+                                "type": "string",
+                                "default": "kiro",
+                                "description": "Agent identifier for filtering"
+                            }
+                        },
+                        "required": ["task"]
+                    },
+        annotations={'readOnlyHint': True},
+    ),
 ]

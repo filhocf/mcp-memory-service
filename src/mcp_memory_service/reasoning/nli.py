@@ -51,14 +51,43 @@ class NLIClassifier:
         """Classify relationship between two texts."""
         if self.backend == "heuristic":
             return self._heuristic_classify(premise, hypothesis)
+        if self.backend in ("cascade", "llm"):
+            return await self._llm_classify(premise, hypothesis)
         if not self._warned_unimplemented:
             logger.warning(
                 "NLI backend '%s' is not implemented; returning neutral. "
-                "Only 'heuristic' is currently supported.",
+                "Only 'heuristic' and 'cascade' are supported.",
                 self.backend,
             )
             self._warned_unimplemented = True
         return NLIResult(label="neutral", confidence=0.0)
+
+    async def _llm_classify(self, premise: str, hypothesis: str) -> NLIResult:
+        """LLM-based NLI using harvest provider chain (cascade fallback)."""
+        try:
+            from ..harvest.rewriter import HarvestRewriter
+            rewriter = HarvestRewriter()
+
+            prompt = (
+                "Classify the relationship between Statement A and Statement B.\n"
+                "Answer with EXACTLY one word: entailment, contradiction, or neutral.\n\n"
+                f"Statement A: {premise[:500]}\n"
+                f"Statement B: {hypothesis[:500]}\n\n"
+                "Classification:"
+            )
+
+            response = await rewriter._call_llm(prompt)
+            if not response:
+                return self._heuristic_classify(premise, hypothesis)
+
+            label = response.strip().lower().split()[0] if response.strip() else "neutral"
+            if label not in ("entailment", "contradiction", "neutral"):
+                label = "neutral"
+
+            return NLIResult(label=label, confidence=0.9 if label != "neutral" else 0.3)
+        except Exception as e:
+            logger.debug(f"LLM NLI failed ({e}), falling back to heuristic")
+            return self._heuristic_classify(premise, hypothesis)
 
     async def classify_batch(self, pairs: List[Tuple[str, str]]) -> List[NLIResult]:
         """Batch classification."""
