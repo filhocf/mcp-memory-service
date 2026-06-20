@@ -198,31 +198,55 @@ class BeliefService:
     # --- Internal helpers ---
 
     async def _group_observations(self, observations) -> dict:
-        """Group observations by content similarity.
+        """Group observations by embedding similarity via storage.search().
 
-        Uses first observation as cluster representative; others with
-        high similarity join the cluster. Simple greedy single-pass approach.
+        Greedy single-pass: each observation either joins an existing cluster
+        (if similarity >= threshold to the representative) or starts a new one.
         """
+        SIMILARITY_THRESHOLD = 0.85
+
         groups = {}  # representative content -> [observations]
-        representatives = []  # (content, obs_list)
+        assigned = set()  # content_hashes already in a group
+
+        # Build lookup of input observation hashes for fast membership check
+        input_hashes = set()
+        for obs in observations:
+            h = obs.content_hash if hasattr(obs, "content_hash") else obs.get("content_hash", "")
+            if h:
+                input_hashes.add(h)
 
         for obs in observations:
             content = obs.content if hasattr(obs, "content") else obs.get("content", "")
-            if not content:
+            content_hash = obs.content_hash if hasattr(obs, "content_hash") else obs.get("content_hash", "")
+            if not content or content_hash in assigned:
                 continue
 
-            matched = False
-            for rep_content, obs_list in representatives:
-                # Use content hash matching for exact duplicates
-                if content == rep_content:
-                    obs_list.append(obs)
-                    matched = True
-                    break
+            # Search for similar observations using embeddings
+            try:
+                results = await self.storage.search(content, n_results=50)
+            except Exception:
+                groups[content] = [obs]
+                assigned.add(content_hash)
+                continue
 
-            if not matched:
-                new_list = [obs]
-                representatives.append((content, new_list))
-                groups[content] = new_list
+            cluster = [obs]
+            assigned.add(content_hash)
+
+            for result in results:
+                if result.relevance_score < SIMILARITY_THRESHOLD:
+                    break
+                mem = result.memory if hasattr(result, "memory") else result
+                mem_hash = mem.content_hash if hasattr(mem, "content_hash") else mem.get("content_hash", "")
+                if mem_hash in assigned or mem_hash == content_hash:
+                    continue
+                mem_type = mem.memory_type if hasattr(mem, "memory_type") else mem.get("memory_type", "")
+                if mem_type != "observation":
+                    continue
+                if mem_hash in input_hashes:
+                    cluster.append(mem)
+                    assigned.add(mem_hash)
+
+            groups[content] = cluster
 
         return groups
 
