@@ -1,3 +1,18 @@
+# ⚠️ THIS REPOSITORY HAS MOVED
+
+## 🚨 This fork is ARCHIVED. Development continues on Codeberg.
+
+# 👉 [https://codeberg.org/filhocf/mcp-memory-service](https://codeberg.org/filhocf/mcp-memory-service)
+
+### Upstream: [https://codeberg.org/doobidoo/mcp-memory-service](https://codeberg.org/doobidoo/mcp-memory-service)
+
+---
+
+> **Do not open issues or PRs here.** This GitHub mirror is no longer maintained.
+> All branches have been removed. Only this notice remains.
+
+---
+
 # mcp-memory-service
 
 ## Persistent Shared Memory for AI Agent Pipelines
