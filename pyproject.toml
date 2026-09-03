@@ -167,7 +167,7 @@ Issues = "https://github.com/doobidoo/mcp-memory-service/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mcp_memory_service"]
-artifacts = ["**/*.yaml"]
+artifacts = ["**/*.yaml", "**/*.json"]
 
 [tool.hatch.version]
 path = "src/mcp_memory_service/__init__.py"

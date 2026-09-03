@@ -513,7 +513,7 @@ class MemoryService:
                             logger.debug(f"Background quality scoring queued (or failed silently): {e}")
 
                     # Entity linking: extract entities and create shares_entity edges
-                    await self._maybe_link_entities(memory)
+                    await self._maybe_link_entities(memory, store=store)
 
                     await self._plugin_registry.fire('on_store', self._format_memory_response(memory))
 
@@ -764,7 +764,7 @@ class MemoryService:
                 "error": f"Health check failed: {str(e)}"
             }
 
-    async def _maybe_link_entities(self, memory: Memory) -> None:
+    async def _maybe_link_entities(self, memory: Memory, store: str = 'default') -> None:
         """Extract entities and create shares_entity edges if linking is enabled."""
         from ..reasoning.entity_linker import is_entity_linking_enabled, EntityLinker
         if not is_entity_linking_enabled():
@@ -781,7 +781,7 @@ class MemoryService:
             extractor = EntityExtractor(
                 domain_extractors=EntityExtractor.get_domain_extractors()
             )
-            entities = extractor.extract_entities(memory.content, memory.metadata)
+            entities = extractor.extract_entities(memory.content, {**(memory.metadata or {}), 'store': store})
             if not entities:
                 return
 
