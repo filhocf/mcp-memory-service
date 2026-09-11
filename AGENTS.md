@@ -60,3 +60,36 @@ RETURN caller.name, caller.filePath
 ```
 
 <!-- gitnexus:end -->
+---
+
+# 🎯 START HERE — agente (fork/serviço do Claudio)
+
+> Este arquivo vive na branch `service` (NUNCA vira PR — não vaza pro upstream).
+> Ao entrar neste repo, ANTES de qualquer tarefa, situe-se com os passos abaixo.
+
+## Passos de arranque (sempre)
+1. **Carregar a skill:** `~/.kiro/skills/memory-service-maintainer/SKILL.md`
+   (mandato do Henry, escopo de merge, fluxo de PR, gate G5, pitfalls).
+2. **Buscar estado recente:** `memory_search("mcp-memory-service Henry mandato fila", tags=["mcp-memory-service","henry"], limit=5)`.
+3. **Ler o runbook:** `~/git/conhecimentos-de-ia/ferramentas/mcp/memory-service/PILHA-PRs-runbook.md`
+   (ambiente, pilha de PRs, baldes, §Atualização do SERVIÇO).
+
+## Dois modos de trabalho (NÃO confundir)
+- **DESENVOLVER nossas feats** → nosso método SDD/G0-G6 (`~/git/conhecimentos-de-ia/padroes/DEVELOPMENT-STANDARDS.md §0`).
+- **TRANSPORTAR para upstream/PR** → método do HENRY (board verde, `tests-prove-fix`, squash + `(#PR)`,
+  1 review dele, 1 PR por issue). Antes do PR: gate **G5** (subagent reviewer + teste de INTEGRAÇÃO).
+
+## Ambiente (3 lugares, não misturar)
+- **`~/git/mcp-memory-service`** (ESTE) → branch `service` = v11.11.0 + nossas feats. **O SERVIÇO systemd roda daqui** (venv editable, `--user memory-service`). Banco: `~/local-data/mcp/sqlite_vec.db`.
+- **`~/git/mcp-memory-service-dev`** → worktree da pilha de PRs (branches `pr/NNNN`, saem de `upstream/main`).
+- **`main`** (branch, v11.5.5) = rollback do serviço. `upstream` = GitHub doobidoo (fetch-only). Push só nos forks.
+
+## Estado da branch `service` (atualizar quando mudar)
+- Base v11.11.0 + NLI cascade + Store-NER + fix cascade (backend=auto).
+- Embedding: **torch/multilingual** (`paraphrase-multilingual-MiniLM-L12-v2`, PT-BR). USE_ONNX=0.
+  ONNX leve pendente = issue #143 (modelo ONNX pronto: `onnx-community/paraphrase-multilingual-MiniLM-L12-v2-ONNX`).
+- Onda 2 pendente: Trilogia RFC-MM (facts/gaps/feedback, roda em background via scheduler).
+
+## Validação de features LLM
+- Ollama local (`--user ollama.service`, gemma3:4b, GPU GTX 1650). Apontar `HARVEST_LLM_PROVIDERS=ollama`.
+  Usar para validar NLI/fact-extraction END-TO-END antes de PR (o gate que faltou no #1215).
