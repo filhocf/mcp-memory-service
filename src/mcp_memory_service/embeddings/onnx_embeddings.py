@@ -10,7 +10,10 @@ import os
 import tarfile
 from pathlib import Path
 from typing import List, Optional, Union
+
 import numpy as np
+
+from ..compat import _sanitize_log_value
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +89,7 @@ class ONNXEmbeddingModel:
         if not TOKENIZERS_AVAILABLE:
             raise ImportError("Tokenizers is required but not installed. Install with: pip install tokenizers")
         
-        self.model_name = model_name
+        self.model_name = model_name or self.MODEL_NAME
         self._preferred_providers = preferred_providers or ['CPUExecutionProvider']
         self._model = None
         self._tokenizer = None
@@ -94,7 +97,7 @@ class ONNXEmbeddingModel:
         # Decide the loading strategy. The default model keeps the original
         # S3 tar.gz path (fully backward compatible). A non-default model is
         # resolved from the Hugging Face Hub instead.
-        base = (model_name or self.MODEL_NAME).split('/')[-1]
+        base = self.model_name.split('/')[-1]
         self._is_default_model = (base == self.MODEL_NAME)
         if self._is_default_model:
             self._hf_repo = None
@@ -202,8 +205,9 @@ class ONNXEmbeddingModel:
             snapshot_download(
                 repo_id=self._hf_repo,
                 local_dir=str(self._model_dir),
-                allow_patterns=["*.onnx", "tokenizer.json", "tokenizer_config.json",
-                                "config.json", "special_tokens_map.json", "*.txt"],
+                allow_patterns=["model.onnx", "onnx/model.onnx", "tokenizer.json",
+                                "tokenizer_config.json", "config.json",
+                                "special_tokens_map.json"],
             )
         except Exception as e:
             logger.error(f"Failed to download ONNX model from {self._hf_repo}: {e}")
@@ -213,23 +217,34 @@ class ONNXEmbeddingModel:
             raise RuntimeError(f"No .onnx file found in downloaded repo {self._hf_repo}")
         logger.info("ONNX model ready for use")
 
+    def _resolve_model_path(self):
+        """Return the model.onnx path for the active model (default or custom)."""
+        if self._is_default_model:
+            return self.DOWNLOAD_PATH / self.EXTRACTED_FOLDER_NAME / "model.onnx"
+        return self._find_onnx_file()
+
     def _find_onnx_file(self):
-        """Locate the model.onnx within the custom model dir (root or onnx/)."""
+        """Locate the full-precision model.onnx within the custom model dir.
+
+        Prefers the canonical ``model.onnx`` (repo root or ``onnx/``). Quantized
+        variants (model_quantized/int8/uint8/...) are deliberately NOT auto-
+        selected, as they change the embedding numerics; callers that want them
+        should point MCP_ONNX_MODEL_REPO at a repo whose canonical file is that
+        variant.
+        """
         for cand in (self._model_dir / "model.onnx",
                      self._model_dir / "onnx" / "model.onnx"):
             if cand.exists():
                 return cand
-        # any .onnx as last resort (e.g. model_quantized.onnx)
-        hits = list(self._model_dir.rglob("*.onnx"))
-        return hits[0] if hits else None
+        return None
 
     def _init_model(self):
         """Initialize ONNX model and tokenizer."""
         if self._is_default_model:
-            model_path = self.DOWNLOAD_PATH / self.EXTRACTED_FOLDER_NAME / "model.onnx"
+            model_path = self._resolve_model_path()
             tokenizer_path = self.DOWNLOAD_PATH / self.EXTRACTED_FOLDER_NAME / "tokenizer.json"
         else:
-            model_path = self._find_onnx_file()
+            model_path = self._resolve_model_path()
             tokenizer_path = self._model_dir / "tokenizer.json"
 
         if not model_path or not Path(model_path).exists():
@@ -239,7 +254,10 @@ class ONNXEmbeddingModel:
             raise FileNotFoundError(f"Tokenizer not found at {tokenizer_path}")
         
         # Initialize ONNX session
-        logger.info(f"Loading ONNX model with providers: {self._preferred_providers}")
+        logger.info(
+            "Loading ONNX model with providers: %s",
+            _sanitize_log_value(self._preferred_providers),
+        )
         self._model = ort.InferenceSession(
             str(model_path),
             providers=self._preferred_providers
@@ -250,6 +268,9 @@ class ONNXEmbeddingModel:
         
         # Get model info
         self.embedding_dimension = self._model.get_outputs()[0].shape[-1]
+        # Not every exported model takes token_type_ids (some drop it). Record
+        # the accepted input names so encode() only feeds supported tensors.
+        self._input_names = {i.name for i in self._model.get_inputs()}
         logger.info(f"ONNX model loaded. Embedding dimension: {self.embedding_dimension}")
     
     def encode(self, texts: Union[str, List[str]], convert_to_numpy: bool = True) -> np.ndarray:
@@ -283,14 +304,35 @@ class ONNXEmbeddingModel:
             attention_mask[i, :length] = enc.attention_mask
             token_type_ids[i, :length] = enc.type_ids
         
-        # Run inference
+        # Run inference — only feed inputs the model actually declares.
         ort_inputs = {
             "input_ids": input_ids,
             "attention_mask": attention_mask,
             "token_type_ids": token_type_ids,
         }
+        accepted = getattr(self, "_input_names", None)
+        if accepted is not None:
+            ort_inputs = {k: v for k, v in ort_inputs.items() if k in accepted}
         
-        outputs = self._model.run(None, ort_inputs)
+        session = self._model
+        try:
+            outputs = session.run(None, ort_inputs)
+        except Exception as exc:
+            if "CoreMLExecutionProvider" not in session.get_providers():
+                raise
+            # CPU in the provider list handles unsupported nodes, not CoreML
+            # runtime failures. Rebuild without CoreML and retry this batch once.
+            logger.warning(
+                "CoreML inference failed; retrying with CPUExecutionProvider: %s",
+                _sanitize_log_value(exc),
+            )
+            model_path = self._resolve_model_path()
+            session = ort.InferenceSession(
+                str(model_path), providers=["CPUExecutionProvider"]
+            )
+            self._model = session
+            self._preferred_providers = ["CPUExecutionProvider"]
+            outputs = session.run(None, ort_inputs)
         
         # Extract embeddings (using mean pooling)
         last_hidden_states = outputs[0]
@@ -312,6 +354,29 @@ class ONNXEmbeddingModel:
         return "cpu"  # ONNX runtime handles device selection internally
 
 
+def _get_preferred_providers() -> list[str]:
+    """Use an explicit provider pin, or prefer available accelerators."""
+    available = ort.get_available_providers()
+    configured = os.environ.get("MCP_MEMORY_ONNX_PROVIDERS", "").strip()
+    if configured:
+        providers = [provider.strip() for provider in configured.split(",")]
+        if set(providers) - set(available):
+            raise ValueError(
+                "MCP_MEMORY_ONNX_PROVIDERS must contain comma-separated available "
+                f"provider names. Available: {available}"
+            )
+        return providers
+    return [
+        provider
+        for provider in (
+            "CUDAExecutionProvider",
+            "DirectMLExecutionProvider",
+            "CoreMLExecutionProvider",
+        )
+        if provider in available
+    ] + ["CPUExecutionProvider"]
+
+
 def get_onnx_embedding_model(model_name: str = "all-MiniLM-L6-v2") -> Optional[ONNXEmbeddingModel]:
     """
     Get ONNX embedding model if available.
@@ -321,6 +386,9 @@ def get_onnx_embedding_model(model_name: str = "all-MiniLM-L6-v2") -> Optional[O
         
     Returns:
         ONNXEmbeddingModel instance or None if ONNX is not available
+
+    Raises:
+        ValueError: If MCP_MEMORY_ONNX_PROVIDERS contains unavailable provider names.
     """
     if not ONNX_AVAILABLE:
         logger.warning("ONNX Runtime not available")
@@ -330,25 +398,14 @@ def get_onnx_embedding_model(model_name: str = "all-MiniLM-L6-v2") -> Optional[O
         logger.warning("Tokenizers not available")
         return None
     
+    preferred_providers = _get_preferred_providers()
     try:
-        # Detect best available providers
-        available_providers = ort.get_available_providers()
-        preferred_providers = []
-        
-        # Prefer GPU providers if available
-        if 'CUDAExecutionProvider' in available_providers:
-            preferred_providers.append('CUDAExecutionProvider')
-        if 'DirectMLExecutionProvider' in available_providers:
-            preferred_providers.append('DirectMLExecutionProvider')
-        if 'CoreMLExecutionProvider' in available_providers:
-            preferred_providers.append('CoreMLExecutionProvider')
-        
-        # Always include CPU as fallback
-        preferred_providers.append('CPUExecutionProvider')
-        
-        logger.info(f"Creating ONNX model with providers: {preferred_providers}")
+        logger.info(
+            "Creating ONNX model with providers: %s",
+            _sanitize_log_value(preferred_providers),
+        )
         return ONNXEmbeddingModel(model_name, preferred_providers)
     
     except Exception as e:
-        logger.error(f"Failed to create ONNX embedding model: {e}")
+        logger.error("Failed to create ONNX embedding model: %s", _sanitize_log_value(e))
         return None
