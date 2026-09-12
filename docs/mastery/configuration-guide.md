@@ -77,6 +77,27 @@ TLS:
 - Scheduling (APScheduler-ready):
   - `MCP_SCHEDULE_DAILY` (default `02:00`), `MCP_SCHEDULE_WEEKLY` (default `SUN 03:00`), `MCP_SCHEDULE_MONTHLY` (default `01 04:00`), `MCP_SCHEDULE_QUARTERLY` (default `disabled`), `MCP_SCHEDULE_YEARLY` (default `disabled`).
 
+## Scheduled Session Harvest (Optional)
+
+Autonomously harvests learnings from session transcripts on a timer, in-process (via the consolidation scheduler). Backfills sessions that ended abruptly or were never harvested — the `memory_harvest` tool is local-only (not exposed over remote transports), so the scheduler is the safe place for autonomous harvest.
+
+- `MCP_HARVEST_SCHEDULE`: interval like `6h`, `30m`, `90s`, or a bare number of hours (`6`). Unset/`disabled` → no job (default; opt-in).
+- `MCP_HARVEST_SESSION_DIR`: transcripts directory (default `~/.kiro/sessions/cli`; shared with `memory_harvest`).
+- `MCP_HARVEST_SCHEDULE_SESSIONS`: max sessions per run (default `50`; delta only — already-harvested sessions are skipped via the harvest tracker).
+- `MCP_HARVEST_SCHEDULE_USE_LLM`: `true|false` (default `true`) — use the LLM classifier during scheduled harvest.
+
+Stored candidates carry the `session-harvest` tag and feed consolidation/beliefs on the next cycle.
+
+## Contradiction Detection / NLI (Optional)
+
+Flags contradictions between a newly stored memory and semantically similar existing ones.
+
+- `MCP_NLI_ENABLED`: `true|false` (default `false`). Master switch; nothing runs unless truthy.
+- `MCP_NLI_ON_STORE`: `true|false` (default `false`). Also run the pass inline on every store, not just on demand. Only takes effect when `MCP_NLI_ENABLED` is on.
+- `MCP_NLI_CONFIDENCE_THRESHOLD`: float (default `0.4`). Minimum NLI confidence for a pair to be registered as a contradiction.
+- `MCP_NLI_BACKEND`: `heuristic|cascade|llm` (default `heuristic`). `heuristic` is keyword/pattern-based with no ML deps. `cascade` (alias `llm`) uses the harvest provider chain (`HARVEST_LLM_PROVIDERS`) and degrades gracefully to the heuristic on any error. When unset it resolves to `heuristic`, so no LLM is ever called by accident.
+- `MCP_NLI_LLM_TIMEOUT`: seconds (default `30`). Applied once **per provider attempt** inside the harvest chain, so the worst case for a single pair is roughly `timeout × number of providers` before it falls back to the heuristic.
+
 ## Machine Identification
 
 - `MCP_MEMORY_INCLUDE_HOSTNAME`: `true|false` to tag memories with `source:<hostname>` and include `hostname` metadata.
