@@ -19,7 +19,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 Thanks to eunwoo song for the retrieval fix below (#1128) and to timkjr for the two consolidation fixes (#1087, #1088), both carried over from pull requests opened on Codeberg before the move.
 
-### Removed
+### Added
+
+- **Harvest provenance & safe re-harvest.** Harvested memories now record how they were
+  produced: a `harvest:method:{llm,heuristic}` tag plus `harvest_method`, `harvest_model`
+  (`"<provider>/<model>"`), `harvest_pipeline_version` and `harvest_session_id` in metadata.
+  The scheduled/manual harvest tracker now only marks a session done when it stored
+  something (`stored > 0`), so sessions harvested while the LLM chain was down stay pending
+  instead of being skipped forever. `memory_harvest` accepts `force_reharvest=true` to
+  reprocess already-tracked sessions (evolving similar memories rather than duplicating),
+  and `scripts/backfill_harvest_provenance.py` tags the pre-provenance corpus
+  `heuristic-legacy` (dry-run by default, idempotent). See
+  `docs/mastery/configuration-guide.md` → "Harvest provenance & re-harvest".
+
 
 - **HTTPClientStorage and the HTTP coordination mode (#1155, closes #1078).** `storage/http_client.py`, `utils/http_server_manager.py` and the `ServerCoordinator` auto-detection are gone. The mode had not been able to start since v7.5.0: the class lacked four abstract methods, and the detection probe asked `/health` while the server answers under `/api/health`, so every process fell back to direct SQLite anyway. It also carried no authentication and no TLS, so it could not have reached an `MCP_API_KEY`-gated server even if it had run. Multi-client access is WAL mode for several local clients and one shared HTTP server for everything else; the docs that still described the auto-detection now say so, and `docs/architecture.md` no longer claims Bearer-token support for a backend that had none.
 

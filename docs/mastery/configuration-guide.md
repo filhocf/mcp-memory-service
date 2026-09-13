@@ -88,6 +88,26 @@ Autonomously harvests learnings from session transcripts on a timer, in-process 
 
 Stored candidates carry the `session-harvest` tag and feed consolidation/beliefs on the next cycle.
 
+### Harvest provenance & re-harvest
+
+Every harvested memory records how it was produced, so a corpus mixing LLM-rewritten
+and heuristic-only captures stays auditable and re-harvestable.
+
+- **Tags**: each stored candidate gets `harvest:method:llm` or `harvest:method:heuristic`
+  (and `harvest:method:heuristic-legacy` for pre-provenance memories marked by the backfill).
+- **Metadata**: `harvest_method` (`llm`/`heuristic`), `harvest_model` (`"<provider>/<model>"`,
+  `null` for heuristic), `harvest_pipeline_version`, and `harvest_session_id`.
+- **Tracker correctness**: a scheduled/manual harvest marks a session as done only when it
+  actually stored something (`stored > 0`). Sessions harvested while the LLM chain was
+  unavailable stay pending and are retried, instead of being skipped forever.
+- **Re-harvest**: pass `force_reharvest=true` to `memory_harvest` to reprocess sessions that
+  the tracker already recorded (e.g. to upgrade heuristic-legacy captures via the LLM). A
+  re-harvested insight that is similar (≥ `similarity_threshold`) to an existing memory
+  evolves it (versioned update) instead of creating a duplicate, preserving provenance.
+- **Backfill**: `scripts/backfill_harvest_provenance.py` tags the legacy corpus
+  `heuristic-legacy` (dry-run by default; `--apply` to write; idempotent).
+
+
 ## Contradiction Detection / NLI (Optional)
 
 Flags contradictions between a newly stored memory and semantically similar existing ones.
