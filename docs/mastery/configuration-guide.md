@@ -106,6 +106,11 @@ and heuristic-only captures stays auditable and re-harvestable.
   evolves it (versioned update) instead of creating a duplicate, preserving provenance.
 - **Backfill**: `scripts/backfill_harvest_provenance.py` tags the legacy corpus
   `heuristic-legacy` (dry-run by default; `--apply` to write; idempotent).
+- **Safe pre-deletion**: `SessionHarvester.verify_session_coverage(session_id, threshold=0.9)`
+  re-harvests a session in-memory and checks each insight against stored memories, returning
+  `{coverage, missing_insights, low_quality_matches, safe_to_delete}`. Use it before deleting
+  a source transcript — a session is only `safe_to_delete` when every insight already has a
+  strong stored match, so freeing disk never silently loses knowledge.
 
 
 ## Contradiction Detection / NLI (Optional)
