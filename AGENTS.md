@@ -99,5 +99,21 @@ RETURN caller.name, caller.filePath
 - Onda 2 pendente: Trilogia RFC-MM (facts/gaps/feedback, roda em background via scheduler).
 
 ## Validação de features LLM
-- Ollama local (`--user ollama.service`, gemma3:4b, GPU GTX 1650). Apontar `HARVEST_LLM_PROVIDERS=ollama`.
-  Usar para validar NLI/fact-extraction END-TO-END antes de PR (o gate que faltou no #1215).
+## Validação de features LLM — TESTES E2E REAIS (obrigatório antes de PR)
+
+**Regra (Claudio, 13/set): NUNCA publicar sem testes E2E REAIS contra os providers.** E2E é parte do G5 (não gate separado): teste de integração no caminho real + subagent(reviewer). Mock não conta.
+
+**Ordem de prioridade dos providers (o que o usuário geral usa):**
+1. **groq** (primário — usuário geral). Modelo: `openai/gpt-oss-120b` (llama-3.3 foi descontinuado).
+2. **ollama** (local, offline). Modelo: `qwen2.5:3b` (instruct, não-thinking; qwen3/gemma3 dão saída vazia). Roda em GTX 1050 Ti 4GB + RAM.
+3. **deepseek** (fallback). Modelo: `deepseek-chat`.
+
+**Como rodar o E2E real:**
+```bash
+set -a; source ~/dtp/ai-configs/services/env/memory-service.env; set +a
+set -a; source ~/dtp/ai-configs/services/env/memory-service.$(hostname).env; set +a  # keys host-specific
+MCP_E2E_LLM=1 PYTHONPATH=src <venv>/python -m pytest tests/test_*_e2e.py -v
+```
+Validar CADA provider isolando `HARVEST_LLM_PROVIDERS=<p>` + confirmar o efeito no banco (não só contar totais).
+
+**API keys**: vivem em `memory-service.$(hostname).env` (host-specific, blindado contra reversão do Insync — ver §RFCs). NUNCA só no `.env` compartilhado.
