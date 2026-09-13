@@ -1810,7 +1810,8 @@ class MemoryServer:
             results = harvester.harvest(config)
         else:
             # Pagination: resolve ALL sessions, filter by tracker, take config.sessions
-            if already_harvested and not config.session_ids:
+            # R8: force_reharvest bypasses the tracker filter entirely.
+            if already_harvested and not config.session_ids and not getattr(config, "force_reharvest", False):
                 from .harvest.models import HarvestConfig as _HC
                 all_config = _HC(sessions=9999, project_path=config.project_path)
                 all_sessions = harvester._resolve_sessions(all_config)
@@ -1827,9 +1828,10 @@ class MemoryServer:
 
             results = await harvester.harvest_and_store(config)
 
-            # Track newly harvested sessions
+            # Track newly harvested sessions (R7: only those that stored something)
             if results:
-                new_ids = {r.session_id for r in results if r.session_id}
+                from .consolidation.scheduler import sessions_to_track
+                new_ids = sessions_to_track(results)
                 if new_ids:
                     all_harvested = already_harvested | new_ids
                     tracker_content = f"harvested_sessions:{','.join(sorted(all_harvested))}"

@@ -45,6 +45,7 @@ class HarvestConfig:
     dry_run: bool = True
     project_path: Optional[str] = None  # Override project dir
     use_llm: bool = False  # Phase 2: LLM-based classification
+    force_reharvest: bool = False  # RFC-provenance R8: ignore harvest-tracker
     # P4: Harvest evolution — evolve existing memories instead of duplicating
     similarity_threshold: float = 0.85  # Cosine similarity to trigger evolution
     min_confidence_to_evolve: float = 0.3  # Skip evolution for very stale memories

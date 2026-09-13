@@ -201,11 +201,12 @@ class SessionHarvester:
             return False
 
         existing_hash = similar[0].memory.content_hash
+        method = getattr(candidate, "harvest_method", "heuristic")
         try:
             ok, msg, new_hash = await self.memory_service.storage.update_memory_versioned(
                 existing_hash,
                 candidate.content,
-                new_tags=["session-harvest"] + candidate.tags,
+                new_tags=["session-harvest", f"harvest:method:{method}"] + candidate.tags,
                 new_memory_type=candidate.memory_type,
                 reason=f"Session harvest: {datetime.now(timezone.utc).isoformat()}",
             )
