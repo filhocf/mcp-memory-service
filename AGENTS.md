@@ -84,6 +84,12 @@ RETURN caller.name, caller.filePath
 - **`~/git/mcp-memory-service-dev`** → worktree da pilha de PRs (branches `pr/NNNN`, saem de `upstream/main`).
 - **`main`** (branch, v11.5.5) = rollback do serviço. `upstream` = GitHub doobidoo (fetch-only). Push só nos forks.
 
+## RFCs e feats novas (fluxo — NÃO improvisar)
+- **RFC = doc de amadurecimento, FORK-ONLY.** Vive em `docs/rfc/*.md` na branch **`main`** do fork. NUNCA vira PR upstream.
+- Fluxo: (1) RFC na `main` para amadurecer a ideia → (2) issue/RFC no GitHub p/ o Henry avaliar quando é algo novo → (3) atualizar o RFC local conforme evolui = vira a **spec** que guia a implementação.
+- **Commit de RFC na `main`:** checkout temporário da `main` num worktree LIVRE (o dev, se limpo) → commit → volta. Não criar worktree em `/tmp` nem mexer na `service`.
+- **Feat nova que estende um PR ainda não mergeado:** empilhar em worktree próprio a partir do PR-pai (ex: `feat/harvest-provenance` sai de `pr/scheduled-harvest`). Só vira PR quando o pai mergear (regra 1-PR-por-vez). Estado da pilha vive no runbook.
+
 ## Estado da branch `service` (atualizar quando mudar)
 - Base v11.11.0 + NLI cascade + Store-NER + fix cascade (backend=auto).
 - Embedding: **torch/multilingual** (`paraphrase-multilingual-MiniLM-L12-v2`, PT-BR). USE_ONNX=0.
