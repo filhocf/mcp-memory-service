@@ -45,8 +45,14 @@ def backfill(db_path: str, apply: bool) -> dict:
         new_tags = tags + ("," if tags else "") + LEGACY_TAG
         try:
             meta = json.loads(r["metadata"]) if r["metadata"] else {}
-        except (json.JSONDecodeError, TypeError):
-            meta = {}
+            if not isinstance(meta, dict):
+                raise ValueError("metadata is not a JSON object")
+        except (json.JSONDecodeError, TypeError, ValueError) as e:
+            # Do NOT silently overwrite corrupted metadata — skip and report,
+            # so we never destroy data we can't parse.
+            print(f"  WARN: skipping {r['content_hash'][:8]} — unparseable metadata ({e})")
+            stats["skipped"] += 1
+            continue
         meta.setdefault("harvest_method", "heuristic-legacy")
         meta.setdefault("harvest_pipeline_version", 0)
         if apply:

@@ -264,11 +264,11 @@ class SessionHarvester:
                 rewritten = []
                 for candidate, result in zip(filtered, batch_results):
                     if result:
-                        _model = (
-                            f"{result.provider}/{result.model}"
-                            if getattr(result, "provider", None) and getattr(result, "model", None)
-                            else None
-                        )
+                        # Provenance: only record model when BOTH provider and
+                        # model are non-empty (truthiness handles "" and None).
+                        _prov = getattr(result, "provider", None)
+                        _mdl = getattr(result, "model", None)
+                        _model = f"{_prov}/{_mdl}" if _prov and _mdl else None
                         rewritten.append(HarvestCandidate(
                             content=result.content,
                             memory_type=result.memory_type,
