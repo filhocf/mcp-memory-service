@@ -100,6 +100,10 @@ TOOL_REGISTRY: list[ToolDef] = [
                     "type": "string",
                     "description": "Target store partition (default: 'default'). Use 'docs' for documents, 'all' for cross-store search.",
                 },
+                "agent_id": {
+                    "type": "string",
+                    "description": "Authoring agent id (default: MCP_AGENT_ID env, else unknown). Enables multi-agent attribution and cross-agent conflict handling.",
+                },
             },
             "required": ["content"],
         },

@@ -265,6 +265,17 @@ class Memory:
         """Set source type."""
         self.metadata['source_type'] = value
 
+    # RFC #1100 - Author identity (multi-agent)
+    @property
+    def agent_id(self) -> Optional[str]:
+        """Get the authoring agent id (None = unknown). Lives in metadata (no schema change)."""
+        return self.metadata.get('agent_id')
+
+    @agent_id.setter
+    def agent_id(self, value: Optional[str]):
+        """Set the authoring agent id."""
+        self.metadata['agent_id'] = value
+
     @property
     def credibility(self) -> float:
         """Get credibility score (0.0-1.0)."""

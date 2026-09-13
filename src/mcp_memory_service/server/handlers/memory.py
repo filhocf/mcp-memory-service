@@ -199,6 +199,7 @@ async def handle_store_memory(server, arguments: dict) -> List[types.TextContent
         client_hostname = arguments.get("client_hostname")
         conversation_id = arguments.get("conversation_id")
         store = arguments.get("store", "default")
+        agent_id = arguments.get("agent_id")
 
         # Call shared MemoryService business logic
         result = await server.memory_service.store_memory(
@@ -209,6 +210,7 @@ async def handle_store_memory(server, arguments: dict) -> List[types.TextContent
             client_hostname=client_hostname,
             conversation_id=conversation_id,
             store=store,
+            agent_id=agent_id,
         )
 
         # Convert MemoryService result to MCP response format
