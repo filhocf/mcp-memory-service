@@ -85,8 +85,10 @@ RETURN caller.name, caller.filePath
 - **`main`** (branch, v11.5.5) = rollback do serviço. `upstream` = GitHub doobidoo (fetch-only). Push só nos forks.
 
 ## RFCs e feats novas (fluxo — NÃO improvisar)
-- **RFC = doc de amadurecimento, FORK-ONLY.** Vive em `docs/rfc/*.md` na branch **`main`** do fork. NUNCA vira PR upstream.
-- Fluxo: (1) RFC na `main` para amadurecer a ideia → (2) issue/RFC no GitHub p/ o Henry avaliar quando é algo novo → (3) atualizar o RFC local conforme evolui = vira a **spec** que guia a implementação.
+- **RFC = doc de amadurecimento, FORK-ONLY.** Vive SÓ em `docs/rfc/RFC-<tema>.md` na branch **`main`** do fork. NUNCA vira PR upstream.
+- **EARS obrigatório na RFC.** Requisitos em prosa + EARS (DEVELOPMENT-STANDARDS §8.4.1): uma ação por frase, sujeito = componente (`THE harvester SHALL`), testável. A EARS da RFC vira acceptance criteria e origina os testes G3 RED — é o que guia a implementação.
+- **Este repo é FORK de terceiro.** `specs/` e `docs/superpowers/` são do UPSTREAM (Henry) — read-only, NUNCA commitar ali. O layout SDD nosso (`sdd/specs/planned|implemented`, SPEC-F###) é para projetos PRÓPRIOS (MIR, query-one), NÃO para forks. Em fork, a RFC em `docs/rfc/` É a spec de trabalho.
+- Fluxo: (1) RFC na `main` para amadurecer → (2) issue/RFC no GitHub p/ o Henry avaliar quando é algo novo → (3) atualizar o RFC local conforme evolui.
 - **Commit de RFC na `main`:** checkout temporário da `main` num worktree LIVRE (o dev, se limpo) → commit → volta. Não criar worktree em `/tmp` nem mexer na `service`.
 - **Feat nova que estende um PR ainda não mergeado:** empilhar em worktree próprio a partir do PR-pai (ex: `feat/harvest-provenance` sai de `pr/scheduled-harvest`). Só vira PR quando o pai mergear (regra 1-PR-por-vez). Estado da pilha vive no runbook.
 
