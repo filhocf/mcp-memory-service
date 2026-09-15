@@ -33,6 +33,8 @@ from ..compat import _sanitize_log_value
 
 logger = logging.getLogger(__name__)
 
+_MAX_TAG_SEARCH_CANDIDATES = 4096
+
 
 def normalize_tags_for_search(tags: List[str]) -> List[str]:
     """Deduplicate and filter empty tag strings.
@@ -729,7 +731,11 @@ class CloudflareStorage(MemoryStorage):
             # Search Vectorize (without namespace for now)
             search_payload = {
                 "vector": query_embedding,
-                "topK": n_results,
+                "topK": (
+                    min(n_results * 3, _MAX_TAG_SEARCH_CANDIDATES)
+                    if tags
+                    else n_results
+                ),
                 "returnMetadata": "all",
                 "returnValues": False
             }
@@ -760,6 +766,9 @@ class CloudflareStorage(MemoryStorage):
                         relevance_score=match.get("score", 0.0)
                     )
                     results.append(query_result)
+
+            if tags:
+                results = results[:n_results]
 
             # Persist updated metadata for accessed memories
             for result in results:
@@ -1923,6 +1932,13 @@ class CloudflareStorage(MemoryStorage):
                 where_conditions.append("m.memory_type = ?")
                 params.append(memory_type)
 
+            if stale_days is not None and stale_days > 0:
+                where_conditions.append(
+                    "COALESCE(CAST(json_extract(m.metadata_json, "
+                    "'$.last_accessed_at') AS REAL), m.created_at) < ?"
+                )
+                params.append(time.time() - stale_days * 86400)
+
             tag_count = 0
             if tags:
                 tag_count = len(tags)
@@ -1949,7 +1965,7 @@ class CloudflareStorage(MemoryStorage):
                 else:
                     sql += " GROUP BY m.id"
 
-            sql += " ORDER BY m.created_at DESC"
+            sql += " ORDER BY m.created_at DESC, m.id DESC"
 
             if limit is not None:
                 sql += " LIMIT ?"

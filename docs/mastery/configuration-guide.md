@@ -47,9 +47,23 @@ Cloudflare options (required unless otherwise noted):
 - `MCP_HTTP_ENABLED`: `true|false` to enable HTTP interface.
 - `MCP_HTTP_HOST`: Bind address (default `0.0.0.0`).
 - `MCP_HTTP_PORT`: Port (default `8000`).
+- `MCP_HTTP_ROOT_PATH`: External path prefix when a reverse proxy strips the
+  prefix before forwarding (for example, `/memory`). Defaults to empty.
 - `MCP_CORS_ORIGINS`: Comma-separated origins (default `*`).
 - `MCP_SSE_HEARTBEAT`: SSE heartbeat interval seconds (default 30).
 - `MCP_API_KEY`: Optional API key for HTTP.
+
+For a proxy that exposes the service at `https://host.example/memory/` and
+forwards the request without `/memory`, set:
+
+```bash
+MCP_HTTP_ROOT_PATH=/memory
+```
+
+The dashboard, static assets, REST/SSE requests, API documentation, and
+auto-detected OAuth endpoint URLs then use the same prefix. If OAuth uses a
+public hostname, continue to set `MCP_OAUTH_ISSUER` to the complete external
+issuer URL, including the prefix.
 
 TLS:
 
@@ -123,6 +137,14 @@ Flags contradictions between a newly stored memory and semantically similar exis
 - `MCP_NLI_BACKEND`: `heuristic|cascade|llm` (default `heuristic`). `heuristic` is keyword/pattern-based with no ML deps. `cascade` (alias `llm`) uses the harvest provider chain (`HARVEST_LLM_PROVIDERS`) and degrades gracefully to the heuristic on any error. When unset it resolves to `heuristic`, so no LLM is ever called by accident.
 - `MCP_NLI_LLM_TIMEOUT`: seconds (default `30`). Applied once **per provider attempt** inside the harvest chain, so the worst case for a single pair is roughly `timeout × number of providers` before it falls back to the heuristic.
 
+## Harvest LLM Classifier — Pacing & Backoff (Optional)
+
+Rate-limit handling for the harvest classifier (validates candidate memories via the `HARVEST_LLM_PROVIDERS` chain). All optional; unset = prior behavior (switch provider on 429, no pacing).
+
+- `MCP_HARVEST_LLM_MAX_RETRIES`: int (default `0`). Retries against the **same** provider on a 429 before moving to the next. Default `0` preserves the prior behavior (switch provider immediately); set `>0` to opt into exponential backoff.
+- `MCP_HARVEST_LLM_BACKOFF_BASE`: seconds (default `1.0`). Exponential backoff base — waits `base × 2**attempt` between retries (1s, 2s, 4s, …).
+- `MCP_HARVEST_LLM_REQUEST_DELAY`: seconds (default `0.0` = disabled). Inter-request delay applied before each classifier call, to pace throughput regardless of provider.
+
 ## Machine Identification
 
 - `MCP_MEMORY_INCLUDE_HOSTNAME`: `true|false` to tag memories with `source:<hostname>` and include `hostname` metadata.
@@ -141,4 +163,3 @@ Flags contradictions between a newly stored memory and semantically similar exis
   - Ensure required variables are set or the process exits with a clear error and checklist.
 - Hybrid (recommended for production):
   - Uses SQLite-vec for 5 ms local reads with background Cloudflare sync. Requires all `CLOUDFLARE_*` variables. Set `MCP_HYBRID_SYNC_OWNER=http` when running alongside an MCP server so only the HTTP server syncs.
-
