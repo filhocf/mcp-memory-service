@@ -100,6 +100,8 @@ Tornar a colheita **auditável, reprocessável e segura para deleção da fonte*
 
 > EARS: IF `coverage < threshold` (default 0.9), THEN THE system SHALL flag the session as not-safe-to-delete.
 
+> **Status (15/set):** R11/R12 submetidos ao upstream no PR #1252 (`verify_session_coverage`, método + 4 unit + E2E real). Split do #1243. Aguarda review do Henry.
+
 ### Funcional — Fase 4 (Session Digest temático)
 
 Motivação: o harvest de insights pontuais captura frases-gatilho ("decidi X", "o bug era Y") mas **perde o arco de trabalho** — análises de design extensas e o "o que já foi feito" de um tema ao longo de várias sessões. Diagnóstico real (issue #1100): 20 sessões de trabalho de RFC colhidas produziram apenas fragmentos, porque o conteúdo de design estava em mensagens longas e em `ToolResults` que o extractor de frase-curta descarta. O digest resolve isso: um resumo por **tema** (não por sessão — uma sessão toca vários temas), preservando o contexto de trabalho sem guardar o transcript bruto.
