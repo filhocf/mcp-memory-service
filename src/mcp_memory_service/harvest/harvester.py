@@ -150,14 +150,21 @@ class SessionHarvester:
                         if evolved:
                             stored += 1
                         else:
-                            # Provenance (RFC-harvest-provenance Phase 1)
-                            method = getattr(candidate, "harvest_method", "heuristic")
+                            # Provenance (RFC-harvest-provenance Phase 1).
+                            # Derive method from the model signal: only the LLM
+                            # path sets harvest_model, so its presence is the
+                            # source of truth — a missing/defaulted
+                            # harvest_method must not mislabel an LLM candidate.
+                            model = getattr(candidate, "harvest_model", None)
+                            method = getattr(candidate, "harvest_method", None)
+                            if not method:
+                                method = "llm" if model else "heuristic"
                             tags = ["session-harvest", f"harvest:method:{method}"] + candidate.tags
                             metadata = {
                                 "confidence": candidate.confidence,
                                 "source": "harvest",
                                 "harvest_method": method,
-                                "harvest_model": getattr(candidate, "harvest_model", None),
+                                "harvest_model": model,
                                 "harvest_pipeline_version": HARVEST_PIPELINE_VERSION,
                                 "harvest_session_id": result.session_id,
                             }
@@ -201,12 +208,17 @@ class SessionHarvester:
             return False
 
         existing_hash = similar[0].memory.content_hash
-        method = getattr(candidate, "harvest_method", "heuristic")
         try:
+            # Apply method provenance tagging (same as store path)
+            method = getattr(candidate, "harvest_method", None)
+            if not method:
+                method = "llm" if getattr(candidate, "harvest_model", None) else "heuristic"
+            tags = ["session-harvest", f"harvest:method:{method}"] + candidate.tags
+            
             ok, msg, new_hash = await self.memory_service.storage.update_memory_versioned(
                 existing_hash,
                 candidate.content,
-                new_tags=["session-harvest", f"harvest:method:{method}"] + candidate.tags,
+                new_tags=tags,
                 new_memory_type=candidate.memory_type,
                 reason=f"Session harvest: {datetime.now(timezone.utc).isoformat()}",
             )
@@ -322,11 +334,11 @@ class SessionHarvester:
                 rewritten = []
                 for candidate, result in zip(filtered, batch_results):
                     if result:
-                        # Provenance: only record model when BOTH provider and
-                        # model are non-empty (truthiness handles "" and None).
-                        _prov = getattr(result, "provider", None)
-                        _mdl = getattr(result, "model", None)
-                        _model = f"{_prov}/{_mdl}" if _prov and _mdl else None
+                        _model = (
+                            f"{result.provider}/{result.model}"
+                            if getattr(result, "provider", None) and getattr(result, "model", None)
+                            else None
+                        )
                         rewritten.append(HarvestCandidate(
                             content=result.content,
                             memory_type=result.memory_type,
