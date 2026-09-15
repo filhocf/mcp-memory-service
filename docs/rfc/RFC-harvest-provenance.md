@@ -50,7 +50,7 @@ Tornar a colheita **auditável, reprocessável e segura para deleção da fonte*
 
 **R1**: Toda memória colhida registra o método de extração como tag.
 
-> EARS: WHEN a harvest candidate is stored, THE harvester SHALL tag it `harvest:method:llm` if it was LLM-rewritten, otherwise `harvest:method:heuristic`.
+> EARS: WHEN a harvest candidate is stored OR evolved into an existing memory, THE harvester SHALL tag it `harvest:method:llm` if it was LLM-rewritten, otherwise `harvest:method:heuristic`.
 
 **R2**: A memória registra o método também em metadata (para consulta programática).
 
@@ -85,6 +85,8 @@ Tornar a colheita **auditável, reprocessável e segura para deleção da fonte*
 **R9**: A recolheita via LLM evolui a memória existente em vez de duplicar.
 
 > EARS: WHEN a re-harvested insight is similar (>= 0.85) to an existing memory, THE harvester SHALL evolve it via versioned update instead of storing a duplicate.
+
+> **Nota (15/set):** o evolve path (`_try_evolve`) carimba `harvest:method` igual ao store path — submetido no PR #1252 (follow-up da review do #1243, onde o evolve tinha ficado sem o carimbo no enxugamento).
 
 **R10**: É possível selecionar recolheita por método de origem.
 
