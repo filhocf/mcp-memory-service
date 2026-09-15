@@ -64,8 +64,9 @@ RETURN caller.name, caller.filePath
 
 # 🎯 START HERE — agente (fork/serviço do Claudio)
 
-> Este arquivo vive na branch `service` (NUNCA vira PR — não vaza pro upstream).
+> Este arquivo vive na branch `main` do fork = LINHA VIVA (NUNCA vira PR — não vaza pro upstream).
 > Ao entrar neste repo, ANTES de qualquer tarefa, situe-se com os passos abaixo.
+> **Reorg concluída 15/set:** a `main` do fork é agora upstream/main (v11.12.0) + camada nossa. O serviço roda dela.
 
 ## Passos de arranque (sempre)
 1. **Carregar a skill:** `~/.kiro/skills/memory-service-maintainer/SKILL.md`
@@ -80,23 +81,36 @@ RETURN caller.name, caller.filePath
   1 review dele, 1 PR por issue). Antes do PR: gate **G5** (subagent reviewer + teste de INTEGRAÇÃO).
 
 ## Ambiente (3 lugares, não misturar)
-- **`~/git/mcp-memory-service`** (ESTE) → branch `service` = v11.11.0 + nossas feats. **O SERVIÇO systemd roda daqui** (venv editable, `--user memory-service`). Banco: `~/local-data/mcp/sqlite_vec.db`.
+- **`~/git/mcp-memory-service`** (ESTE) → branch **`main`** = LINHA VIVA = `upstream/main` (v11.12.0) + camada nossa (docs/rfc, feats fork-only: Store-NER, harvest provenance/re-harvest, NLI wire, AGENTS). **O SERVIÇO systemd roda daqui** (venv editable uv, `--user memory-service`). Banco: `~/local-data/mcp/sqlite_vec.db`.
 - **`~/git/mcp-memory-service-dev`** → worktree da pilha de PRs (branches `pr/NNNN`, saem de `upstream/main`).
-- **`main`** (branch, v11.5.5) = rollback do serviço. `upstream` = GitHub doobidoo (fetch-only). Push só nos forks.
+- **`upstream`** = GitHub doobidoo (fetch-only). Push só no fork (`github`).
+
+**Modelo de branches (em vigor desde 15/set):**
+```
+upstream/main ──→ pr/<feat> ──(Henry mergeia)──→ upstream/main
+                                       │ (merge periódico do upstream)
+                                       ▼
+                                    main (fork) ← LINHA VIVA (serviço roda daqui)
+```
+- **Feat aprovada volta à `main` via `git merge upstream/main`, NUNCA cherry-pick** — quando o Henry mergeia nosso PR, o merge do upstream substitui nossa versão fork-only pela oficial (evita duplicata). Foi assim que NLI #1215/ONNX #1242/scheduler #1241 convergiram no merge de 15/set.
+- **Gestão viva:** a cada PR nosso mergeado no upstream, fazer `git merge upstream/main` na `main` e resolver conflitos ficando com o upstream onde ele absorveu a feat.
+- Tudo que difere do upstream (docs/rfc, fork-only) habita SÓ na `main`.
+- Backups: `backup/service-pre-mainswap-0915` (service pré-swap), `backup/main-fork-2026-09-02`.
 
 ## RFCs e feats novas (fluxo — NÃO improvisar)
 - **RFC = doc de amadurecimento, FORK-ONLY.** Vive SÓ em `docs/rfc/RFC-<tema>.md` na branch **`main`** do fork. NUNCA vira PR upstream.
 - **EARS obrigatório na RFC.** Requisitos em prosa + EARS (DEVELOPMENT-STANDARDS §8.4.1): uma ação por frase, sujeito = componente (`THE harvester SHALL`), testável. A EARS da RFC vira acceptance criteria e origina os testes G3 RED — é o que guia a implementação.
 - **Este repo é FORK de terceiro.** `specs/` e `docs/superpowers/` são do UPSTREAM (Henry) — read-only, NUNCA commitar ali. O layout SDD nosso (`sdd/specs/planned|implemented`, SPEC-F###) é para projetos PRÓPRIOS (MIR, query-one), NÃO para forks. Em fork, a RFC em `docs/rfc/` É a spec de trabalho.
 - Fluxo: (1) RFC na `main` para amadurecer → (2) issue/RFC no GitHub p/ o Henry avaliar quando é algo novo → (3) atualizar o RFC local conforme evolui.
-- **Commit de RFC na `main`:** checkout temporário da `main` num worktree LIVRE (o dev, se limpo) → commit → volta. Não criar worktree em `/tmp` nem mexer na `service`.
+- **Commit de RFC na `main`:** a `main` É o working tree do serviço (este repo). Editar `docs/rfc/`, commitar, e `git merge`/push quando alinhar. Se o serviço estiver rodando, o commit de docs não afeta runtime.
 - **Feat nova que estende um PR ainda não mergeado:** empilhar em worktree próprio a partir do PR-pai (ex: `feat/harvest-provenance` sai de `pr/scheduled-harvest`). Só vira PR quando o pai mergear (regra 1-PR-por-vez). Estado da pilha vive no runbook.
 
-## Estado da branch `service` (atualizar quando mudar)
-- Base v11.11.0 + NLI cascade + Store-NER + fix cascade (backend=auto).
-- Embedding: **torch/multilingual** (`paraphrase-multilingual-MiniLM-L12-v2`, PT-BR). USE_ONNX=0.
-  ONNX leve pendente = issue #143 (modelo ONNX pronto: `onnx-community/paraphrase-multilingual-MiniLM-L12-v2-ONNX`).
-- Onda 2 pendente: Trilogia RFC-MM (facts/gaps/feedback, roda em background via scheduler).
+## Estado da `main` (atualizar quando mudar)
+- Base **upstream/main v11.12.0** + camada fork-only: Store-NER (StoreTermsExtractor), harvest provenance + re-harvest (R7 sessions_to_track) + verify_session_coverage, NLI wire (MCP_NLI_BACKEND). NLI cascade/ONNX/scheduler = versões do upstream (já absorvidas).
+- Embedding: **ONNX** (`paraphrase-multilingual-MiniLM-L12-v2`, PT-BR, dim 384). USE_ONNX=1, venv leve uv (sem torch).
+- 18 RFCs em `docs/rfc/` (harvest-provenance v0.5, 9 Mnemosyne, agent-id, config-audit, etc). Ver ANALISE.md.
+- Onda 2 pendente: Trilogia RFC-MM (facts/gaps/feedback, background via scheduler).
+- reinstalar após pull: `VIRTUAL_ENV=.venv uv pip install -e . --no-deps` (venv é uv, sem pip; alinha versão instalada).
 
 ## Validação de features LLM
 ## Validação de features LLM — TESTES E2E REAIS (obrigatório antes de PR)
