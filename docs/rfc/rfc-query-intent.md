@@ -21,6 +21,28 @@ O retrieval usa pesos fixos entre similaridade vetorial e busca por palavra-chav
 - Consultas temporais e de entidade ("o que Denis prefere") se beneficiam de mais FTS/entity; consultas procedurais ("como faço deploy") se beneficiam de mais semântica.
 - Mnemosyne classifica a intenção por regex (temporal/factual/entity/preference/procedural/general) e ajusta os pesos — ganho barato, determinístico, sem tocar schema.
 
+### 🔬 Experimento exploratório (18/set/2026, read-only)
+
+Classificadas as 52 queries reais de `memory_gaps` pelo regex de intenção da RFC:
+
+| Intenção | Qtd | % |
+|----------|-----|---|
+| general | 44 | 84.6% |
+| procedural | 5 | 9.6% |
+| factual | 3 | 5.8% |
+| temporal/entity/preference | 0 | 0% |
+
+**Achados que ajustam a RFC:**
+1. Só **15%** das queries têm intenção detectável pelo regex atual → o ganho é menor
+   que o assumido SE o classificador ficar como está.
+2. Mas o "general" está **inflado por regex fraco**: queries claramente factual
+   ("jenkins-mir credenciais URL", "car_nacional coreapi porta 5433") caíram em
+   general. O corpus real é PT-BR técnico com keywords soltas, não frases naturais.
+3. **Ação p/ RFC madura:** a D3 precisa PRIMEIRO de um classificador calibrado ao
+   nosso corpus (keywords técnicas → factual/entity), senão 85% não se beneficia.
+   Amostra pequena (52) — coletar mais queries reais antes de fixar pesos.
+   Prioridade REBAIXADA até o classificador provar cobertura >50% no corpus real.
+
 ### Causas
 
 1. **Peso fixo.** O hybrid usa uma proporção constante vetor/FTS.
