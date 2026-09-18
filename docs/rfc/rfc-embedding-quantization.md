@@ -90,6 +90,24 @@ Reduzir o espaço de embeddings via quantização **configurável** (float32 →
 - int8: 82 MB → ~21 MB (**−61 MB, −13% do banco**). Baixo risco.
 - bit: 82 MB → ~3 MB (**−79 MB, −17%**). Exige validar recall PT-BR (R3/R4).
 
+### ✅ G0 / validação de viabilidade (18/set/2026, sirdata)
+
+Confirmado antes de implementar:
+- `memory_embeddings_vector_chunks00` = **84 MB** real (dbstat) — bate com a estimativa.
+- **sqlite-vec 0.1.9 suporta os 3 tipos nativamente**: `float[N]`, `int8[N]`, `bit[N]` (testado).
+- vec0 atual: `content_embedding FLOAT[384] distance_metric=cosine, store TEXT partition key`.
+- Criação da vec0 em DOIS pontos: `utils/db_utils.py:317` e `storage/mixins/migrations.py:281`.
+
+**Achado que reposiciona o escopo:** trocar o tipo na criação (R1/R2) só afeta bancos NOVOS.
+O ganho de −61 MB no NOSSO banco (22k vetores já em FLOAT[384]) exige a **migração
+re-quantizadora (R5)** — é a parte que entrega o valor localmente, e a mais delicada
+(mexe em 84 MB do serviço vivo). Ordem de implementação:
+1. R1/R2: `MCP_MEMORY_VEC_TYPE` nos 2 pontos de criação + default float32 (aditivo, seguro).
+2. R5: script de migração (lê FLOAT[384] → re-quantiza int8 → tabela nova → VACUUM → reporta bytes). Manter original até confirmar.
+3. R3: validar recall@10 int8 vs float32 no corpus PT-BR real (rodar retrieval comparativo).
+4. R4/bit: fase posterior, atrás de flag, só se recall int8 provar o caminho.
+**Precisa sessão dedicada** (mexe no serviço vivo; fazer com backup do banco antes).
+
 ---
 
 ## 5. Fora de Escopo
