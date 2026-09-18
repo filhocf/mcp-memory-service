@@ -95,6 +95,25 @@ Fornecer **audit de ruído** (dry-run, com score) e **cleanup seguro** (delete/a
 - Ruído sobre 243 MB (FTS+conteúdo): conservador 10% = **−24 MB**; moderado 20% = **−49 MB**; agressivo 30% = **−73 MB**.
 - Ganho real depende do `candidate_ratio` medido — **rodar audit dry-run no banco antes de fixar**.
 
+### ⚠️ MEDIÇÃO REAL — audit_noise dry-run em sirdata (18/set/2026)
+
+Rodado o `audit_noise` (protótipo) contra o banco de produção (22.033 memórias, 505 MB). Resultado **corrige a estimativa acima, que estava superestimada**:
+
+| Bucket | Qtd | Nota |
+|--------|-----|------|
+| delete (score ≥0.6) | 39 | ruído claro (stacktrace, test-artifact) |
+| review (0.4–0.6) | 615 | borderline (fragmentos harvest, test-tags) |
+| keep (<0.4) | 21.379 | 97% |
+| **candidate_ratio** | **3,0%** | 654/22.033 — MUITO abaixo dos 10-30% estimados |
+| conteúdo candidato | ~0,2 MB | só coluna `content` |
+
+**Conclusão que reposiciona a RFC:**
+1. O banco de 505 MB **não é inchado por ruído de conteúdo** (só 3% / ~0,2 MB). O peso está em **FTS (142 MB) + embeddings** → o ganho de DISCO é da **D1 (quantization)**, não da D2.
+2. O valor real da D2 é **QUALIDADE + SEGURANÇA**, não disco:
+   - **secret detection funcionou: 5 hits, 2 REAIS** (API key DeepSeek da T'Pol + key OCI/LIA do MIR, vazadas via checkpoint/correção de sessão). Removidas em 18/set; **keys devem ser rotacionadas**. Os outros 3 eram placeholders de doc (HCSO cert_demo, JWT sample techdocs) — o detector precisa distinguir sample de valor real (allowlist de contexto doc).
+   - 261 memórias com `test-tag` + 2.643 harvest-fragments poluem bootstrap/belief profile.
+3. **Ação p/ RFC madura ao Henry:** reposicionar D2 como "noise & secret hygiene para qualidade de retrieval/belief" (não "reduzir disco"). Números reais dão credibilidade. O `candidate_ratio` real (3%) vira o baseline honesto. Secret detection com allowlist de doc-context é o R5 refinado.
+
 ---
 
 ## 5. Fora de Escopo
