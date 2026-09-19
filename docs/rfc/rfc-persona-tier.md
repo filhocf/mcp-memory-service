@@ -21,6 +21,20 @@ A identidade do agente (nome, tom, voz, fatos estáveis de si) vive hoje em arqu
 - O bootstrap profile que já temos é **comportamental** (o que evitar, decisões consolidadas) — não é *identidade* (quem o agente é, como fala).
 - Mnemosyne extrai a persona das memórias já classificadas (fontes `preference`/`persona`/`stated`, importância ≥0.7), rule-based, zero LLM no default; e mantém um canonical store de fatos "fonte única da verdade" com supersessão temporal.
 
+### 🔬 Experimento exploratório (19/set/2026, banco sirdata, read-only)
+
+Varridas as memórias com tag/tipo `preference`/`persona`/`stated`/`identidade`/`estilo`:
+- **74 memórias qualificam** como fonte de identidade (bem acima do limiar ~20-30
+  para a derivação valer).
+- Amostra do que a persona auto-derivada capturaria: nome (Claudio), função
+  (Desenvolvedor/Arquiteto), áreas de expertise, stack (Java/Spring, Python, React),
+  ferramentas (IDE, terminal, git conventions).
+
+**Achado que valida a RFC:** a identidade É auto-derivável do acervo (rule-based,
+zero LLM) — não precisa depender do `persona.md` estático mantido à mão. O canonical
+store SSOT + supersessão temporal (RFC §design) tem massa suficiente para operar hoje.
+Próximo: comparar a persona derivada com o persona.md atual p/ medir cobertura/gap.
+
 ### Causas
 
 1. **Identidade fora do banco.** Persona vive no harness, não na memória — logo não é portável nem auto-atualizada.

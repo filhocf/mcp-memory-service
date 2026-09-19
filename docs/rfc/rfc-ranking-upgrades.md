@@ -21,6 +21,28 @@ Duas fraquezas de ranking: (a) o decay temporal é uniforme (mesma taxa para tod
 - O retrieval combina semantic + quality, mas não faz recuperação multi-voz com re-rank determinístico + penalidade de diversidade (o que o polyphonic do Mnemosyne faz).
 - Composite scoring upstream (#55) já caminha nessa direção (hop distance + centrality) — as duas ideias se somam.
 
+### 🔬 Experimento exploratório (19/set/2026, banco sirdata, read-only)
+
+Distribuição idade×tipo de 22.257 memórias com timestamp:
+
+| idade | qtd | % |
+|-------|----:|--:|
+| <7d | 1.412 | 6,3% |
+| 7-30d | 2.660 | 12,0% |
+| 30-90d | 8.291 | 37,3% |
+| >90d | 9.894 | 44,5% |
+
+**Achados que dimensionam a RFC:**
+1. **82% do acervo tem >30 dias.** Com meia-vida única, quase todo o banco já está
+   no "vale" do decay — o sinal temporal perde poder discriminante.
+2. **4.888 memórias (22%) são ESTÁVEIS e >30d** (decision 1610, learning 1185,
+   reference 892, document 1101...). Essas continuam válidas mas um decay uniforme
+   agressivo as rebaixa como se fossem eventos pontuais. É exatamente o caso do
+   Weibull-por-tipo: preferência/decisão/persona decaem devagar, evento rápido.
+3. **Ação p/ RFC:** o ganho é concreto — 1 em cada 5 memórias é conhecimento estável
+   antigo que o decay uniforme penaliza. Calibrar a meia-vida por tipo (longa p/
+   decision/preference/reference; curta p/ observation/event) recupera esse recall.
+
 ### Causas
 
 1. **Decay uniforme.** Uma única meia-vida (`MCP_MEMORY_RECENCY_HALFLIFE`) para todos os tipos.

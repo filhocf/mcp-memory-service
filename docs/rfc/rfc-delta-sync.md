@@ -22,6 +22,31 @@ O sync de memória entre máquinas e agentes (Zero em 3 máquinas; T'Pol/Scotty 
 - Stale reads: task interna 5d41dda2 — o processo mantém conexão aberta e não vê o `.db` atualizado por outra máquina.
 - Modelo atual não é "memória por agente": é um banco copiado, não uma troca deliberada entre agentes (Zero não "sabe o que T'Pol fez" de forma seletiva — ou copia tudo, ou nada).
 
+### 🔬 Experimento exploratório (19/set/2026, backups reais dos 3 hosts)
+
+Comparados os `content_hash` dos bancos mais recentes de cada host:
+
+| host | memórias | tamanho |
+|------|---------:|--------:|
+| DNBSCDC289 | 21.757 | 449 MB |
+| sirdata | 22.258 | 474 MB |
+| socrates | 21.454 | 371 MB |
+
+- Comum aos 3: **20.865** · União: **22.446** · **Divergência: 1.581 (7,0%)**.
+- Exclusivas: DNBSCDC289 **0**, sirdata 100, socrates 188.
+
+**Achados que dimensionam a RFC:**
+1. O full-file sync transfere **~432 MB por operação por host**, mas o delta real é
+   **7%** (1.581 memórias) — ~93% de cada sync é redundante. Um delta-sync por
+   content_hash transferiria só o que difere → economia de ordem de magnitude.
+2. O sync converge razoavelmente (93% comum) mas DERIVA: socrates tem 188 memórias
+   exclusivas (locais que não subiram), sirdata 100. Deriva é justamente o que um
+   event-log delta corrige — hoje o full-file não reconcilia seletivamente.
+3. DNBSCDC289 com 0 exclusivas sugere que ele só recebe (ou o backup é mais antigo,
+   17/set vs 19/set dos outros) — confirmar antes de fixar o modelo de reconciliação.
+4. Os 4 registros de `store` corrompido (bytes de controle) estão nos 3 hosts →
+   propagaram via full-file sync; o delta por hash não os re-propagaria se limpos.
+
 ### Causas
 
 1. **Sync de arquivo, não de deltas.** Transfere o `.db` inteiro; não há protocolo de mudanças incrementais.

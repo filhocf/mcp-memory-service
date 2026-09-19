@@ -34,6 +34,18 @@ Além da perda de contexto em sessões longas, a ausência de uma camada explíc
 
 ---
 
+### 🔬 Experimento exploratório (19/set/2026, banco sirdata, read-only)
+
+Volume de memórias recentes vs o que o startup pull (limit ~10) injeta:
+- últimas 24h: **165** · últimos 3 dias: **717** · últimos 7 dias: **1.412**
+- startup pull único traz ~10 → **recall gap: 707/717 = 99% do contexto quente
+  dos últimos 3 dias fica FORA** do pull de abertura.
+
+**Achado que valida a RFC:** o modelo pull-único (startup-hook) cobre ~1% do
+contexto quente. Numa sessão longa, memórias relevantes criadas depois da abertura
+(ou não-top-10 na busca inicial) não são re-injetadas. Uma camada working-memory
+(TTL + auto-inject contínuo + promoção→episodic) é o que fecha esse gap de 99%.
+
 ## 2. Objetivo
 
 Introduzir uma **camada de working memory** opcional: armazenamento de contexto quente com TTL/evicção, injeção proativa do que é relevante ao momento, e promoção para o store de longo prazo por reforço.
