@@ -432,10 +432,14 @@ class MemoryService:
             if conversation_id:
                 final_metadata["conversation_id"] = conversation_id
 
-            # RFC #1100: author identity. Explicit arg wins; else fall back to
-            # the MCP_AGENT_ID env. Absent both -> unset (null = unknown,
-            # backward compatible).
-            resolved_agent_id = agent_id or os.environ.get("MCP_AGENT_ID")
+            # RFC #1100: author identity. Precedence: explicit arg > MCP_AGENT_ID
+            # env > agent_id already present in the caller's metadata (the path
+            # harvest/bootstrap/commit_session use) > unset (null = unknown).
+            resolved_agent_id = (
+                agent_id
+                or os.environ.get("MCP_AGENT_ID")
+                or final_metadata.get("agent_id")
+            )
             if resolved_agent_id:
                 final_metadata["agent_id"] = resolved_agent_id
 
@@ -522,7 +526,7 @@ class MemoryService:
                             logger.debug(f"Background quality scoring queued (or failed silently): {e}")
 
                     # Entity linking: extract entities and create shares_entity edges
-                    await self._maybe_link_entities(memory, store=store)
+                    await self._maybe_link_entities(memory)
 
                     await self._plugin_registry.fire('on_store', self._format_memory_response(memory))
 
@@ -773,7 +777,7 @@ class MemoryService:
                 "error": f"Health check failed: {str(e)}"
             }
 
-    async def _maybe_link_entities(self, memory: Memory, store: str = 'default') -> None:
+    async def _maybe_link_entities(self, memory: Memory) -> None:
         """Extract entities and create shares_entity edges if linking is enabled."""
         from ..reasoning.entity_linker import is_entity_linking_enabled, EntityLinker
         if not is_entity_linking_enabled():
@@ -790,7 +794,7 @@ class MemoryService:
             extractor = EntityExtractor(
                 domain_extractors=EntityExtractor.get_domain_extractors()
             )
-            entities = extractor.extract_entities(memory.content, {**(memory.metadata or {}), 'store': store})
+            entities = extractor.extract_entities(memory.content, memory.metadata)
             if not entities:
                 return
 

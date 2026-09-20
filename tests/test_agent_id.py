@@ -139,3 +139,29 @@ async def test_store_empty_env_does_not_write_agent_id(memory_service, monkeypat
     stored = await _fetch_stored(memory_service, result)
     assert stored.agent_id is None
     assert "agent_id" not in stored.metadata
+
+
+@pytest.mark.asyncio
+async def test_raw_metadata_agent_id_is_used_when_no_arg_or_env(memory_service, monkeypatch):
+    """metadata['agent_id'] is a valid identity source (the path harvest/bootstrap
+    use) — used when no arg/env identity is set."""
+    monkeypatch.delenv("MCP_AGENT_ID", raising=False)
+    result = await memory_service.store_memory(
+        content="authored via metadata",
+        metadata={"agent_id": "kiro"},
+    )
+    stored = await _fetch_stored(memory_service, result)
+    assert stored.agent_id == "kiro"
+
+
+@pytest.mark.asyncio
+async def test_explicit_arg_overrides_metadata_agent_id(memory_service, monkeypatch):
+    """Precedence: explicit arg wins over a metadata['agent_id']."""
+    monkeypatch.delenv("MCP_AGENT_ID", raising=False)
+    result = await memory_service.store_memory(
+        content="arg beats metadata",
+        agent_id="zero",
+        metadata={"agent_id": "kiro"},
+    )
+    stored = await _fetch_stored(memory_service, result)
+    assert stored.agent_id == "zero"

@@ -38,10 +38,19 @@ from ..compat import _sanitize_log_value
 def sessions_to_track(results) -> set:
     """Session ids that should be marked harvested (RFC-provenance R7).
 
-    Only sessions that actually stored at least one memory are tracked. A
-    session harvested with stored==0 (e.g. the LLM chain was unavailable and
-    every candidate was dropped) must stay pending so a later run re-harvests
-    it instead of silently skipping it forever.
+    Only sessions that stored at least one memory are tracked. A session that
+    stored nothing stays pending so a later run re-harvests it — this covers the
+    retryable failure we care about (the LLM chain was down and every candidate
+    was dropped) without risking data loss.
+
+    Known trade-off: a deterministically empty session (nothing harvestable) also
+    stays pending and is reselected each tick. `found` cannot tell the two apart
+    here — a transient LLM-rewrite failure also collapses to ``found==0`` (the
+    rewriter drops candidates it can't rewrite), so keying off ``found`` would
+    silently discard recoverable candidates. Distinguishing the two needs the
+    harvester to surface pre-rewrite extraction / rewrite-failure state on
+    HarvestResult; tracked as a separate follow-up. Re-processing an empty
+    session is cheaper than losing data, so this stays conservative.
     """
     return {
         r.session_id
@@ -283,8 +292,8 @@ class ConsolidationScheduler:
             found = sum(getattr(r, "found", 0) or 0 for r in results)
 
             # Update tracker only with sessions that actually stored something
-            # (RFC-provenance R7): a session harvested with stored==0 (e.g. LLM
-            # unavailable) must remain pending so it gets re-harvested later.
+            # (RFC-provenance R7): a session harvested with stored==0 stays
+            # pending so a later run re-harvests it instead of skipping forever.
             new_ids = sessions_to_track(results)
             if new_ids:
                 await self._update_harvest_tracker(memory_service, already | new_ids)
