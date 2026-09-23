@@ -106,7 +106,7 @@ upstream/main ──→ pr/<feat> ──(Henry mergeia)──→ upstream/main
 - **Feat nova que estende um PR ainda não mergeado:** empilhar em worktree próprio a partir do PR-pai (ex: `feat/harvest-provenance` sai de `pr/scheduled-harvest`). Só vira PR quando o pai mergear (regra 1-PR-por-vez). Estado da pilha vive no runbook.
 
 ## Estado da `main` (atualizar quando mudar)
-- Base **upstream/main v11.12.0** + camada fork-only: Store-NER (StoreTermsExtractor), harvest provenance + re-harvest (R7 sessions_to_track) + verify_session_coverage, NLI wire (MCP_NLI_BACKEND). NLI cascade/ONNX/scheduler = versões do upstream (já absorvidas).
+- Base **upstream/main v11.13.0** + camada fork-only: Store-NER (StoreTermsExtractor), harvest provenance + re-harvest (R7 sessions_to_track) + verify_session_coverage, NLI wire (MCP_NLI_BACKEND), **agent_id Fase 1 (#1100 autoria no store) + Fase 2 (filtro opt-in em search/list + header X-Agent-ID no /mcp — PR #1297 aberto no upstream, fork-only até mergear)**. NLI cascade/ONNX/scheduler = versões do upstream (já absorvidas).
 - Embedding: **ONNX** (`paraphrase-multilingual-MiniLM-L12-v2`, PT-BR, dim 384). USE_ONNX=1, venv leve uv (sem torch).
 - 18 RFCs em `docs/rfc/` (harvest-provenance v0.5, 9 Mnemosyne, agent-id, config-audit, etc). Ver ANALISE.md.
 - Onda 2 pendente: Trilogia RFC-MM (facts/gaps/feedback, background via scheduler).
