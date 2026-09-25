@@ -1,11 +1,17 @@
 # RFC: Quality Model — computed score vs human rating
 
-**Date:** 2026-09-22
+**Date:** 2026-09-22 (rev. 2026-09-25)
 **Author:** Claudio + Zero (Kiro CLI)
 **Branch:** `design/quality-model` (from fork `main`)
-**Status:** DRAFT v0.1 — internal maturation before upstream discussion
+**Status:** DRAFT v0.2 — internal maturation before upstream discussion
 **Area:** `quality/` (we are CODEOWNER)
 **Prior art (do not reinvent):** `docs/rfc/rfc-self-service-memory-intelligence.md` §4 ("confidence + provenance first-class, separate from the raw score"); `original_quality_before_boost` precedent in `consolidation/decay.py:289`.
+
+> **Revalidation note (2026-09-25, vs upstream v11.14.0).** The design below was written against v11.12/13; re-checked against v11.14.0. Findings:
+> - **The F2 decay bug is now fixed upstream** (`get_access_patterns` reads `last_accessed` without `LIMIT`, with an optional `content_hashes` window — #1288 ours + #1291). It is no longer part of this problem space; the access pipeline is sound.
+> - **All code anchors in this RFC still hold** on v11.14.0: the ~7 raw `metadata.get('quality_score')` consumers (`handlers/quality.py`, `harvest/bootstrap_utils.py:106`, `utils/quality_analytics.py` ×7, `server/handlers/memory.py:667`), the sync codec (`metadata_codec.py:278 compress_metadata_for_sync`), and both rating twins with the `0.6*user + 0.4*existing` blend (`handlers/quality.py:167` MCP + `web/api/quality.py:135` HTTP) and the `(rating+1)/2` normalization (both twins). The twin drift is confirmed (`existing_score` vs `old_score`).
+> - **#1216 (belief quarantine + on-store NLI)** landed in v11.14.0 — orthogonal to this RFC (belief store, not quality_score), but confirms the `MCP_NLI_ON_STORE`/threshold machinery this design can lean on later.
+> - Empirical state refreshed (this deployment, 25/set): **22,449 live memories, 126 with `quality_score` (0.56%), 0 with `quality_components`, 14,812 with `last_accessed` (66%)**. Effectively unchanged from 22/set — the AI scorer still never persists here (F1 gate off).
 
 ---
 
@@ -15,7 +21,7 @@ Today `quality_score` is a single overloaded field. Six different sources write 
 
 The concrete failure: when a human rates a memory, the rating is blended (`0.6*user + 0.4*existing`) into the same `quality_score` the machine computes. The human opinion and the machine guess overwrite each other in one field. The human's rating can be diluted or lost; the machine's guess can erase the human's judgment. "One notebook, scribbled over by two teachers."
 
-Empirical state (this deployment, 22,709 memories): 246 have `quality_score` (1.1%), **zero** have `quality_provider`, 138 have `user_rating`. Effective quality today = human rating + a 0.5 default. The AI scorer has effectively never persisted here.
+Empirical state (this deployment, 25/set, 22,449 memories): 126 have `quality_score` (0.56%), **zero** have `quality_provider`, ~138 have `user_rating`. Effective quality today = human rating + a 0.5 default. The AI scorer has effectively never persisted here.
 
 ## 2. Goal
 
