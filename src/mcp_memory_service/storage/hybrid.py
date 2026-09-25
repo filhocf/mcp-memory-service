@@ -25,7 +25,7 @@ This implementation provides the best of both worlds:
 import asyncio
 import logging
 import time
-from typing import List, Dict, Any, Tuple, Optional
+from typing import List, Dict, Any, Sequence, Tuple, Optional
 from collections import deque
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -1817,6 +1817,7 @@ class HybridMemoryStorage(MemoryStorage):
         stale_days: Optional[int] = None,
         include_embeddings: bool = False,
         store: str = "default",
+        agent_id: Optional[str] = None,
     ) -> List[Memory]:
         """Get all memories from primary storage.
 
@@ -1832,15 +1833,16 @@ class HybridMemoryStorage(MemoryStorage):
             stale_days=stale_days,
             include_embeddings=include_embeddings,
             store=store,
+            agent_id=agent_id,
         )
 
     async def get_by_hash(self, content_hash: str) -> Optional[Memory]:
         """Get a memory by its content hash from primary storage."""
         return await self.primary.get_by_hash(content_hash)
 
-    async def count_all_memories(self, memory_type: Optional[str] = None, tags: Optional[List[str]] = None, tag_match: str = "any", stale_days: Optional[int] = None, store: str = "default") -> int:
+    async def count_all_memories(self, memory_type: Optional[str] = None, tags: Optional[List[str]] = None, tag_match: str = "any", stale_days: Optional[int] = None, store: str = "default", agent_id: Optional[str] = None) -> int:
         """Get total count of memories from primary storage."""
-        return await self.primary.count_all_memories(memory_type=memory_type, tags=tags, tag_match=tag_match, stale_days=stale_days, store=store)
+        return await self.primary.count_all_memories(memory_type=memory_type, tags=tags, tag_match=tag_match, stale_days=stale_days, store=store, agent_id=agent_id)
 
     async def get_memories_by_time_range(
         self,
@@ -2101,12 +2103,16 @@ class HybridMemoryStorage(MemoryStorage):
         """
         return await self.primary.get_memory_connections()
 
-    async def get_access_patterns(self) -> Dict[str, datetime]:
+    async def get_access_patterns(
+        self, content_hashes: Optional[Sequence[str]] = None
+    ) -> Dict[str, datetime]:
         """Get memory access pattern statistics (consolidation protocol).
 
-        Proxies to primary storage.
+        Proxies to primary storage, forwarding the candidate window when one is given.
         """
-        return await self.primary.get_access_patterns()
+        if content_hashes is None:
+            return await self.primary.get_access_patterns()
+        return await self.primary.get_access_patterns(content_hashes)
 
     def sanitized(self, tags):
         """Sanitize and normalize tags to a JSON string.

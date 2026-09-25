@@ -20,7 +20,7 @@ Licensed under the MIT License. See LICENSE file in the project root for full li
 import asyncio
 import logging
 from abc import ABC, abstractmethod
-from typing import List, Optional, Dict, Any, Tuple
+from typing import List, Optional, Dict, Any, Sequence, Tuple
 from datetime import datetime, timezone, timedelta, date
 from ..compat import _sanitize_log_value
 from ..models.memory import Memory, MemoryQueryResult
@@ -890,6 +890,7 @@ class MemoryStorage(ABC):
         stale_days: Optional[int] = None,
         include_embeddings: bool = False,
         store: Optional[str] = "default",
+        agent_id: Optional[str] = None,
     ) -> List[Memory]:
         """
         Get all memories in storage ordered by creation time (newest first).
@@ -914,7 +915,7 @@ class MemoryStorage(ABC):
         """
         return []
     
-    async def count_all_memories(self, memory_type: Optional[str] = None, tags: Optional[List[str]] = None, tag_match: str = "any", stale_days: Optional[int] = None, store: Optional[str] = "default") -> int:
+    async def count_all_memories(self, memory_type: Optional[str] = None, tags: Optional[List[str]] = None, tag_match: str = "any", stale_days: Optional[int] = None, store: Optional[str] = "default", agent_id: Optional[str] = None) -> int:
         """
         Get total count of memories in storage.
 
@@ -968,8 +969,18 @@ class MemoryStorage(ABC):
         """Get memory connection statistics. Override for specific implementations."""
         return {}
 
-    async def get_access_patterns(self) -> Dict[str, datetime]:
-        """Get memory access pattern statistics. Override for specific implementations."""
+    async def get_access_patterns(
+        self, content_hashes: Optional[Sequence[str]] = None
+    ) -> Dict[str, datetime]:
+        """Get memory access pattern statistics. Override for specific implementations.
+
+        Args:
+            content_hashes: Optional candidate window. When provided, backends should
+                return access times only for these hashes, so consolidation memory use
+                and latency scale with the candidate batch instead of the whole
+                ever-accessed population. When ``None`` the full set is returned
+                (backwards-compatible default).
+        """
         return {}
 
     async def get_memory_timestamps(self, days: Optional[int] = None) -> List[float]:
@@ -1064,6 +1075,7 @@ class MemoryStorage(ABC):
         include_superseded: bool = False,
         ranking_weights: Optional[Dict[str, float]] = None,
         store: Optional[str] = "default",
+        agent_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Unified memory search with flexible modes and filters.
@@ -1227,7 +1239,7 @@ class MemoryStorage(ABC):
                 from ..reasoning.ranked_search import apply_ranked_rerank, RankedSearchWeights
                 # Over-fetch without pre-filtering: the shared tail applies
                 # tag_match and time filters uniformly (fixes #1028 review).
-                oversample = limit * 5 if (tags or start_time or end_time) else limit * 3
+                oversample = limit * 5 if (tags or start_time or end_time or agent_id) else limit * 3
                 candidates = await self.retrieve(
                     query, n_results=oversample,
                     include_superseded=include_superseded,
@@ -1278,7 +1290,14 @@ class MemoryStorage(ABC):
                     # Over-fetch when time filters are present AND using a path that
                     # cannot pass start_time/end_time to SQL (hybrid/quality_boost).
                     # Standard semantic retrieve() already filters at SQL level.
-                    if (start_time is not None or end_time is not None) and (quality_boost > 0 or mode == "hybrid"):
+                    if (start_time is not None or end_time is not None or tags) and (quality_boost > 0 or mode == "hybrid"):
+                        fetch_limit = max(fetch_limit, limit * 5)
+                    # agent_id is NOT passed down to retrieve() (it is applied as an
+                    # in-memory post-filter below), so over-fetch is ALWAYS required
+                    # when it is set — including in plain semantic mode. Otherwise
+                    # higher-ranked memories from other agents fill the limit slots
+                    # and matching memories are truncated before the filter runs.
+                    if agent_id is not None:
                         fetch_limit = max(fetch_limit, limit * 5)
 
                     # Choose search method based on mode and available features
@@ -1378,6 +1397,16 @@ class MemoryStorage(ABC):
                         # Match ANY tag (OR) — default
                         if any(tag in result.memory.tags for tag in tags):
                             filtered_results.append(result)
+                results = filtered_results
+
+            # Apply agent_id filter (unified metadata.agent_id OR tag agent:<id>)
+            if agent_id is not None:
+                filtered_results = []
+                for result in results:
+                    # Check metadata.agent_id or agent:<id> tag
+                    if (result.memory.agent_id == agent_id or 
+                        f"agent:{agent_id}" in (result.memory.tags or [])):
+                        filtered_results.append(result)
                 results = filtered_results
 
             # Limit results

@@ -41,6 +41,46 @@ logger = logging.getLogger(__name__)
 _VECTORIZE_MAX_TOPK_WITH_METADATA = 50
 
 
+def _recall_ceiling_info(
+    *,
+    n_results: int,
+    candidates_wanted: int,
+    candidates_requested: int,
+    candidates_returned: int,
+    candidates_not_loaded: int,
+    dropped_by_tag_filter: int,
+    truncated_to_n_results: int,
+    results_returned: int,
+) -> Dict[str, Any]:
+    """Describe how much of a retrieve() query the Vectorize ceiling cut off.
+
+    Attached to every result's ``debug_info["retrieval"]`` so a caller can
+    tell a clipped recall from a complete one (#1236). The page is treated as
+    complete when Vectorize returned fewer neighbours than asked for — it had
+    no more to give. When the page came back full at the ceiling, recall may
+    be incomplete only if fewer than ``n_results`` results survived: every
+    neighbour beyond the ceiling ranks below every neighbour on the page, so
+    once ``n_results`` of them pass the tag filter (or the untagged page was
+    as long as the caller asked) the first ``n_results`` are the true top
+    matches and nothing beyond the cut could have displaced them.
+    """
+    ceiling = _VECTORIZE_MAX_TOPK_WITH_METADATA
+    ceiling_reached = candidates_returned >= ceiling
+    return {
+        "neighbour_ceiling": ceiling,
+        "n_results": n_results,
+        "candidates_wanted": candidates_wanted,
+        "candidates_requested": candidates_requested,
+        "candidates_returned": candidates_returned,
+        "candidates_not_loaded": candidates_not_loaded,
+        "dropped_by_tag_filter": dropped_by_tag_filter,
+        "truncated_to_n_results": truncated_to_n_results,
+        "results_returned": results_returned,
+        "neighbour_ceiling_reached": ceiling_reached,
+        "recall_may_be_incomplete": ceiling_reached and results_returned < n_results,
+    }
+
+
 def normalize_tags_for_search(tags: List[str]) -> List[str]:
     """Deduplicate and filter empty tag strings.
 
@@ -733,13 +773,15 @@ class CloudflareStorage(MemoryStorage):
             # Generate query embedding
             query_embedding = await self._generate_embedding(query)
             
-            # Search Vectorize (without namespace for now)
+            # Search Vectorize (without namespace for now). With tags the
+            # query over-fetches (n_results * 3) and filters client-side, but
+            # the metadata ceiling clamps what Vectorize will hand back, so
+            # both numbers are kept to report the truncation below (#1236).
+            candidates_wanted = n_results * 3 if tags else n_results
+            top_k = min(candidates_wanted, _VECTORIZE_MAX_TOPK_WITH_METADATA)
             search_payload = {
                 "vector": query_embedding,
-                "topK": min(
-                    (n_results * 3 if tags else n_results),
-                    _VECTORIZE_MAX_TOPK_WITH_METADATA,
-                ),
+                "topK": top_k,
                 "returnMetadata": "all",
                 "returnValues": False
             }
@@ -754,25 +796,56 @@ class CloudflareStorage(MemoryStorage):
             
             # Convert to MemoryQueryResult objects
             results = []
+            candidates_not_loaded = 0
+            dropped_by_tag_filter = 0
             for match in matches:
                 memory = await self._load_memory_from_match(match)
-                if memory:
-                    # Filter by tags if specified
-                    if tags:
-                        if not any(tag in memory.tags for tag in tags):
-                            continue
+                if not memory:
+                    candidates_not_loaded += 1
+                    continue
 
-                    # Record access for quality scoring (implicit signals)
-                    memory.record_access(query)
+                # Filter by tags if specified
+                if tags and not any(tag in memory.tags for tag in tags):
+                    dropped_by_tag_filter += 1
+                    continue
 
-                    query_result = MemoryQueryResult(
-                        memory=memory,
-                        relevance_score=match.get("score", 0.0)
-                    )
-                    results.append(query_result)
+                # Record access for quality scoring (implicit signals)
+                memory.record_access(query)
 
+                query_result = MemoryQueryResult(
+                    memory=memory,
+                    relevance_score=match.get("score", 0.0)
+                )
+                results.append(query_result)
+
+            truncated_to_n_results = 0
             if tags:
+                truncated_to_n_results = max(0, len(results) - n_results)
                 results = results[:n_results]
+
+            retrieval_info = _recall_ceiling_info(
+                n_results=n_results,
+                candidates_wanted=candidates_wanted,
+                candidates_requested=top_k,
+                candidates_returned=len(matches),
+                candidates_not_loaded=candidates_not_loaded,
+                dropped_by_tag_filter=dropped_by_tag_filter,
+                truncated_to_n_results=truncated_to_n_results,
+                results_returned=len(results),
+            )
+            for result in results:
+                result.debug_info["retrieval"] = dict(retrieval_info)
+            if retrieval_info["recall_may_be_incomplete"]:
+                # Also logged because an empty result list has nowhere to
+                # carry debug_info, and that is the worst case of #1236.
+                logger.warning(
+                    "Vectorize recall may be incomplete: the query page came back full at the "
+                    "%s-neighbour ceiling (wanted %s, requested %s, returned %s; %s dropped by the "
+                    "tag filter, %s results returned). A memory matching the query beyond the "
+                    "ceiling is unreachable from this call.",
+                    _VECTORIZE_MAX_TOPK_WITH_METADATA, _sanitize_log_value(candidates_wanted),
+                    _sanitize_log_value(top_k), len(matches), dropped_by_tag_filter, len(results),
+                )
 
             # Persist updated metadata for accessed memories
             for result in results:
@@ -1911,6 +1984,7 @@ class CloudflareStorage(MemoryStorage):
         stale_days: Optional[int] = None,
         include_embeddings: bool = False,
         store: str = "default",
+        agent_id: Optional[str] = None,
     ) -> List[Memory]:
         """
         Get all memories in storage ordered by creation time (newest first).
@@ -1924,6 +1998,11 @@ class CloudflareStorage(MemoryStorage):
         Returns:
             List of Memory objects ordered by created_at DESC, optionally filtered by type and tags
         """
+        if agent_id is not None:
+            raise NotImplementedError(
+                "agent_id filtering is not implemented for the Cloudflare backend "
+                "(sqlite-vec only in this phase). See PR #1297."
+            )
         try:
             # Build SQL query with optional memory_type and tags filters
             sql = "SELECT m.* FROM memories m"
@@ -2250,7 +2329,7 @@ class CloudflareStorage(MemoryStorage):
             logger.error("Error getting memories by time range: %s", _sanitize_log_value(str(e)))
             return []
 
-    async def count_all_memories(self, memory_type: Optional[str] = None, tags: Optional[List[str]] = None, tag_match: str = "any", stale_days: Optional[int] = None, store: str = "default") -> int:
+    async def count_all_memories(self, memory_type: Optional[str] = None, tags: Optional[List[str]] = None, tag_match: str = "any", stale_days: Optional[int] = None, store: str = "default", agent_id: Optional[str] = None) -> int:
         """
         Get total count of memories in storage.
 
@@ -2261,6 +2340,11 @@ class CloudflareStorage(MemoryStorage):
         Returns:
             Total number of memories, optionally filtered by type and/or tags
         """
+        if agent_id is not None:
+            raise NotImplementedError(
+                "agent_id filtering is not implemented for the Cloudflare backend "
+                "(sqlite-vec only in this phase). See PR #1297."
+            )
         try:
             # Build query with filters
             base_sql = "SELECT m.id FROM memories m"
