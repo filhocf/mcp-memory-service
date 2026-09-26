@@ -93,7 +93,7 @@ Espelhando a disciplina do R10 (pilotar + medir antes de rodar em massa):
 
 ## 5. Relação com outros itens
 
-- **#1103** (LLM summarization, VijaySreekar) — vizinho temático (resumir memórias via LLM). Este RFC é sobre *extrair* de sessões, não resumir memórias existentes. Coordenar se convergir.
+- **#1103** (LLM summarization, VijaySreekar — ATIVO, não nosso) — **ponta OPOSTA do pipeline**: #1103 resume em *retrieval-time* o que SAI da busca (economiza tokens de saída, query-aware); este RFC extrai em *harvest-time* o que ENTRA na memória. Complementares, não colidem. NÃO é o nosso two-phase extractive (memory_explore/detail, #56 — esse já shippou, é LLM-free).
 - **RFC-harvest-provenance** — este RFC herda a proveniência dela; é a Fase seguinte ("cobertura de conteúdo" após "proveniência + tracker").
 - **#1287** (beacon loop) — a filosofia server-side + implícito + yield-contado vem de lá.
 - **Session Miner** (task-orch `89feeabc`, done) — o protótipo standalone que originou o harvest de produção; este RFC reabre a dimensão "conteúdo rico" que o miner não resolveu.
