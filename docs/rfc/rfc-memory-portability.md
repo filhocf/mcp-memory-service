@@ -7,7 +7,7 @@
 **Versão:** 0.1 (draft)
 **Inspiração / benchmark:** Mnemosyne (MCP concorrente, Hermes-first, com importers de 8 sistemas + adapters nativos) — visto em Workshop TLC. Comparativo e ideias adotáveis já levantados: `conhecimentos-de-ia/pesquisa/comparativo-mnemosyne-vs-memory-service.md` + `mnemosyne-ideias-adotaveis.md` (13/set). `claude-hooks/` (upstream) é o único adapter rico que JÁ temos.
 **Fato de base:** Hermes (T'Pol/Scotty) JÁ usa este memory-service como memória de conhecimento duradouro (complementar ao Hermes memory nativo de sessão) — decisão 17/set. O dogfooding "use in any agent" para Hermes já existe via MCP genérico; o arco pergunta o que ganharíamos com adapters *nativos* por harness (como o Mnemosyne tem).
-**Status:** DRAFT — amadurecer localmente antes de abrir como Discussion para o Henry
+**Status:** DRAFT v0.1 — Discussion ABERTA 28/set: https://github.com/doobidoo/mcp-memory-service/discussions/1364 (1º comentário=arco, 2º=matriz). Aguarda leitura de escopo do Henry.
 **RFCs-filhas candidatas:** `rfc-importers` (D9 — o "bring"). NOTA: persona-tier/delta-sync/working-memory (D5/D6/D7) foram, no levantamento de 13/set, marcadas "não vale" como features internas isoladas (temos bootstrap profile / Insync / context-injection). Sob a ótica de ADOÇÃO deste arco, só `importers` se re-habilita claramente; as demais NÃO são peças deste arco (são retrieval/arquitetura interna, arco distinto).
 
 ---
