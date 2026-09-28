@@ -170,9 +170,50 @@ O groundwork de dois lados (§4) já tem base substancial no CdIA — a RFC part
 
 ---
 
-## 9. Próximos passos
+## 9. Anexo — Lista inicial de referência (a matriz N × M)
+
+Base para o **segundo comentário** da Discussion: os dois eixos já mapeados no CdIA (`raio-x-agentes-ia-2026.md` + `comparativo-mnemosyne-vs-memory-service.md`). Não é exaustiva — é o ponto de partida a validar/estender com o Henry e a comunidade. ⚠️ Dados de mercado do raio-x (nº de hooks, modelo de memória de cada harness) são de meados/2026 e devem ser re-verificados antes de virarem afirmação pública na Discussion.
+
+### 9.1 Harnesses / agentes (eixo "use in any agent")
+Com o modelo de memória de cada um (do mapa de dialetos):
+
+| Harness | Tipo | Memória persistente hoje | Hooks/lifecycle | Adapter nosso? |
+|---------|------|--------------------------|-----------------|----------------|
+| **Claude Code** | CLI | automatic memory | 29 eventos de hook | ✅ `claude-hooks/` (upstream) |
+| **Kiro** | CLI | MCP (memory-service) | pre/post hooks | 🟡 harvest genérico, sem adapter rico |
+| **Hermes** | agente | layered (FTS5+LLM+providers pluggáveis: builtin/Hindsight/Honcho/Mem0) | — | usa via MCP genérico (já) |
+| **OpenClaw** | CLI persistente | built-in RAG | — | ❌ |
+| **Cursor** | IDE | — | — | ❌ |
+| **Windsurf** | IDE | — | Cascade | ❌ |
+| **Cline** | ext. VSCode | — | — | ❌ |
+| **Codex CLI** | CLI | — | — | ❌ |
+| **Aider** | CLI | — | — | ❌ |
+| **Gemini CLI** | CLI | — | — | ❌ |
+| **GitHub Copilot** | ext. IDE | — | — | ❌ |
+
+### 9.2 Memory-systems concorrentes (eixo "bring your memory")
+Os 9 que o Mnemosyne já importa (nosso benchmark) — candidatos a `BaseImporter` (rfc-importers):
+
+| Sistema | O que é | Prioridade de importer |
+|---------|---------|------------------------|
+| **mem0** | memory layer popular p/ agentes | 1 (par Claude Code ⊕ mem0) |
+| **letta** (ex-MemGPT) | memória com paginação de contexto | 2 |
+| **zep** | memória temporal + knowledge graph | 2 |
+| **honcho** | memória de usuário/persona | 3 |
+| **hindsight** | provider já plugável no Hermes | 3 |
+| **cognee** | memória em grafo | 3 |
+| **supermemory** | memória universal SaaS | 3 |
+| **holographic** | Hermes Holographic Memory | oportunista (se houver base a migrar) |
+| **agentic** | import LLM-guided (genérico) | transversal |
+
+### 9.3 Como usar esta matriz
+Cada célula (harness × memory-system) é um par potencial. Priorizamos pela popularidade e pela dor real: **Claude Code ⊕ mem0** primeiro (adapter existe, falta importer mem0). A lista se estende conforme demanda da comunidade responder à Discussion.
+
+---
+
+## 10. Próximos passos
 
 1. Amadurecer esta RFC localmente (v0.1 → v0.2), incorporando os insumos do §8.
-2. Abrir **Discussion** no GitHub (categoria Ideas) pingando @doobidoo — apresentar o arco e o método, pedir leitura de escopo (é grande, precisa OK dele antes de codar, regra §RFCs do AGENTS).
+2. Abrir **Discussion** no GitHub (categoria Ideas) pingando @doobidoo — 1º comentário: o arco + método + pedido de leitura de escopo. **2º comentário: a matriz de referência (§9)** — lista inicial de harnesses + memory-systems para ancorar a conversa.
 3. Com OK: consolidar feature-parity (mem0/letta/zep, estendendo o comparativo Mnemosyne existente).
 4. Primeiro par de adoção: Claude Code ⊕ mem0 (adapter existe; falta importer mem0).
