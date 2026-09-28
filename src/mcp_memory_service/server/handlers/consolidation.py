@@ -463,6 +463,7 @@ async def handle_memory_consolidate(server, arguments: dict) -> List[types.TextC
         "pause",
         "resume",
         "merge",
+        "harvest",
     ]
     if action not in valid_actions:
         return [
@@ -473,8 +474,8 @@ async def handle_memory_consolidate(server, arguments: dict) -> List[types.TextC
         ]
 
     try:
-        # Skip CONSOLIDATION_ENABLED check for merge (it doesn't need the consolidator)
-        if action != "merge" and not CONSOLIDATION_ENABLED:
+        # Skip CONSOLIDATION_ENABLED check for merge and harvest (they don't need the consolidator)
+        if action not in ("merge", "harvest") and not CONSOLIDATION_ENABLED:
             return [types.TextContent(type="text", text="Consolidation is disabled")]
 
         # Route to appropriate handler based on action
@@ -527,6 +528,43 @@ async def handle_memory_consolidate(server, arguments: dict) -> List[types.TextC
             return await handle_resume_consolidation(
                 server, {"time_horizon": arguments.get("time_horizon")}
             )
+
+        elif action == "harvest":
+            # On-demand session harvest from a given path, in-process (integrity:
+            # uses the server's own storage/MemoryService, so graph/dedup/provenance
+            # are intact — unlike a standalone script). Path is an operator-supplied
+            # argument, not client-arbitrary FS read exposed over the wire.
+            import os as _os
+            from pathlib import Path as _P
+            path = arguments.get("path") or _os.getenv("MCP_HARVEST_SESSION_DIR", "~/.kiro/sessions/cli")
+            path = str(_P(path).expanduser())
+            sessions = int(arguments.get("sessions", 50))
+            use_llm = arguments.get("use_llm", True)
+            dry_run = arguments.get("dry_run", False)
+            force = arguments.get("force_reharvest", False)
+            if not server.storage:
+                return [types.TextContent(type="text", text="Error: storage not available")]
+            try:
+                from ...harvest.harvester import SessionHarvester
+                from ...harvest.models import HarvestConfig
+                from ...services.memory_service import MemoryService
+            except Exception as e:
+                return [types.TextContent(type="text", text=f"Error: harvest module unavailable ({e})")]
+
+            ms = MemoryService(server.storage)
+            harvester = SessionHarvester(project_dir=path, memory_service=ms)
+            cfg = HarvestConfig(sessions=sessions, dry_run=dry_run, use_llm=use_llm,
+                                min_confidence=0.65, force_reharvest=force, project_path=path)
+            results = await harvester.harvest_and_store(cfg)
+            n_sessions = len(results)
+            candidates = sum(len(getattr(r, "candidates", []) or []) for r in results)
+            stored = sum(getattr(r, "stored", 0) or 0 for r in results)
+            mode = "DRY-RUN" if dry_run else "STORED"
+            return [types.TextContent(
+                type="text",
+                text=(f"Harvest ({mode}) from {path}\n"
+                      f"sessions: {n_sessions} | candidates: {candidates} | stored: {stored}"),
+            )]
 
         elif action == "merge":
             raw_hashes = arguments.get("content_hashes", [])

@@ -656,8 +656,29 @@ Examples:
                         "pause",
                         "resume",
                         "merge",
+                        "harvest",
                     ],
                     "description": "Consolidation action to perform",
+                },
+                "path": {
+                    "type": "string",
+                    "description": "For 'harvest': directory of session transcripts to harvest (default: MCP_HARVEST_SESSION_DIR)",
+                },
+                "sessions": {
+                    "type": "integer",
+                    "description": "For 'harvest': max sessions to process (default 50)",
+                },
+                "use_llm": {
+                    "type": "boolean",
+                    "description": "For 'harvest': use LLM extraction (default true)",
+                },
+                "dry_run": {
+                    "type": "boolean",
+                    "description": "For 'harvest': extract without storing (default false)",
+                },
+                "force_reharvest": {
+                    "type": "boolean",
+                    "description": "For 'harvest': bypass the harvest tracker (default false)",
                 },
                 "time_horizon": {
                     "type": "string",
