@@ -532,12 +532,31 @@ async def handle_memory_consolidate(server, arguments: dict) -> List[types.TextC
         elif action == "harvest":
             # On-demand session harvest from a given path, in-process (integrity:
             # uses the server's own storage/MemoryService, so graph/dedup/provenance
-            # are intact — unlike a standalone script). Path is an operator-supplied
-            # argument, not client-arbitrary FS read exposed over the wire.
+            # are intact — unlike a standalone script).
             import os as _os
             from pathlib import Path as _P
-            path = arguments.get("path") or _os.getenv("MCP_HARVEST_SESSION_DIR", "~/.kiro/sessions/cli")
-            path = str(_P(path).expanduser())
+            raw_path = arguments.get("path") or _os.getenv("MCP_HARVEST_SESSION_DIR", "~/.kiro/sessions/cli")
+            # Path-traversal guard: the client supplies path over MCP, so confine it
+            # to known session roots (mirrors the base_dir check the HTTP-blocked
+            # memory_harvest had; GHSA-7crr-2r7w-cpfm). resolve() collapses ../ and
+            # symlinks before the containment check.
+            resolved = _P(raw_path).expanduser().resolve()
+            # Allowed roots are configurable (MCP_HARVEST_ALLOWED_ROOTS, ':'-separated)
+            # so operators/tests can widen them; defaults cover the session locations.
+            roots_env = _os.getenv("MCP_HARVEST_ALLOWED_ROOTS", "")
+            root_specs = [r for r in roots_env.split(":") if r] or [
+                "~/.kiro",
+                _os.getenv("MCP_HARVEST_SESSION_DIR", "~/.kiro/sessions/cli"),
+                "~/local-data",
+            ]
+            allowed_roots = [_P(r).expanduser().resolve() for r in root_specs]
+            if not any(resolved == r or resolved.is_relative_to(r) for r in allowed_roots):
+                return [types.TextContent(
+                    type="text",
+                    text=(f"Error: harvest path is outside allowed roots ({raw_path}). "
+                          f"Set MCP_HARVEST_ALLOWED_ROOTS to widen."),
+                )]
+            path = str(resolved)
             sessions = int(arguments.get("sessions", 50))
             use_llm = arguments.get("use_llm", True)
             dry_run = arguments.get("dry_run", False)
