@@ -1,10 +1,10 @@
 # RFC: Harvest Design-Extraction (colher análise longa + ToolResults ricos)
 
-**Data:** 2026-09-26 (rev. 2026-09-27)
+**Data:** 2026-09-26 (rev. 2026-09-29)
 **Autor:** Claudio + Zero (Kiro CLI)
 **Branch de código:** `feat/harvest-design-extraction` (a partir de `upstream/main`)
 **Base:** `upstream/main` v11.14.0
-**Versão:** 0.2 (draft — pronto para abrir como issue própria, a pedido do Henry no #1287)
+**Versão:** 0.3 (draft — v0.3 adiciona o eixo de IDIOMA: o corpus de sessões é majoritariamente pt-BR, então cobertura e extração precisam medir e tratar idioma explicitamente)
 **Inspiração:** diagnóstico #1100 (13/set) + discussion #1287 (beacon loop, direcionamento do Henry) + #1103 (LLM summarization, VijaySreekar — ponta oposta)
 **Reintegra:** o GAP DE PRODUTO deixado aberto pela RFC-harvest-provenance (que resolveu proveniência+tracker, NÃO cobertura de conteúdo rico)
 **Status:** DRAFT v0.2 — a abrir como issue própria (Henry: "write the RFC as you planned... keep it on its own thread rather than folding it into #1286").
@@ -73,6 +73,9 @@ O extractor só é construído **depois** deste instrumento provar que há cober
 - **R0.1** — WHEN o parser processa um transcript, THE parser SHALL contar o que **viu e descartou por tipo de bloco** (Prompt/Response/AssistantMessage/ToolResult/outros), emitindo um relatório de cobertura sem alterar o que é colhido.
 - **R0.2** — THE relatório de cobertura SHALL distinguir "bloco visto e extraído" de "bloco visto e descartado", por tipo, de modo que "N blocos eram descartáveis" e "N blocos foram descartados" deixem de ser indistinguíveis de fora.
 - **R0.3** — THE design-extractor (R2/R3) SHALL ser gated no que o instrumento de cobertura reportar: não se implementa o extractor antes de o instrumento mostrar volume de descarte relevante por tipo.
+- **R0.4** — THE relatório de cobertura SHALL registrar o **idioma detectado por bloco/sessão** (detecção barata via `langid`/`fastText`, NÃO inferência semântica), como uma dimensão adicional do relatório. Isto é MEDIÇÃO, não extração: o instrumento não interpreta o conteúdo, só rotula o idioma. O objetivo é quantificar que fração do conteúdo descartado (o gap de cobertura) é não-inglês, de modo que a escolha do extractor (R3/R3.1) seja decidida por dado — não por suposição.
+
+> Racional do R0.4 (idioma): o corpus de sessões deste projeto é majoritariamente pt-BR. Um extractor baseado em NLI/entailment treinado só em inglês degrada silenciosamente em pt-BR — reporta cobertura aparente alta enquanto extrai mal. Medir o idioma no Phase 0 (barato, sem NLI) expõe esse risco ANTES de construir o extractor: se o relatório mostrar que a maior parte do gap é pt-BR, um extractor en-only está descartado de saída, e o requisito multilíngue (R3.1) deixa de ser opinião e passa a ser exigência ancorada em número. O idioma NÃO entra como inferência no Phase 0 — só como rótulo — para preservar a virtude do instrumento: menor que o extractor, barato, gate-antes-de-mudar-nada.
 
 > Racional (Henry): "an instrument that counts what the parser saw and discarded, per block type, is a smaller change than the LLM extractor and it is the thing that tells us whether the extractor was worth building." O jimy-r reforçou com dado próprio: um per-type count teria mostrado a estreiteza do detector (126 candidatos de um só detector) semanas antes da taxa de drain revelar.
 
@@ -81,6 +84,7 @@ O extractor só é construído **depois** deste instrumento provar que há cober
 - **R1** — THE parser SHALL incluir `ToolResult` no mapeamento de tipos, preservando o conteúdo (com truncagem configurável para saídas volumosas).
 - **R2** — WHERE um bloco de AssistantMessage excede um limiar de comprimento (`MCP_HARVEST_DESIGN_MIN_CHARS`, default a definir), THE extractor SHALL tratá-lo como candidato a design-extraction em vez de descartá-lo por não casar frase-gatilho.
 - **R3** — THE design-extractor SHALL usar o LLM (cadeia de provider existente) com um prompt específico para extrair decisões de arquitetura, trade-offs e o *porquê* — não apenas a conclusão.
+- **R3.1** — WHERE o relatório de cobertura (R0.4) indicar fração relevante de conteúdo não-inglês (esp. pt-BR), THE design-extractor SHALL usar extração multilíngue — modelo/prompt que opere em pt-BR sem degradar — e, quando empregar NLI/entailment para identificar decisão vs. alternativa descartada, THE backend NLI SHALL ser multilíngue ou conjugado pt-BR, NÃO um classificador treinado só em inglês. O requisito é *gated* pelo dado do R0.4: um extractor/NLI en-only só é aceitável se o Phase 0 mostrar que o gap é predominantemente inglês. Reaproveitar o backend `cascade` do NLIClassifier (RFC-nli-cascade, #1215) é o caminho natural — a cadeia de providers LLM já é multilíngue; validar entailment pt-BR num piloto antes de assumir.
 - **R4** — THE design-extractor SHALL preservar proveniência (RFC-harvest-provenance): `harvest:method:llm` + `harvest_model`, mais uma marca de modo (`harvest:mode:design`).
 
 ### Funcional — controle de ruído (lição do R10 + #1287)
@@ -108,7 +112,8 @@ Espelhando a disciplina do R10 (pilotar + medir antes de rodar em massa):
 1. Selecionar 5-10 sessões de design denso conhecidas (ex.: #1100, #1318, auto-supersede 26/set).
 2. Rodar o design-extractor protótipo (prompt LLM "extraia decisões de arquitetura + porquê + trade-offs") contra elas.
 3. **Medir:** quantas memórias densas prestáveis por sessão vs. ruído. Comparar com o que o harvest atual capturou dessas mesmas sessões.
-4. **Gate de decisão:** só vale implementar em produção se o design-extractor recuperar substancialmente mais conhecimento navegável que o extractor atual, sem inflar ruído. Se o yield for baixo (como o miner do #1287), reavaliar.
+3.1. **Medir idioma (R0.4):** que fração dos blocos descartados / do conteúdo denso é pt-BR vs. inglês. Rodar o extractor protótipo tanto num caminho en-only quanto num multilíngue (ou NLI cascade pt-BR) sobre as mesmas sessões pt-BR e comparar yield — para provar (ou refutar) que o idioma muda o resultado, com número, não suposição.
+4. **Gate de decisão:** só vale implementar em produção se o design-extractor recuperar substancialmente mais conhecimento navegável que o extractor atual, sem inflar ruído. Se o yield for baixo (como o miner do #1287), reavaliar. Se o yield en-only for baixo mas o multilíngue for alto nas mesmas sessões, o requisito R3.1 está confirmado.
 
 ---
 
@@ -118,17 +123,18 @@ Espelhando a disciplina do R10 (pilotar + medir antes de rodar em massa):
 - **RFC-harvest-provenance** — este RFC herda a proveniência dela; é a Fase seguinte ("cobertura de conteúdo" após "proveniência + tracker").
 - **#1287** (beacon loop) — a filosofia server-side + implícito + yield-contado vem de lá.
 - **Session Miner** (task-orch `89feeabc`, done) — o protótipo standalone que originou o harvest de produção; este RFC reabre a dimensão "conteúdo rico" que o miner não resolveu.
+- **RFC-nli-cascade** (#1215 Fase 1 mergeada, #1235 Fase 2 aberta) — o backend `cascade` do `NLIClassifier` (reusa a cadeia de providers LLM do harvest, degrada para heurística) é o insumo natural do R3.1: se o design-extractor precisar de NLI/entailment para separar "decisão tomada" de "alternativa descartada", esse backend já existe e é multilíngue via LLM. NÃO reinventar NLI — reaproveitar e validar em pt-BR.
 
 ---
 
 ## 6. Migração e compatibilidade (usual four — Henry)
 
 Qualquer coisa que mude **o que o harvest escreve** precisa de migração/compat declarada:
-- **Phase 0 (R0.x)** não muda o que é escrito — só instrumenta. Zero migração, seguro por padrão.
+- **Phase 0 (R0.x)** não muda o que é escrito — só instrumenta. Zero migração, seguro por padrão. A dimensão de idioma (R0.4) é rótulo no relatório de cobertura, não altera nenhuma memória.
 - **R1 (ToolResult no parser)** muda o que ENTRA como candidato — aditivo; sessões antigas não são re-harvestadas retroativamente (o R10 já decidiu: não recolher em massa). Só afeta harvest novo daqui pra frente.
 - **R4 (marca `harvest:mode:design`)** é tag/metadata aditiva (padrão RFC-harvest-provenance), backward-compatible.
 - **Default OFF (R5)** garante que nada muda para setups existentes até opt-in explícito.
 
 ## 7. Estado
 
-DRAFT v0.2 — pronto para abrir como issue própria (não dobrar no #1286; Henry pediu thread própria). Após abrir: rodar o Phase 0 (instrumento de cobertura) e trazer os números de cobertura por tipo de bloco ANTES de propor o extractor — o padrão "bring numbers first" que funcionou nos PRs anteriores. O escopo do primeiro PR é o próprio Phase 0 (instrumento), não o extractor.
+DRAFT v0.3 — pronto para abrir como issue própria (não dobrar no #1286; Henry pediu thread própria). Após abrir: rodar o Phase 0 (instrumento de cobertura, **agora incluindo a dimensão de idioma — R0.4**) e trazer os números de cobertura por tipo de bloco **e por idioma** ANTES de propor o extractor — o padrão "bring numbers first" que funcionou nos PRs anteriores. O escopo do primeiro PR é o próprio Phase 0 (instrumento), não o extractor. O dado de idioma do Phase 0 é o que decide se o extractor precisa ser multilíngue/NLI-pt-BR (R3.1) — decisão por número, não por suposição.
