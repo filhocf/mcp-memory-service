@@ -3,7 +3,7 @@
 **Data:** 2026-09-30
 **Autor:** Claudio + Zero (Kiro)
 **Base:** `upstream/main` v11.14.0+
-**Versão:** 0.2 (draft — visão + triagem C3a validada em acervo real §8)
+**Versão:** 0.3 (pronta para revisão — visão + triagem C3a validada + score calibrável §8)
 **Status:** DRAFT v0.1 — Discussion ABERTA 30/set: https://github.com/doobidoo/mcp-memory-service/discussions/1393 (aguarda Henry avaliar o formato em camadas + o 1º incremento Kiro→YAML).
 **Absorve (deixam de ser itens isolados, viram camadas):** `rfc-harvest-source-identity` (C1), `rfc-harvest-kiro-sessions` (C2), `rfc-harvest-design-extraction` (C3).
 **Vizinhas (não absorvidas):** `rfc-agent-id-multi-agent` (autoria — o que a C1 carimba), `rfc-delta-sync`/`rfc-hub-memoria-centralizada` (o hub sincroniza o colhido), `rfc-memory-portability` (#1364 — esta RFC é a camada discovery/parsing da pilha de 5 camadas), `rfc-importers` (a outra porta de entrada), `rfc-harvest-provenance` (transversal), `rfc-quality-model` (alimenta a C3).
@@ -71,6 +71,8 @@ Antes de parsear/extrair blocos, uma sessão inteira pode ser descartável. A tr
 - **RC3.6** — THE triagem SHALL distinguir os estados terminais: `teste` (assinatura A), `truncada` (pergunta real sem resposta = morte-de-sessão), `vazia` (0 conversa = casca), `dump-volumoso` (bloco único > teto de chars = tool dump), de `ouro`/`conversa` (retidos). O rótulo preserva o julgamento (não chamar conversa-morta de "teste"); o destino segue o eixo B.
 - **RC3.7** — THE descoberta SHALL deduplicar sessões por identificador estável da sessão (ex. Kiro: `sess_uuid`), pois o sync (Insync/OneDrive) espelha a mesma sessão sob N workspace-hashes; colher sem dedup multiplica a memória.
 - **RC3.8** — WHERE um embedding multilíngue estiver disponível (ex. `paraphrase-multilingual-MiniLM-L12-v2`, já usado pelo serviço), THE camada MAY usar dedup semântico contra o já-colhido como gate barato ANTES do LLM. WHERE só houver embedding en-only (`all-MiniLM-L6-v2`), THE gate semântico SHALL ser desabilitado para corpora não-en (degrada silenciosamente).
+- **RC3.9** — THE triagem SHALL produzir um **score de valor contínuo (0-1) calibrável por um limiar** (espelhando `HARVEST_MIN_CONFIDENCE`), não um veredito binário. Componentes O(n): densidade de resposta `assistant`, turnos de prosa, presença de subagent (positivos); assinatura de teste, truncamento, dump volumoso (negativos). O operador ajusta o limiar e mede a distribuição — o corte nasce dos dados, não de julgamento fixo.
+- **RC3.10** — THE score SHALL ser **agnóstico a idioma**. O idioma do prompt NÃO é sinal de valor: o que separa teste de conversa é a **assinatura de intenção** (comando mecânico vs pergunta/pedido) + densidade de resposta, ambos agnósticos a idioma. Idioma entra apenas no extractor/LLM (honrar locale do operador, RC3.3), nunca na triagem de valor — senão a regra deixa de generalizar para operadores de outros idiomas.
 
 ## 4. As duas portas de entrada
 - **"Use in any agent"** = colher de agentes **locais** (C1→C2→C3 desta RFC). Kiro, OpenClaw, OpenCode, Hermes.
@@ -92,18 +94,20 @@ Cada fase = 1 PR pequeno. NÃO abrir "reescrita do parser" como um PR.
 - **Regressão:** o instrumento de cobertura #1350 é o golden test de não-regressão em cada fase.
 
 ## 7. Estado
-DRAFT v0.2 — visão de arquitetura + triagem C3a validada em dados reais (§8). Próximo: levar à discussion (Henry decide design), depois materializar specs por camada e executar a Fase 0 (Kiro→YAML, golden test). Peças já feitas que encaixam: I0 coverage (#1350), I0-lang idioma (#1379), IA discovery (#1378), IB SQLite (#1379), I1 ToolResults (fork 78e29b05) — todas viram partes das camadas 2/3.
+DRAFT v0.3 — visão + triagem C3a validada em dados reais + score calibrável (§8). PRONTA PARA REVISÃO na discussion (Henry decide design). Próximo: levar a evidência à discussion #1393, depois materializar specs por camada e executar a Fase 0 (Kiro→YAML + triagem, golden test). Peças já feitas que encaixam: I0 coverage (#1350), I0-lang idioma (#1379), IA discovery (#1378), IB SQLite (#1379), I1 ToolResults (fork 78e29b05).
 
 ## 8. Evidência empírica — triagem C3a num acervo real de Kiro (30/set)
-Curadoria de um backup real de sessões Kiro (workspace layout `{hash}/sess_{uuid}/messages.jsonl`, formato payload-wrapped), validando as regras C3a acima contra o corpus real de dois períodos.
+Curadoria de sessões Kiro reais (workspace layout `{hash}/sess_{uuid}/messages.jsonl`, payload-wrapped), validando as regras C3a contra dois períodos: backup histórico (jun-jul) + sessões vivas (set, mesmo host). **51 sessões únicas** após dedup por `sess_uuid`.
 
-**Acervo histórico (backup jun-jul, 27 sessões):** após dedup por `sess_uuid`, a triagem de dois eixos rotulou **5 OURO + 3 CONVERSA (retidos) vs 15 TESTE + 1 TRUNCADA + 2 VAZIA + 1 DUMP-VOLUMOSO (descartados)** — **~70% descartável por heurística O(n), zero LLM.** O DUMP era um único bloco de **37,6 milhões de chars** (tool_result despejado); se enviado ao LLM sem o teto de RC3.6, seria custo absurdo e ruído puro.
+**Resultado com score calibrável (RC3.9), limiar 0.25:** **11 sessões retidas / 40 descartadas (~78% descartado por heurística O(n), zero LLM).** A distribuição de scores tem um vale natural entre 0.2 e 0.55 — o limiar cai nele. Os retidos são todos conversa densa real; os descartados são teste (assinatura), truncadas (morte-de-sessão), vazias e 1 dump de **37,6 milhões de chars** (tool_result despejado — barrado pelo teto de RC3.6; iria custar absurdo no LLM).
 
-**Sessões vivas (set, mesmo host):** **5 OURO + 6 CONVERSA (retidos) vs 2 TRUNCADA + 10 VAZIA (descartados)** — as 10 VAZIA confirmam o padrão de **morte-de-sessão** (sessão nasce, grava metadata, morre antes de qualquer resposta).
+**Lições que moldaram as regras (todas viraram RC3.5-3.10):**
+1. **Dois eixos, não um** (RC3.5). "Sessão curta = descartável" descartava conversa real curta. Separar *é-teste* (assinatura) de *tem-conteúdo* (resposta assistant) corrigiu.
+2. **Morte-de-sessão ≠ teste** (RC3.6). Pergunta real sem resposta (`tool_result` vazios) é `truncada`, não `teste`.
+3. **Ruído estrutural embarcado.** Cada `messages.jsonl` embute system prompt + todos os steering (~25k chars); o "bloco de 25k" das sessões curtas é injeção, não conteúdo (confirma `_is_injected_content`).
+4. **Dedup por sessão, não por path** (RC3.7). O sync espelha a mesma `sess_uuid` sob N workspace-hashes.
+5. **Score calibrável, não veredito fixo** (RC3.9). Transformar reter/descartar num score 0-1 com limiar (como `HARVEST_MIN_CONFIDENCE`) deixa o corte nascer da distribuição medida, não do julgamento.
+6. **Idioma NÃO é sinal de valor** (RC3.10) — a correção mais importante. Uma tentativa de penalizar prompts em idioma ≠ locale do operador *acertou por acidente* neste corpus (o operador testou em EN), mas **não generaliza** (quebraria para operador EN). Removida a penalidade, a assinatura de teste + densidade de resposta **sozinhas** separam igual — e agnóstico a idioma. Idioma fica só no extractor (honrar locale, RC3.3).
+7. **Economia do gate barato.** Só ~22% das sessões chegam ao LLM; o dump de 37M chars nunca.
 
-**Lições que moldaram as regras (todas viraram RC3.5-3.8):**
-1. **Dois eixos, não um.** Uma primeira heurística "sessão curta = descartável" descartou conversa real curta ("consegue acompanhar o contexto do X?", "pode gerar um docx?"). Separar *é-teste* (assinatura de prompt) de *tem-conteúdo* (resposta assistant) corrigiu — conversa real curta com resposta é RETIDA.
-2. **Morte-de-sessão ≠ teste.** Uma pergunta real cuja sessão morreu antes da resposta (`tool_result` vazios, sem `assistant`) é `truncada`, não `teste`: descarta-se pela ausência de conteúdo, mas o rótulo não a confunde com smoke-test.
-3. **Ruído estrutural embarcado.** Cada `messages.jsonl` do Kiro embute o system prompt + todos os steering (~25k chars) em cada sessão — o "bloco de 25k" das sessões curtas é steering injetado, não conteúdo (confirma `_is_injected_content`).
-4. **Dedup por sessão, não por path.** O sync espelha a mesma `sess_uuid` sob N workspace-hashes; colher sem dedup triplicava.
-5. **Economia do gate barato.** Filtro estrutural (eixo A/B) + dedup semântico protegem o LLM: dos acervos combinados, só ~40% das sessões chegariam ao LLM, e o dump de 37M chars nunca.
+**Gap de discovery medido (informa C1/Fase 0):** o `find_sessions` atual só faz glob fixo `*/*/messages.jsonl` — não sabe (a) colher uma **lista curada**, (b) deduplicar por `sess_uuid`, (c) triar por score. Uma tentativa de apontar o harvest a uma pasta de sessões curadas retornou 0 (layout de um nível vs glob de dois níveis). Confirma que a colheita curada exige a camada C1 em código (Fase 2), não apenas configuração — e que a Fase 0 deve incluir a triagem, não só o parsing.
