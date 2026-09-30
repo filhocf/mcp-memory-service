@@ -1,5 +1,7 @@
 # RFC: Harvest Design-Extraction (colher análise longa + ToolResults ricos)
 
+> **ABSORVIDA → `rfc-ingestao-multi-agente` — camada 3 (extração/qualidade).** Esta RFC deixou de ser item isolado; seu conteúdo é parte da arquitetura guarda-chuva. Mantida como histórico/detalhe da camada.
+
 **Data:** 2026-09-26 (rev. 2026-09-29)
 **Autor:** Claudio + Zero (Kiro CLI)
 **Branch de código:** `feat/harvest-design-extraction` (a partir de `upstream/main`)

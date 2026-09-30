@@ -1,5 +1,7 @@
 # RFC: descoberta e identificação de fonte de sessão por agente (harvest)
 
+> **ABSORVIDA → `rfc-ingestao-multi-agente` — camada 1 (registro/descoberta de fontes).** Esta RFC deixou de ser item isolado; seu conteúdo é parte da arquitetura guarda-chuva. Mantida como histórico/detalhe da camada.
+
 **Data:** 2026-09-30
 **Autor:** Claudio + Zero (Kiro)
 **Branch de código:** (a definir — `feat/harvest-source-identity`, fork-only enquanto amadurece)

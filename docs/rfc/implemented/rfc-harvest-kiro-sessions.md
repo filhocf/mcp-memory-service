@@ -1,5 +1,7 @@
 # Harvest: cobertura multi-formato de sessões Kiro
 
+> **ABSORVIDA → `rfc-ingestao-multi-agente` — camada 2 (perfil de parsing por agente).** Esta RFC deixou de ser item isolado; seu conteúdo é parte da arquitetura guarda-chuva. Mantida como histórico/detalhe da camada.
+
 **Data:** 2026-07-21 (rev. 2026-09-29 — reescrita: mapa real de formatos + eixo idioma)
 **Autor:** Claudio + Zero (Kiro)
 **Branch de código:** `feat/harvest-kiro-sessions` (fork-only enquanto amadurece)
