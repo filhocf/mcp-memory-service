@@ -3,7 +3,7 @@
 **Data:** 2026-09-30
 **Autor:** Claudio + Zero (Kiro)
 **Base:** `upstream/main` v11.14.0+
-**Versão:** 0.1 (draft — visão de arquitetura; execução sai em incrementos pequenos e medidos)
+**Versão:** 0.2 (draft — visão + triagem C3a validada em acervo real §8)
 **Status:** DRAFT v0.1 — Discussion ABERTA 30/set: https://github.com/doobidoo/mcp-memory-service/discussions/1393 (aguarda Henry avaliar o formato em camadas + o 1º incremento Kiro→YAML).
 **Absorve (deixam de ser itens isolados, viram camadas):** `rfc-harvest-source-identity` (C1), `rfc-harvest-kiro-sessions` (C2), `rfc-harvest-design-extraction` (C3).
 **Vizinhas (não absorvidas):** `rfc-agent-id-multi-agent` (autoria — o que a C1 carimba), `rfc-delta-sync`/`rfc-hub-memoria-centralizada` (o hub sincroniza o colhido), `rfc-memory-portability` (#1364 — esta RFC é a camada discovery/parsing da pilha de 5 camadas), `rfc-importers` (a outra porta de entrada), `rfc-harvest-provenance` (transversal), `rfc-quality-model` (alimenta a C3).
@@ -65,6 +65,13 @@ Uma arquitetura de ingestão **declarativa, plugável e multi-fonte**: o serviç
 - **RC3.3** — WHERE o LLM-extractor for usado, THE extractor SHALL honrar o locale do operador (`config/locale.py` + patterns per-locale, como NER/NLI/harvest) e reusar a cadeia de providers do harvest.
 - **RC3.4** — THE camada SHALL ser opt-in por config (default off até validação de yield) e contar taxa de adoção dia-1 + o 3º estado do dashboard (rodou/conteúdo-presente/pipeline-não-representou).
 
+#### C3a — Triagem de sessão por-agente (novo, validado empiricamente — §8)
+Antes de parsear/extrair blocos, uma sessão inteira pode ser descartável. A triagem opera em **dois eixos INDEPENDENTES** (não colapsar num só — colapsar descarta conversa real):
+- **RC3.5** — THE triagem SHALL avaliar cada sessão em dois eixos separados: **(A) é teste?** (assinatura de prompt mecânico, declarável por agente — ex. Kiro: `^(hello|turn N|echo|list ALL tools|respond with)`) e **(B) tem conteúdo colhível?** (≥1 resposta `assistant` com prosa real). Uma sessão SHALL ser descartada apenas se **(A) for teste inequívoco OU (B) não tiver conteúdo** — nunca por ser curta.
+- **RC3.6** — THE triagem SHALL distinguir os estados terminais: `teste` (assinatura A), `truncada` (pergunta real sem resposta = morte-de-sessão), `vazia` (0 conversa = casca), `dump-volumoso` (bloco único > teto de chars = tool dump), de `ouro`/`conversa` (retidos). O rótulo preserva o julgamento (não chamar conversa-morta de "teste"); o destino segue o eixo B.
+- **RC3.7** — THE descoberta SHALL deduplicar sessões por identificador estável da sessão (ex. Kiro: `sess_uuid`), pois o sync (Insync/OneDrive) espelha a mesma sessão sob N workspace-hashes; colher sem dedup multiplica a memória.
+- **RC3.8** — WHERE um embedding multilíngue estiver disponível (ex. `paraphrase-multilingual-MiniLM-L12-v2`, já usado pelo serviço), THE camada MAY usar dedup semântico contra o já-colhido como gate barato ANTES do LLM. WHERE só houver embedding en-only (`all-MiniLM-L6-v2`), THE gate semântico SHALL ser desabilitado para corpora não-en (degrada silenciosamente).
+
 ## 4. As duas portas de entrada
 - **"Use in any agent"** = colher de agentes **locais** (C1→C2→C3 desta RFC). Kiro, OpenClaw, OpenCode, Hermes.
 - **"Bring your memory"** = importar de sistemas **externos** (`rfc-importers`: mem0/letta/zep — export, não sessão viva). Compartilha a C2 (tradução formato→schema); a fonte é um arquivo de export, não uma sessão em curso.
@@ -85,4 +92,18 @@ Cada fase = 1 PR pequeno. NÃO abrir "reescrita do parser" como um PR.
 - **Regressão:** o instrumento de cobertura #1350 é o golden test de não-regressão em cada fase.
 
 ## 7. Estado
-DRAFT v0.1 — visão de arquitetura. Próximo: levar à discussion (Henry decide design), depois materializar specs por camada e executar a Fase 0 (Kiro→YAML, golden test). Peças já feitas que encaixam: I0 coverage (#1350), I0-lang idioma (#1379), IA discovery (#1378), IB SQLite (#1379), I1 ToolResults (fork 78e29b05) — todas viram partes das camadas 2/3.
+DRAFT v0.2 — visão de arquitetura + triagem C3a validada em dados reais (§8). Próximo: levar à discussion (Henry decide design), depois materializar specs por camada e executar a Fase 0 (Kiro→YAML, golden test). Peças já feitas que encaixam: I0 coverage (#1350), I0-lang idioma (#1379), IA discovery (#1378), IB SQLite (#1379), I1 ToolResults (fork 78e29b05) — todas viram partes das camadas 2/3.
+
+## 8. Evidência empírica — triagem C3a num acervo real de Kiro (30/set)
+Curadoria de um backup real de sessões Kiro (workspace layout `{hash}/sess_{uuid}/messages.jsonl`, formato payload-wrapped), validando as regras C3a acima contra o corpus real de dois períodos.
+
+**Acervo histórico (backup jun-jul, 27 sessões):** após dedup por `sess_uuid`, a triagem de dois eixos rotulou **5 OURO + 3 CONVERSA (retidos) vs 15 TESTE + 1 TRUNCADA + 2 VAZIA + 1 DUMP-VOLUMOSO (descartados)** — **~70% descartável por heurística O(n), zero LLM.** O DUMP era um único bloco de **37,6 milhões de chars** (tool_result despejado); se enviado ao LLM sem o teto de RC3.6, seria custo absurdo e ruído puro.
+
+**Sessões vivas (set, mesmo host):** **5 OURO + 6 CONVERSA (retidos) vs 2 TRUNCADA + 10 VAZIA (descartados)** — as 10 VAZIA confirmam o padrão de **morte-de-sessão** (sessão nasce, grava metadata, morre antes de qualquer resposta).
+
+**Lições que moldaram as regras (todas viraram RC3.5-3.8):**
+1. **Dois eixos, não um.** Uma primeira heurística "sessão curta = descartável" descartou conversa real curta ("consegue acompanhar o contexto do X?", "pode gerar um docx?"). Separar *é-teste* (assinatura de prompt) de *tem-conteúdo* (resposta assistant) corrigiu — conversa real curta com resposta é RETIDA.
+2. **Morte-de-sessão ≠ teste.** Uma pergunta real cuja sessão morreu antes da resposta (`tool_result` vazios, sem `assistant`) é `truncada`, não `teste`: descarta-se pela ausência de conteúdo, mas o rótulo não a confunde com smoke-test.
+3. **Ruído estrutural embarcado.** Cada `messages.jsonl` do Kiro embute o system prompt + todos os steering (~25k chars) em cada sessão — o "bloco de 25k" das sessões curtas é steering injetado, não conteúdo (confirma `_is_injected_content`).
+4. **Dedup por sessão, não por path.** O sync espelha a mesma `sess_uuid` sob N workspace-hashes; colher sem dedup triplicava.
+5. **Economia do gate barato.** Filtro estrutural (eixo A/B) + dedup semântico protegem o LLM: dos acervos combinados, só ~40% das sessões chegariam ao LLM, e o dump de 37M chars nunca.
