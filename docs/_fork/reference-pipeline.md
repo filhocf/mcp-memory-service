@@ -484,12 +484,12 @@ Documentação necessária para um Kiro iniciado do zero aprender a usar o memor
 | Documento | Path |
 |-----------|------|
 | RFC Self-Service Memory Intelligence | `~/git/mcp-memory-service/docs/rfc/rfc-self-service-memory-intelligence.md` |
-| RFC Server-Side Lifecycle | `~/git/conhecimentos-de-ia/ferramentas/mcp/memory-service/specs/rfc-server-side-lifecycle.md` |
+| RFC Server-Side Lifecycle | `../rfc/planned/rfc-server-side-lifecycle.md` |
 | Pipeline Harvest Quality Fix | `~/git/mcp-memory-service/docs/rfc/pipeline-harvest-quality.md` |
 | RFC Harvest Provenance & Safe Re-harvest | `~/git/mcp-memory-service/docs/rfc/RFC-harvest-provenance.md` (main, EARS R1-R16; feat/harvest-provenance empilha sobre pr/scheduled-harvest) |
 | Plano Autolearn/Autodream | `~/git/mcp-memory-service/docs/rfc/plano-autolearn-autodream.md` |
-| Belief Store Spec (§2) | `~/git/conhecimentos-de-ia/ferramentas/mcp/memory-service/specs/s2-belief-store-spec.md` |
-| Anti-Hallucination Spec (§6) | `~/git/conhecimentos-de-ia/ferramentas/mcp/memory-service/specs/s6-anti-hallucination-spec.md` |
+| Belief Store Spec (§2) | `../rfc/implemented/rfc-s2-belief-store.md` |
+| Anti-Hallucination Spec (§6) | `../rfc/implemented/rfc-s6-anti-hallucination.md` |
 | Bootstrap formatter code | `src/mcp_memory_service/bootstrap/formatter.py` |
 | Consolidation scheduler code | `src/mcp_memory_service/consolidation/scheduler.py` |
 | Belief service code | `src/mcp_memory_service/consolidation/belief_service.py` |

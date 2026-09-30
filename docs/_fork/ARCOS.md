@@ -35,3 +35,9 @@
 
 ## Índice reverso RFC → arco → status
 Ver `docs/rfc/_index.md` para a lista completa. Absorvidas pela ingestão multi-agente: harvest-source-identity (C1), harvest-kiro-sessions (C2), harvest-design-extraction (C3).
+
+## Docs irmãos (navegação)
+- **ESTADO.md** — versão legível deste mapa (para o Claudio).
+- **roadmap.md** — épicos com árvore/esforço. **pilha-prs-runbook.md** — estado operacional dos PRs.
+- **reference-pipeline.md** — arquitetura do pipeline de memória.
+- **../rfc/_index.md** — índice de todas as RFCs (planned/implemented).

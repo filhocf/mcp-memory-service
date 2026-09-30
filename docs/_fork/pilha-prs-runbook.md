@@ -9,13 +9,13 @@
 > 📍 **SNAPSHOT 27/set NOITE:** pilha quase esvaziada. **#1348 MERGED** (versioned/superseded). **#1350 MERGED** (harvest coverage instrument — fix per-block counting + deep-copy). **#1349 READY, aguarda Henry** (quality split — fix final: boost retention-only, não reescreve quality_score; commit fc88bebf, CI 14/14, 395 testes verdes). **RFC #1345 v0.3** (4 invariantes do @ducanhnguyen223, branch doc/rfc-delta-sync-invariants). RFC #1346 sem novos comentários. ⚠️ **github/main behind 60 do upstream/main** — precisa merge do upstream na main do fork (linha fork-only) numa próxima sessão. Worktrees ativos: ~/git/mcp-memory-service-pr1349 (branch feat/quality-model-split), ~/git/mcp-memory-service-rfc (doc/rfc-delta-sync-invariants), ~/git/mcp-memory-service-pr1350 (mergeado, pode remover). Fila Henry: só #1349 + review RFCs.
 
 
-> ⚠️ **NOTA 25/set:** este runbook acumula camadas de 03→15/set (seções §Ambiente v11.5.5, §Atualização do SERVIÇO v11.11.0 estão OBSOLETAS — main já é v11.14.0). O worktree `~/git/mcp-memory-service-dev` **não existe mais** nesta máquina (recriar se retomar pilha de PRs). Fila upstream VAZIA. Estado corrente e roadmap: ver `EPICOS-roadmap.md` (snapshot 25/set) e AGENTS.md §Estado da main.
+> ⚠️ **NOTA 25/set:** este runbook acumula camadas de 03→15/set (seções §Ambiente v11.5.5, §Atualização do SERVIÇO v11.11.0 estão OBSOLETAS — main já é v11.14.0). O worktree `~/git/mcp-memory-service-dev` **não existe mais** nesta máquina (recriar se retomar pilha de PRs). Fila upstream VAZIA. Estado corrente e roadmap: ver `roadmap.md` (snapshot 25/set) e `ARCOS.md`.
 
 > Runbook para retomar o transporte de features do fork → upstream.
 > ✅ MIGRAÇÃO CONCLUÍDA (05/set): **GitHub é a ORIGEM** (CI, releases, wiki, Discussions).
 > Codeberg CONGELADO (read-only, sem Actions). PRs e RFCs vão para o **GitHub**.
 > Topologia: https://mcpmemory.services/deployment/ — sinal verde para abrir PRs.
-> 📍 **Roadmap de épicos (visão total):** `EPICOS-roadmap.md` (26 épicos, árvore, esforço/dificuldade).
+> 📍 **Roadmap de épicos (visão total):** `roadmap.md` (26 épicos, árvore, esforço/dificuldade).
 
 ## 📋 Estado dos RFCs #1008 / #1047 / #1050 (avaliado 15/set vs upstream v11.12.0)
 
@@ -247,6 +247,6 @@ FALTA (não absorvido) + VEREDICTO de uso (quem usa é o agente):
 ## Referências
 
 - Reconciliação completa: `RECONCILIACAO-v11.10.0.md`
-- Rastreador: `REFERENCE-MEMORY-PIPELINE.md` §12
+- Rastreador: `reference-pipeline.md` §12
 - Spec store→NER: `specs/multi-store-domain-ner-spec.md`
 - Memórias: tags `mcp-memory-service,pilha` (hashes dos commits + conflitos resolvidos)
