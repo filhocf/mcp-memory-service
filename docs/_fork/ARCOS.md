@@ -21,7 +21,7 @@
 | │  ├ I0-lang idioma | ✅ #1379 merged | — | — |
 | │  ├ IA discovery / IB SQLite | ✅ #1378/#1379 merged | — | — |
 | │  └ I1 ToolResults CLI {kind} | 🟢 fork (78e29b05) | — | consolidar em PR upstream quando arco amadurecer |
-| **Rating / quality-model** | ✅ FECHADO | implemented/rfc-quality-model | — (#1349 mergeado; #1368 desmascarou o decay) |
+| ** Rating / quality-model** | ✅ FECHADO | implemented/rfc-quality-model | — #1349+#1368 fecharam. #1391 (timkjr, MCP_DECAY_ENABLED) aguarda Henry — fecha o último furo lateral |
 | **Portabilidade** (bring your memory ⊕ use in any agent) | 🟡 design aceito | planned/rfc-memory-portability, planned/rfc-importers | wiki Memory-Portability-Map viva; conversor mem0 (#1390); parte absorvida pela ingestão multi-agente |
 | **Hub memória multi-agente** | 🟡 parcial | planned/rfc-hub-memoria-centralizada, planned/rfc-delta-sync, planned/rfc-sync-multi-agente, implemented/rfc-agent-id-multi-agent | agent_id F1/F2 mergeados; falta F3-F8 (estrela, consolidação nas pontas, NLI cross-agent) |
 

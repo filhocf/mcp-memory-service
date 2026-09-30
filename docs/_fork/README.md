@@ -8,10 +8,12 @@ do pipeline, procedimentos multi-máquina.
 - Um pre-commit hook recusa staging de `docs/_fork/` em qualquer branch `pr/*`.
 - `.gitattributes` marca a pasta como `export-ignore`.
 
+> **Fonte única por informação (evita duplicata):** estado dos arcos → `ARCOS.md`(agente)+`ESTADO.md`(humano, gêmeos); backlog → `roadmap.md`; processo de PR → `pilha-prs-runbook.md`; arquitetura → `reference-pipeline.md`. Mexeu → atualiza SÓ o dono da informação.
+
 ## Índice
 - **ARCOS.md** — mapa denso de arcos/sub-arcos → RFC → estado → próximo passo (para o agente carregar rápido).
 - **ESTADO.md** — estado legível para o Claudio (árvore ASCII no topo + notas).
-- **roadmap.md** — roadmap de épicos.
-- **pilha-prs-runbook.md** — estado operacional da pilha de PRs.
+- **roadmap.md** — BACKLOG de épicos futuros (esforço×impacto+ordem). Não duplica estado.
+- **pilha-prs-runbook.md** — PROCESSO de transporte fork→upstream (mecânica+disciplina). Não duplica estado.
 - **reference-pipeline.md** — referência do pipeline de memória.
 - **reconciliacao-v11.10.0.md**, **procedimento-multimaquina-hub.md**, **experimentos-exploratorios-D.md**.
