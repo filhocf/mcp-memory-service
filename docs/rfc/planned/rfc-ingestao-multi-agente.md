@@ -4,7 +4,7 @@
 **Autor:** Claudio + Zero (Kiro)
 **Base:** `upstream/main` v11.14.0+
 **Versão:** 0.1 (draft — visão de arquitetura; execução sai em incrementos pequenos e medidos)
-**Status:** DRAFT — amadurecer no fork → levar à discussion (Henry decide o design antes do código).
+**Status:** DRAFT v0.1 — Discussion ABERTA 30/set: https://github.com/doobidoo/mcp-memory-service/discussions/1393 (aguarda Henry avaliar o formato em camadas + o 1º incremento Kiro→YAML).
 **Absorve (deixam de ser itens isolados, viram camadas):** `rfc-harvest-source-identity` (C1), `rfc-harvest-kiro-sessions` (C2), `rfc-harvest-design-extraction` (C3).
 **Vizinhas (não absorvidas):** `rfc-agent-id-multi-agent` (autoria — o que a C1 carimba), `rfc-delta-sync`/`rfc-hub-memoria-centralizada` (o hub sincroniza o colhido), `rfc-memory-portability` (#1364 — esta RFC é a camada discovery/parsing da pilha de 5 camadas), `rfc-importers` (a outra porta de entrada), `rfc-harvest-provenance` (transversal), `rfc-quality-model` (alimenta a C3).
 
