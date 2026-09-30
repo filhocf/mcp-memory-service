@@ -55,13 +55,13 @@ Fechamos o arco de rating; descobrimos que os 3 arcos de harvest/identidade/port
 - **Portabilidade:** Henry aceitou nosso modelo de 5 camadas; wiki no ar; issue do conversor mem0 aberta.
 
 ## Em andamento
-- **Redesenho da ingestão multi-agente** (o insight que você teve: importador precisa de regras por agente, plugáveis, e lidar com N agentes na mesma máquina — declarativo com auto-descoberta assistida). Próximo: escrever a RFC guarda-chuva e levar à discussion.
-- **Reorganização dos docs** (esta, agora): RFCs no fork em planned/implemented; acompanhamento em docs/_fork/; estudos ficam no CdIA.
+- **Redesenho da ingestão multi-agente:** RFC guarda-chuva escrita (`docs/rfc/planned/rfc-ingestao-multi-agente.md`) e levada à **discussion #1393** — aguardando o Henry avaliar o formato em camadas + o 1º incremento (Kiro→YAML).
+- **Docs reorganizados:** RFCs no fork em `planned/`(22)/`implemented/`(23, verificadas por código); acompanhamento em `docs/_fork/`; estudos ficam no CdIA.
 
 ## Próximo passo
-1. Escrever a RFC guarda-chuva de ingestão multi-agente (3 camadas + as 2 portas: colher local ⊕ importar externo).
-2. Levar à discussion (Henry decide o design antes do código).
-3. 1º passo de código pequeno: extrair as regras do Kiro para um YAML (refactor seguro, golden test).
+1. Aguardar o Henry na **discussion #1393** (formato em camadas ok? Kiro→YAML como 1º incremento?).
+2. Se ok: materializar as specs por camada.
+3. Executar a **Fase 0** — extrair as regras do Kiro para `harvest/agents/kiro.yaml` (refactor dado→config, golden test de cobertura byte-idêntica). Não depende da resposta se quisermos adiantar (é refactor seguro).
 
 ## Decisões abertas (esperando você)
 - Nada bloqueando agora. O redesenho está em fase de design (RFC), sua área de decisão.
