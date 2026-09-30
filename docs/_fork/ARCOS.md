@@ -13,7 +13,7 @@
 
 | Arco | Estado | RFCs (docs/rfc/) | Próximo passo |
 |------|--------|------------------|---------------|
-| **Ingestão multi-agente** (NOVO guarda-chuva) | 🔴 design | planned/rfc-ingestao-multi-agente (a criar) | escrever RFC guarda-chuva → discussion |
+| **Ingestão multi-agente** (NOVO guarda-chuva) | 🔴 design | planned/rfc-ingestao-multi-agente v0.1 ✅ criada | escrever RFC guarda-chuva ✅ RFC v0.1 escrita → PRÓXIMO: discussion |
 | ├ Camada 1: registro/descoberta de fontes N | 🔴 design | implemented/rfc-harvest-source-identity (ABSORVIDA) | declarativo + auto-descoberta assistida |
 | ├ Camada 2: perfil de parsing por agente (YAML) | 🔴 design | implemented/rfc-harvest-kiro-sessions (ABSORVIDA) | 1º passo: extrair Kiro→YAML (golden test) |
 | ├ Camada 3: extração/qualidade sinal-ruído+LLM | 🟡 parcial | implemented/rfc-harvest-design-extraction (ABSORVIDA) | heurísticas declarativas 1º, LLM depois |

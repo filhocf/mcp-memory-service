@@ -33,7 +33,7 @@
 
 | RFC | Arco | Nota |
 |-----|------|------|
-| **rfc-ingestao-multi-agente** (A CRIAR) | Ingestão multi-agente | guarda-chuva das 3 camadas |
+| rfc-ingestao-multi-agente v0.1 | Ingestão multi-agente | guarda-chuva das 3 camadas |
 | rfc-hub-memoria-centralizada | Hub | SPEC F0-F8 |
 | rfc-delta-sync | Hub | #1345 (colab ducanhnguyen223) |
 | rfc-memory-portability | Portabilidade | #1364 wiki; 5 camadas |
