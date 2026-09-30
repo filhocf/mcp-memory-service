@@ -366,9 +366,97 @@ class TranscriptParser:
                     results.append(ParsedMessage(role=msg_type, text=text, timestamp=timestamp, uuid=uuid))
         return results
 
+    def _extract_toolresult_text(self, tr_data: dict) -> Optional[str]:
+        """Extract text from toolResult data structure.
+        
+        Navigates: tr_data = {
+            'toolUseId': ..., 
+            'content': [
+                {'kind': 'json'|'text', 'data': {'content': [{'type': 'text', 'text': 'STRING'}]}}, ...
+            ]
+        }
+        
+        Returns consolidated text segments joined with '\n\n', or None if no text found.
+        """
+        if not isinstance(tr_data, dict):
+            return None
+            
+        content = tr_data.get('content')
+        if not isinstance(content, list):
+            return None
+            
+        text_segments = []
+        
+        for blk in content:
+            if not isinstance(blk, dict):
+                continue
+                
+            blk_kind = blk.get('kind')
+            if blk_kind not in {'json', 'text'}:
+                continue
+                
+            blk_data = blk.get('data')
+            if not isinstance(blk_data, dict):
+                continue
+                
+            inner_content = blk_data.get('content')
+            if not isinstance(inner_content, list):
+                continue
+                
+            for item in inner_content:
+                if not isinstance(item, dict):
+                    continue
+                    
+                if item.get('type') == 'text':
+                    text_value = item.get('text')
+                    if isinstance(text_value, str) and text_value.strip():
+                        # Keep the segment verbatim (mirror v4 which passes tool
+                        # result content unmodified); only skip empties.
+                        text_segments.append(text_value)
+        
+        if not text_segments:
+            return None
+        # Join segments with a single separator and strip only the outer edges,
+        # so the inner content stays verbatim (no \n\n\n\n from double joins).
+        return '\n'.join(text_segments).strip() or None
+
     def _parse_kiro_line(self, obj: dict) -> List[ParsedMessage]:
         """Parse a single Kiro CLI JSONL line."""
         kind = obj.get("kind")
+        timestamp = obj.get("timestamp")
+        uuid = obj.get("uuid")
+        
+        # Handle ToolResults messages BEFORE the 'if not role' guard
+        if kind == "ToolResults":
+            data = obj.get("data", {})
+            content = data.get("content", []) if isinstance(data.get("content"), list) else []
+            
+            # Extract each toolResult block independently, filtering injected
+            # markers PER BLOCK (like v4 treats one tool_result at a time) so a
+            # single injected block doesn't drop the legitimate ones alongside it.
+            kept_segments = []
+            for block in content:
+                if not isinstance(block, dict):
+                    continue
+                if block.get("kind") != "toolResult":
+                    continue
+                text = self._extract_toolresult_text(block.get("data", {}))
+                if not text:
+                    continue
+                if not self._is_injected_content(text):
+                    kept_segments.append(text)
+            
+            consolidated_text = '\n\n'.join(kept_segments) if kept_segments else None
+            
+            if consolidated_text:
+                self._record_coverage("ToolResults", was_extracted=True, text=consolidated_text)
+                return [ParsedMessage(role="assistant", text=consolidated_text, timestamp=timestamp, uuid=uuid)]
+            else:
+                # Nothing kept (no text, or all injected). Count as dropped; no
+                # text= so injected/empty content doesn't pollute the language tally.
+                self._record_coverage("ToolResults", was_extracted=False)
+                return []
+        
         role = self.KIRO_KIND_MAP.get(kind)
         if not role:
             # Not a harvestable kind (e.g. ToolResult). Record it as seen+dropped
@@ -379,8 +467,6 @@ class TranscriptParser:
 
         data = obj.get("data", {})
         content = data.get("content", []) if isinstance(data.get("content"), list) else []
-        timestamp = obj.get("timestamp")
-        uuid = obj.get("uuid")
 
         # Handle plain string content (no blocks). Key it by the message kind.
         if isinstance(data.get("content"), str):
@@ -403,6 +489,17 @@ class TranscriptParser:
                     self._record_coverage(block_kind, was_extracted=True, text=text)
                 else:
                     self._record_coverage(block_kind, was_extracted=False, text=text or None)
+            elif block_kind in {"toolResult", "ToolResult", "tool_result"}:
+                # Extract text from toolResult block (mirror v4 tool_result:
+                # role assistant, _is_injected_content filter, no 10k cutoff).
+                text = self._extract_toolresult_text(block.get("data", {}))
+                if text and not self._is_injected_content(text):
+                    results.append(ParsedMessage(role="assistant", text=text, timestamp=timestamp, uuid=uuid))
+                    self._record_coverage("toolResult", was_extracted=True, text=text)
+                else:
+                    # Empty or injected: count dropped without text= so it does
+                    # not pollute the language tally.
+                    self._record_coverage("toolResult", was_extracted=False)
             else:
                 # Non-text block (e.g. tool_use) — dropped, but now visible per kind.
                 self._record_coverage(block_kind, was_extracted=False)
