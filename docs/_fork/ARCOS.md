@@ -15,7 +15,7 @@
 |------|--------|------------------|---------------|
 | **Ingestão multi-agente** (NOVO guarda-chuva) | 🔴 design | planned/rfc-ingestao-multi-agente v0.3 — discussion #1393 (evidência a postar) | escrever RFC guarda-chuva ✅ discussion #1393 postada → aguarda Henry |
 | ├ Camada 1: registro/descoberta de fontes N | 🔴 design | implemented/rfc-harvest-source-identity (ABSORVIDA) | declarativo + auto-descoberta assistida |
-| ├ Camada 2: perfil de parsing por agente (YAML) | 🔴 design | implemented/rfc-harvest-kiro-sessions (ABSORVIDA) | 1º passo: extrair Kiro→YAML (golden test) |
+| ├ Camada 2: perfil de parsing por agente (YAML) | 🔴 design | implemented/rfc-harvest-kiro-sessions (ABSORVIDA) | spec-fase0 escrita; triage.py consolidado (193 testes); aguarda aval #1393 |
 | ├ Camada 3: extração/qualidade sinal-ruído+LLM | 🟡 parcial | implemented/rfc-harvest-design-extraction (ABSORVIDA) | heurísticas declarativas 1º, LLM depois |
 | │  ├ I0 coverage instrument | ✅ #1350 merged | — | — |
 | │  ├ I0-lang idioma | ✅ #1379 merged | — | — |
