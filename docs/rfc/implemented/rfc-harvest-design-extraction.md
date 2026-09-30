@@ -1,10 +1,12 @@
 # RFC: Harvest Design-Extraction (colher análise longa + ToolResults ricos)
 
-**Data:** 2026-09-26 (rev. 2026-09-27)
+> **ABSORVIDA → `rfc-ingestao-multi-agente` — camada 3 (extração/qualidade).** Esta RFC deixou de ser item isolado; seu conteúdo é parte da arquitetura guarda-chuva. Mantida como histórico/detalhe da camada.
+
+**Data:** 2026-09-26 (rev. 2026-09-29)
 **Autor:** Claudio + Zero (Kiro CLI)
 **Branch de código:** `feat/harvest-design-extraction` (a partir de `upstream/main`)
 **Base:** `upstream/main` v11.14.0
-**Versão:** 0.2 (draft — pronto para abrir como issue própria, a pedido do Henry no #1287)
+**Versão:** 0.4 (draft — v0.4 reenquadra o eixo IDIOMA conforme correção do Henry na #1364: o extractor deve honrar o LOCALE de quem roda pelo mecanismo já existente (`config/locale.py` + patterns per-locale, como NER/NLI/harvest), NÃO ser decidido por uma "fração do corpus". A medição de idioma no Phase 0 vira diagnóstico, não gate.)
 **Inspiração:** diagnóstico #1100 (13/set) + discussion #1287 (beacon loop, direcionamento do Henry) + #1103 (LLM summarization, VijaySreekar — ponta oposta)
 **Reintegra:** o GAP DE PRODUTO deixado aberto pela RFC-harvest-provenance (que resolveu proveniência+tracker, NÃO cobertura de conteúdo rico)
 **Status:** DRAFT v0.2 — a abrir como issue própria (Henry: "write the RFC as you planned... keep it on its own thread rather than folding it into #1286").
@@ -73,6 +75,9 @@ O extractor só é construído **depois** deste instrumento provar que há cober
 - **R0.1** — WHEN o parser processa um transcript, THE parser SHALL contar o que **viu e descartou por tipo de bloco** (Prompt/Response/AssistantMessage/ToolResult/outros), emitindo um relatório de cobertura sem alterar o que é colhido.
 - **R0.2** — THE relatório de cobertura SHALL distinguir "bloco visto e extraído" de "bloco visto e descartado", por tipo, de modo que "N blocos eram descartáveis" e "N blocos foram descartados" deixem de ser indistinguíveis de fora.
 - **R0.3** — THE design-extractor (R2/R3) SHALL ser gated no que o instrumento de cobertura reportar: não se implementa o extractor antes de o instrumento mostrar volume de descarte relevante por tipo.
+- **R0.4** — THE relatório de cobertura SHALL registrar o **idioma detectado por bloco/sessão** (detecção barata, NÃO inferência semântica), como uma dimensão de DIAGNÓSTICO. Isto é MEDIÇÃO, não gate: o instrumento só rotula o idioma do que foi visto/descartado, para expor se o extractor de um dado operador está lidando bem com o locale dele. NÃO é a base para decidir "o extractor é multilíngue ou não" — essa decisão segue o mecanismo de locale existente (R3.1), não uma fração de corpus.
+
+> Racional do R0.4 (idioma como diagnóstico — reenquadrado v0.4): a versão anterior tratava a fração pt-BR do corpus como gate ("se a maior parte do gap é pt-BR, extractor en-only está descartado"). O Henry corrigiu com razão (#1364): os arquivos medidos são de UM operador, então a fração pt-BR é dele, não da base de usuários — mostra que o extractor tem que honrar o locale de QUEM RODA, não que "a maioria do conteúdo é português". Então a medição de idioma continua útil como diagnóstico por-operador (o report mostra se o extractor está representando bem o locale local, split extracted/dropped), mas a EXIGÊNCIA de locale (R3.1) não vem do número — vem do mesmo mecanismo que NER/NLI/harvest já usam.
 
 > Racional (Henry): "an instrument that counts what the parser saw and discarded, per block type, is a smaller change than the LLM extractor and it is the thing that tells us whether the extractor was worth building." O jimy-r reforçou com dado próprio: um per-type count teria mostrado a estreiteza do detector (126 candidatos de um só detector) semanas antes da taxa de drain revelar.
 
@@ -81,6 +86,8 @@ O extractor só é construído **depois** deste instrumento provar que há cober
 - **R1** — THE parser SHALL incluir `ToolResult` no mapeamento de tipos, preservando o conteúdo (com truncagem configurável para saídas volumosas).
 - **R2** — WHERE um bloco de AssistantMessage excede um limiar de comprimento (`MCP_HARVEST_DESIGN_MIN_CHARS`, default a definir), THE extractor SHALL tratá-lo como candidato a design-extraction em vez de descartá-lo por não casar frase-gatilho.
 - **R3** — THE design-extractor SHALL usar o LLM (cadeia de provider existente) com um prompt específico para extrair decisões de arquitetura, trade-offs e o *porquê* — não apenas a conclusão.
+- **R3.1** — THE design-extractor SHALL honrar o LOCALE do operador pelo mesmo mecanismo já usado no resto do sistema: resolver o locale via `config/locale.py` (`MCP_LOCALE` com fallback `HARVEST_LOCALE`) e carregar recursos per-locale, como NER (`extraction/ner_patterns/pt_BR.yaml`), NLI (`reasoning/nli_patterns/pt_BR.yaml`) e harvest (`harvest/patterns/pt_BR.yaml`) já fazem. NÃO é gated por "fração do corpus" — é a mesma decisão de locale que o projeto já tomou para todo o resto. Quando empregar NLI/entailment para separar decisão vs. alternativa, THE backend SHALL respeitar o locale resolvido (reusar o `cascade` do NLIClassifier, #1215, cuja cadeia de providers LLM já é multilíngue).
+- **R3.2** — WHERE componentes de harvest ainda leem `HARVEST_LOCALE` diretamente sem passar por `config/locale.py`, THE mudança SHALL roteá-los pelo resolvedor central para que `MCP_LOCALE` alcance o harvest. (Nota: `harvest/extractor.py`, `harvester.py`, `rewriter.py`, `bootstrap/formatter.py` — parcialmente endereçado pelo #1382, "honor MCP_LOCALE in harvest, rewriter and Kiro bootstrap"; confirmar cobertura e completar o que faltar no mesmo trabalho do extractor.)
 - **R4** — THE design-extractor SHALL preservar proveniência (RFC-harvest-provenance): `harvest:method:llm` + `harvest_model`, mais uma marca de modo (`harvest:mode:design`).
 
 ### Funcional — controle de ruído (lição do R10 + #1287)
@@ -108,7 +115,8 @@ Espelhando a disciplina do R10 (pilotar + medir antes de rodar em massa):
 1. Selecionar 5-10 sessões de design denso conhecidas (ex.: #1100, #1318, auto-supersede 26/set).
 2. Rodar o design-extractor protótipo (prompt LLM "extraia decisões de arquitetura + porquê + trade-offs") contra elas.
 3. **Medir:** quantas memórias densas prestáveis por sessão vs. ruído. Comparar com o que o harvest atual capturou dessas mesmas sessões.
-4. **Gate de decisão:** só vale implementar em produção se o design-extractor recuperar substancialmente mais conhecimento navegável que o extractor atual, sem inflar ruído. Se o yield for baixo (como o miner do #1287), reavaliar.
+3.1. **Diagnóstico de idioma (R0.4):** medir a distribuição de idioma dos blocos (extracted/dropped) como diagnóstico do locale do operador — mostra se o extractor está representando bem o locale local, não decide multilinguismo por fração. Rodar o extractor protótipo sob o locale resolvido (`config/locale.py`) e confirmar que ele carrega os recursos per-locale corretos.
+4. **Gate de decisão:** só vale implementar em produção se o design-extractor recuperar substancialmente mais conhecimento navegável que o extractor atual, sem inflar ruído. Se o yield for baixo (como o miner do #1287), reavaliar. O extractor deve honrar o locale de quem roda (R3.1) por construção, não como condição medida.
 
 ---
 
@@ -118,17 +126,18 @@ Espelhando a disciplina do R10 (pilotar + medir antes de rodar em massa):
 - **RFC-harvest-provenance** — este RFC herda a proveniência dela; é a Fase seguinte ("cobertura de conteúdo" após "proveniência + tracker").
 - **#1287** (beacon loop) — a filosofia server-side + implícito + yield-contado vem de lá.
 - **Session Miner** (task-orch `89feeabc`, done) — o protótipo standalone que originou o harvest de produção; este RFC reabre a dimensão "conteúdo rico" que o miner não resolveu.
+- **RFC-nli-cascade** (#1215 Fase 1 mergeada, #1235 Fase 2 aberta) — o backend `cascade` do `NLIClassifier` (reusa a cadeia de providers LLM do harvest, degrada para heurística) é o insumo natural do R3.1: se o design-extractor precisar de NLI/entailment para separar "decisão tomada" de "alternativa descartada", esse backend já existe e é multilíngue via LLM. NÃO reinventar NLI — reaproveitar e validar em pt-BR.
 
 ---
 
 ## 6. Migração e compatibilidade (usual four — Henry)
 
 Qualquer coisa que mude **o que o harvest escreve** precisa de migração/compat declarada:
-- **Phase 0 (R0.x)** não muda o que é escrito — só instrumenta. Zero migração, seguro por padrão.
+- **Phase 0 (R0.x)** não muda o que é escrito — só instrumenta. Zero migração, seguro por padrão. A dimensão de idioma (R0.4) é rótulo no relatório de cobertura, não altera nenhuma memória.
 - **R1 (ToolResult no parser)** muda o que ENTRA como candidato — aditivo; sessões antigas não são re-harvestadas retroativamente (o R10 já decidiu: não recolher em massa). Só afeta harvest novo daqui pra frente.
 - **R4 (marca `harvest:mode:design`)** é tag/metadata aditiva (padrão RFC-harvest-provenance), backward-compatible.
 - **Default OFF (R5)** garante que nada muda para setups existentes até opt-in explícito.
 
 ## 7. Estado
 
-DRAFT v0.2 — pronto para abrir como issue própria (não dobrar no #1286; Henry pediu thread própria). Após abrir: rodar o Phase 0 (instrumento de cobertura) e trazer os números de cobertura por tipo de bloco ANTES de propor o extractor — o padrão "bring numbers first" que funcionou nos PRs anteriores. O escopo do primeiro PR é o próprio Phase 0 (instrumento), não o extractor.
+DRAFT v0.4 — pronto para abrir como issue própria (não dobrar no #1286; Henry pediu thread própria). Após abrir: rodar o Phase 0 (instrumento de cobertura, incluindo a dimensão de idioma R0.4 como diagnóstico) e trazer os números de cobertura por tipo de bloco ANTES de propor o extractor — o padrão "bring numbers first". O escopo do primeiro PR é o próprio Phase 0 (instrumento), não o extractor. O locale do extractor (R3.1) segue o mecanismo existente (`config/locale.py` + patterns per-locale, como NER/NLI/harvest), não uma decisão por fração de corpus.
