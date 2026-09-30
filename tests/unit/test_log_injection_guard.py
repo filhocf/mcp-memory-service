@@ -53,6 +53,9 @@ GUARDED_MODULES = [
     "mcp_memory_service/storage/graph.py",
     "mcp_memory_service/storage/mixins/migrations.py",
     "mcp_memory_service/storage/mixins/embeddings.py",
+    "mcp_memory_service/discovery/mdns_service.py",
+    "mcp_memory_service/sync/importer.py",
+    "mcp_memory_service/backup/scheduler.py",
 ]
 
 # The levels check 6.5 looks at, verbatim.
@@ -75,6 +78,24 @@ EXTERNAL_NAMES = frozenset({
     # guarded logger call (storage/graph.py) is already wrapped; listing the
     # name keeps a later unwrap from passing the ratchet green.
     "max_hops",
+    # The ServiceDetails a mDNS listener builds from another host's announcement
+    # (discovery/mdns_service.py): its name and url are chosen by that host. The
+    # object name is listed rather than `name`/`url`, which are ordinary internal
+    # identifiers elsewhere in the guarded modules.
+    "service_details",
+    # What the importer (sync/importer.py) is handed from outside: the path of
+    # each export file passed on the command line, and the machine name the
+    # export itself declares in its metadata. The per-source summary loop is
+    # named `source_machine` for this reason; a bare `source` stays unlisted,
+    # it is an ordinary internal identifier elsewhere.
+    "json_file",
+    "source_machine",
+    # The backup service (backup/scheduler.py) logs names it did not choose:
+    # the `filename` a caller hands restore_backup(), and each backup["filename"]
+    # list_backups() reads off the backups directory. The name the service
+    # generates itself is `backup_filename`, a different token, and it stays
+    # unlisted on purpose.
+    "filename",
 })
 
 # Fields of an outside object that cannot carry injectable text. An HTTP status
@@ -236,6 +257,65 @@ def test_lazy_scan_flags_caller_controlled_max_hops():
     wrapped = 'logger.debug("within %s hops", _sanitize_log_value(max_hops))\n'
     assert _lazy_findings(bare)
     assert not _lazy_findings(wrapped)
+
+
+@pytest.mark.unit
+def test_lazy_scan_flags_mdns_service_details():
+    """service_details is parsed from a mDNS announcement made by another host.
+
+    Every guarded logger call in discovery/mdns_service.py already wraps its
+    fields, so the module scan stays green whether or not the object is
+    listed. This is the sample that fails if the entry is dropped from
+    EXTERNAL_NAMES; a bare `name` stays unlisted on purpose.
+    """
+    bare = 'logger.info("Discovered: %s", service_details.name)\n'
+    wrapped = 'logger.info("Discovered: %s", _sanitize_log_value(service_details.name))\n'
+    assert _lazy_findings(bare)
+    assert not _lazy_findings(wrapped)
+    assert not _lazy_findings('logger.info("Discovered: %s", name)\n')
+
+
+@pytest.mark.unit
+def test_lazy_scan_flags_importer_inputs():
+    """json_file and source_machine reach sync/importer.py from outside.
+
+    The path is whatever the command line passed in; the machine name is
+    read out of the export's own metadata. Every guarded logger call in the
+    importer already wraps both, so the module scan stays green whether or
+    not they are listed. These are the samples that fail if either entry is
+    dropped from EXTERNAL_NAMES; a bare `source` stays unlisted on purpose.
+    """
+    for bare, wrapped in (
+        ('logger.info("Processing %s", json_file)\n',
+         'logger.info("Processing %s", _sanitize_log_value(json_file))\n'),
+        ('logger.info("  %s: done", source_machine)\n',
+         'logger.info("  %s: done", _sanitize_log_value(source_machine))\n'),
+    ):
+        assert _lazy_findings(bare)
+        assert not _lazy_findings(wrapped)
+    assert not _lazy_findings('logger.info("  %s: done", source)\n')
+
+
+@pytest.mark.unit
+def test_lazy_scan_flags_backup_filenames():
+    """filename reaches backup/scheduler.py from its callers and from the disk.
+
+    restore_backup() is handed one; list_backups() reads one off every file
+    in the backups directory and cleanup logs it back. Every guarded logger
+    call in the scheduler already wraps them, so the module scan stays green
+    whether or not the name is listed. These are the samples that fail if
+    the entry is dropped from EXTERNAL_NAMES; the service's own generated
+    `backup_filename` stays unlisted on purpose.
+    """
+    for bare, wrapped in (
+        ('logger.info("Restored %s", filename)\n',
+         'logger.info("Restored %s", _sanitize_log_value(filename))\n'),
+        ('logger.info("Removed %s", backup["filename"])\n',
+         'logger.info("Removed %s", _sanitize_log_value(backup["filename"]))\n'),
+    ):
+        assert _lazy_findings(bare)
+        assert not _lazy_findings(wrapped)
+    assert not _lazy_findings('logger.info("Created %s", backup_filename)\n')
 
 
 @pytest.mark.unit
