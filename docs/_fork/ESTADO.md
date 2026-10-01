@@ -5,22 +5,22 @@
 
 ```
 mcp-memory-service (fork = linha viva · 0 atrás do upstream · 1/out)
-│  Legenda: ✅ feito/mergeado · 🟢 feito fork-only · 🟡 parcial/design · 🔴 a fazer
+│  Legenda: ✅ MERGED/feito · 🟢 feito fork-only · 🟡 parcial/design · 🔴 a fazer
 │
 ├─ ✅ ARCO RATING / QUALITY ............................. FECHADO
-│   ├─ #1312 quality-model → PR #1349 ................... ✅ MERGEADO (computed vs user_rating)
+│   ├─ quality-model (computed vs user_rating) ......... ✅ MERGED PR #1349
 │   ├─ #1368 retention_periods (ontologia) ............. ✅ upstream — desmascarou o decay
-│   ├─ #1391 MCP_DECAY_ENABLED (timkjr) ................. ✅ MERGEADO 1/out — furo lateral fechado
-│   └─ #1352 supersession orphan → PR #1404 ............. 🟢 nosso, aberto (fix coluna + list_orphans)
+│   ├─ MCP_DECAY_ENABLED (timkjr) ....................... ✅ MERGED PR #1391 — furo lateral fechado
+│   └─ supersession orphan (fix coluna + list_orphans) . 🟢 PR #1404 ABERTO (nosso)
 │
 ├─ 🟡 ARCO INGESTÃO MULTI-AGENTE ....... REDESENHO (foco) · RFC #1393 na discussion
 │   │   "1 serviço, N agentes/clientes · regras por agente, plugáveis (YAML)"
 │   │
 │   ├─ Peças JÁ FEITAS (encaixam nas camadas):
-│   │   ├─ I0 coverage instrument (#1350) .............. ✅ MERGED
-│   │   ├─ I0-lang idioma no Phase 0 (#1379) ........... ✅ MERGED (split extracted/dropped)
-│   │   ├─ IA discovery workspace (#1378) ............. ✅ MERGED (find_sessions+id+resolve+guard)
-│   │   ├─ IB parser SQLite/Crew (#1379) .............. ✅ MERGED (conversations_v2 read-only)
+│   │   ├─ I0 coverage instrument ......................... ✅ MERGED PR #1350
+│   │   ├─ I0-lang idioma no Phase 0 ...................... ✅ MERGED PR #1379 (split extracted/dropped)
+│   │   ├─ IA discovery workspace ......................... ✅ MERGED PR #1378 (find_sessions+resolve+guard)
+│   │   ├─ IB parser SQLite/Crew .......................... ✅ MERGED PR #1379 (conversations_v2 read-only)
 │   │   └─ I1 ToolResults CLI {kind} (78e29b05) ....... 🟢 FORK (msg+bloco; thinking=redacted, só contado)
 │   │
 │   ├─ C1 registro/descoberta de N fontes .............. 🔴 design (absorve source-identity)
@@ -36,11 +36,11 @@ mcp-memory-service (fork = linha viva · 0 atrás do upstream · 1/out)
 ├─ 🟡 ARCO PORTABILIDADE ............... design aceito pelo Henry (5 camadas)
 │   ├─ discussion #1364 (5 camadas) ................... ✅ Henry aceitou o modelo
 │   ├─ wiki Memory-Portability-Map ..................... ✅ no ar (mapa por harness)
-│   ├─ "bring your memory": conversor mem0 (#1390) ..... 🔴 tracking aberto (1º de N)
+│   ├─ "bring your memory": conversor mem0 .............. 🟡 PR #1401 (Harbor404, fecha nosso #1390)
 │   └─ "use in any agent" ............................. → é o arco ingestão multi-agente (acima)
 │
 └─ 🟡 ARCO HUB MULTI-AGENTE ............ agent_id feito; falta a malha
-    ├─ agent_id F1/F2 (#1278/#1297) ................... ✅ MERGED (autoria no store)
+    ├─ agent_id F1/F2 (autoria no store) .............. ✅ MERGED PR #1278/#1297
     ├─ SPEC-hub F0-F8 ................................. 🟡 spec pronta
     ├─ delta-sync (#1345) ............................. 🟡 RFC v0.3 (colab ducanhnguyen223 na v0.4)
     └─ F3-F8: estrela, consolidação nas pontas, NLI cross-agent  🔴 a fazer
