@@ -21,7 +21,7 @@ mcp-memory-service (fork = linha viva · 0 atrás do upstream · 1/out)
 │   │   ├─ I0-lang idioma no Phase 0 ...................... ✅ MERGED PR #1379 (split extracted/dropped)
 │   │   ├─ IA discovery workspace ......................... ✅ MERGED PR #1378 (find_sessions+resolve+guard)
 │   │   ├─ IB parser SQLite/Crew .......................... ✅ MERGED PR #1379 (conversations_v2 read-only)
-│   │   └─ I1 ToolResults CLI {kind} (78e29b05) ....... 🟢 FORK (msg+bloco; thinking=redacted, só contado)
+│   │   └─ I1 ToolResults CLI {kind} (78e29b05) ........... 🟢 FORK (msg+bloco; thinking=redacted, só contado)
 │   │
 │   ├─ C1 registro/descoberta de N fontes .............. 🔴 design (absorve source-identity)
 │   │      declarativo + auto-descoberta assistida · lê sidecar identidade (agent_id.name/workspacePaths)
@@ -30,14 +30,14 @@ mcp-memory-service (fork = linha viva · 0 atrás do upstream · 1/out)
 │   ├─ C3 extração/qualidade sinal-ruído ............... 🟡 design (absorve design-extraction)
 │   │      heurísticas O(n) 1º (95% prosa / 4% json medido) → LLM só gated · honra locale
 │   │
-│   ├─ 1º passo (aceito p/ Henry): Kiro→YAML golden test  🔴 aguarda OK da discussion #1393
-│   └─ ⚠️ GATE: discussion → specs por camada → Fase 0 (refactor dado→config, cobertura byte-idêntica)
+│   ├─ triage.py (score valor, 2 eixos, 193 testes) ... 🟢 PRONTO mas NÃO PLUGADO no harvester
+│   └─ ⚠️ FASE 0 (fecha a dor, NÃO depende do Henry): plugar triage + Kiro→YAML + colher 11 OURO curados
 │
 ├─ 🟡 ARCO PORTABILIDADE ............... design aceito pelo Henry (5 camadas)
 │   ├─ discussion #1364 (5 camadas) ................... ✅ Henry aceitou o modelo
-│   ├─ wiki Memory-Portability-Map ..................... ✅ no ar (mapa por harness)
+│   ├─ wiki Memory-Portability-Map ...................... ✅ no ar (mapa por harness)
 │   ├─ "bring your memory": conversor mem0 .............. 🟡 PR #1401 (Harbor404, fecha nosso #1390)
-│   └─ "use in any agent" ............................. → é o arco ingestão multi-agente (acima)
+│   └─ "use in any agent" ............................... → é o arco ingestão multi-agente (acima)
 │
 └─ 🟡 ARCO HUB MULTI-AGENTE ............ agent_id feito; falta a malha
     ├─ agent_id F1/F2 (autoria no store) .............. ✅ MERGED PR #1278/#1297
@@ -59,13 +59,23 @@ Fechamos o arco de rating; descobrimos que os 3 arcos de harvest/identidade/port
 - **Redesenho da ingestão multi-agente:** RFC guarda-chuva escrita (`docs/rfc/planned/rfc-ingestao-multi-agente.md`) e levada à **discussion #1393** — aguardando o Henry avaliar o formato em camadas + o 1º incremento (Kiro→YAML).
 - **Docs reorganizados:** RFCs no fork em `planned/`(22)/`implemented/`(23, verificadas por código); acompanhamento em `docs/_fork/`; estudos ficam no CdIA.
 
-## Próximo passo
-1. Aguardar o Henry na **discussion #1393** (formato em camadas ok? Kiro→YAML como 1º incremento?).
-2. Se ok: materializar as specs por camada.
-3. Executar a **Fase 0** — extrair as regras do Kiro para `harvest/agents/kiro.yaml` (refactor dado→config, golden test de cobertura byte-idêntica). Não depende da resposta se quisermos adiantar (é refactor seguro).
+## A DOR (o que falta de verdade, em 1 frase)
+A colheita do Kiro **lê os formatos** (feito) mas **NÃO filtra valor**: hoje colheria "hello v3", testes e dumps junto com o conhecimento. A triagem que resolve isso (`harvest/triage.py` — score calibrável, 2 eixos, 11 testes verdes) **já existe no código mas NÃO está plugada no harvester**. Fechar a dor = plugar a triagem + colher o acervo bom.
+
+## FASE 0 — tarefas concretas (fecha a dor; NÃO depende do Henry — refactor seguro)
+- [ ] **T1. Plugar `triage.py` no harvester** — antes de colher/gravar, descartar sessões `teste`/`vazia`/`truncada`/`dump` (score < limiar). Hoje o `find_sessions` colhe tudo que o parser reconhece.
+- [ ] **T2. Extrair regras do Kiro → `harvest/agents/kiro.yaml`** — maps hardcoded (KIRO_KIND_MAP, markers, cutoff, globs) viram YAML declarativo (camada C2). Refactor dado→config.
+- [ ] **T3. Golden test** — `coverage_report()` byte-idêntico antes/depois (prova que não quebrou os 3 formatos já suportados).
+- [ ] **T4. COLHER o acervo curado** — rodar o harvest com triagem nos 11 OURO+CONVERSA já triados (`~/local-data/kiro-harvest-curado/`). **É aqui que a dor morre:** conhecimento real do Kiro entra na memória, sem o lixo. dry-run 1º.
+- Peça pronta: `src/mcp_memory_service/harvest/triage.py` + `tests/harvest/test_triage.py` (193 verdes). Fixture: `~/local-data/kiro-harvest-curado/` (11 sessões).
+
+## Depende do Henry (paralelo, não bloqueia a Fase 0)
+1. **Discussion #1393** — Henry avaliar o formato em camadas + Kiro→YAML como 1º incremento (RFC ingestão). Não respondeu ainda.
+2. **PR #1404** (fix #1352) — CI/Greptile + merge do Henry.
+3. Se #1393 ok → materializar specs das outras camadas (C1 multi-fonte, C3 LLM-extractor).
 
 ## Decisões abertas (esperando você)
-- Nada bloqueando agora. O redesenho está em fase de design (RFC), sua área de decisão.
+- **Escopo da Fase 0:** (a) fork-only — plugar triagem + colher os 11 OURO (fecha a dor HOJE); ou (b) + `kiro.yaml` + golden test visando PR upstream (generaliza, mais trabalho). A dor fecha com (a); (b) é (a) empacotada p/ o Henry.
 
 ## Onde está o quê
 - **RFCs:** `docs/rfc/planned/` (futuro) e `docs/rfc/implemented/` (feito). Índice: `docs/rfc/_index.md`.
