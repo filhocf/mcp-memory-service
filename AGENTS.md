@@ -72,8 +72,14 @@ RETURN caller.name, caller.filePath
 1. **Carregar a skill:** `~/.kiro/skills/memory-service-maintainer/SKILL.md`
    (mandato do Henry, escopo de merge, fluxo de PR, gate G5, pitfalls).
 2. **Buscar estado recente:** `memory_search("mcp-memory-service Henry mandato fila", tags=["mcp-memory-service","henry"], limit=5)`.
-3. **Ler o runbook:** `~/git/conhecimentos-de-ia/ferramentas/mcp/memory-service/PILHA-PRs-runbook.md`
-   (ambiente, pilha de PRs, baldes, §Atualização do SERVIÇO).
+3. **Ler o runbook:** `docs/_fork/pilha-prs-runbook.md`
+   (processo de transporte fork→upstream, mecânica de branches, disciplina). Estado dos arcos: `docs/_fork/ARCOS.md`.
+4. **ANTES de analisar/implementar código deste repo — consultar o GRAFO primeiro (codebase-memory, não grep):**
+   `list_projects`/`index_status` (indexado e fresco?) → roteie a tarefa (entender arquitetura → `get_architecture`;
+   quem chama X → `trace_path(inbound)`; o que X chama → `trace_path(outbound)`; impacto de mudança → `detect_changes`;
+   achar símbolo → `search_graph`; ler fonte → `get_code_snippet`) → escolha o tier (Scout/Verify/Auditor).
+   Grep/glob só quando o grafo não cobre (string literal, config, não-código). Skill: `~/.kiro/skills/codebase-memory/SKILL.md`.
+   *(codebase-memory = nossa escolha no Kiro, MIT + Kiro-first; o bloco `gitnexus` acima é do Henry p/ Claude Code, inerte p/ nós.)*
 
 ## Dois modos de trabalho (NÃO confundir)
 - **DESENVOLVER nossas feats** → nosso método SDD/G0-G6 (`~/git/conhecimentos-de-ia/padroes/DEVELOPMENT-STANDARDS.md §0`).
@@ -92,7 +98,10 @@ upstream/main ──→ pr/<feat> ──(Henry mergeia)──→ upstream/main
                                        ▼
                                     main (fork) ← LINHA VIVA (serviço roda daqui)
 ```
-- **Feat aprovada volta à `main` via `git merge upstream/main`, NUNCA cherry-pick** — quando o Henry mergeia nosso PR, o merge do upstream substitui nossa versão fork-only pela oficial (evita duplicata). Foi assim que NLI #1215/ONNX #1242/scheduler #1241 convergiram no merge de 15/set.
+- **Desenvolve-se na `main` (LINHA VIVA) — o serviço roda a feat, testa de verdade (E2E real).**
+- **Para virar PR:** criar branch `pr/<feat>` a partir de `upstream/main` LIMPO (worktree `-dev`) e trazer SÓ os commits da feat (cherry-pick/recorte). NUNCA arrastar commits fork-only (docs/rfc, docs/_fork, AGENTS) para a branch de PR.
+- **No RETORNO (Henry mergeia o PR): `git merge upstream/main` na `main`, NUNCA cherry-pick** — o merge substitui nossa versão fork-only pela oficial (evita duplicata). Foi assim que NLI #1215/ONNX #1242/scheduler #1241 convergiram no merge de 15/set.
+  > ⚠️ O "NUNCA cherry-pick" vale SÓ para o RETORNO (trazer a feat já mergeada de volta à main). No RECORTE main→`pr/<feat>` o cherry-pick é o mecanismo esperado.
 - **Gestão viva:** a cada PR nosso mergeado no upstream, fazer `git merge upstream/main` na `main` e resolver conflitos ficando com o upstream onde ele absorveu a feat.
 - Tudo que difere do upstream (docs/rfc, fork-only) habita SÓ na `main`.
 - Backups: `backup/service-pre-mainswap-0915` (service pré-swap), `backup/main-fork-2026-09-02`.
