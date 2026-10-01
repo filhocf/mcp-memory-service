@@ -51,6 +51,11 @@ class HarvestConfig:
     # P4: Harvest evolution — evolve existing memories instead of duplicating
     similarity_threshold: float = 0.85  # Cosine similarity to trigger evolution
     min_confidence_to_evolve: float = 0.3  # Skip evolution for very stale memories
+    # Session value triage (C3a) — opt-in gate that drops low-value whole sessions
+    # (smoke tests, dead sessions, tool dumps) BEFORE parsing/extraction.
+    # Default off = unchanged behavior. See harvest/triage.py.
+    triage_enabled: bool = False
+    triage_threshold: float = 0.25  # keep sessions scoring >= this (0..1)
 
 
 def harvest_config_from_env(**overrides) -> HarvestConfig:
@@ -68,6 +73,7 @@ def harvest_config_from_env(**overrides) -> HarvestConfig:
     for env_var, field_name in [
         ("MCP_HARVEST_SIMILARITY_THRESHOLD", "similarity_threshold"),
         ("MCP_HARVEST_MIN_CONFIDENCE_TO_EVOLVE", "min_confidence_to_evolve"),
+        ("MCP_HARVEST_TRIAGE_THRESHOLD", "triage_threshold"),
     ]:
         raw = os.environ.get(env_var)
         if raw is not None:
@@ -77,6 +83,10 @@ def harvest_config_from_env(**overrides) -> HarvestConfig:
                 logging.getLogger(__name__).warning(
                     f"Invalid {env_var}={raw!r}, using default"
                 )
+    # Boolean opt-in for session triage (default off → unchanged behavior).
+    raw_triage = os.environ.get("MCP_HARVEST_TRIAGE")
+    if raw_triage is not None:
+        defaults["triage_enabled"] = raw_triage.strip().lower() in ("1", "true", "yes", "on")
     defaults.update(overrides)
     return HarvestConfig(**defaults)
 

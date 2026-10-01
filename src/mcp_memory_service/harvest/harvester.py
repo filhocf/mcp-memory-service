@@ -174,9 +174,33 @@ class SessionHarvester:
 
         return kept
 
+    def _apply_triage(self, session_files, config):
+        """Session value triage (C3a, opt-in): drop whole low-value sessions
+        (smoke tests, dead sessions, tool dumps) before parsing/extraction.
+        Default off — unchanged behavior unless config.triage_enabled. Fail-open:
+        a scoring error keeps the session (never silently drops on bug)."""
+        if not config.triage_enabled:
+            return session_files
+        from .triage import score_session
+        kept = []
+        for fp in session_files:
+            try:
+                verdict = score_session(fp, config.triage_threshold)
+            except Exception:
+                kept.append(fp)
+                continue
+            if verdict.verdict == "keep":
+                kept.append(fp)
+            else:
+                logger.info(
+                    "harvest triage dropped %s (score=%.2f label=%s)",
+                    verdict.session_id, verdict.score, verdict.label,
+                )
+        return kept
+
     def harvest(self, config: HarvestConfig) -> List[HarvestResult]:
         """Parse sessions and extract candidates (synchronous, no storage)."""
-        session_files = self._resolve_sessions(config)
+        session_files = self._apply_triage(self._resolve_sessions(config), config)
         if not session_files:
             return []
 
@@ -193,7 +217,7 @@ class SessionHarvester:
         memories. If found above similarity_threshold, evolves via versioned
         update instead of creating a duplicate.
         """
-        session_files = self._resolve_sessions(config)
+        session_files = self._apply_triage(self._resolve_sessions(config), config)
         if not session_files:
             return []
 
