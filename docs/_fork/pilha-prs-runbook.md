@@ -1,13 +1,14 @@
 # Pilha de PRs — mcp-memory-service fork (runbook)
 
-**Criado:** 03/set/2026 · **Atualizado:** 30/set/2026 · **Estratégia:** PR sai de `upstream/main` limpo · **Base:** `upstream/main` (GitHub, v11.14.0+)
+**Criado:** 03/set/2026 · **Atualizado:** 01/out/2026 · **Estratégia:** PR sai de `upstream/main` limpo · **Base:** `upstream/main` (GitHub, v11.14.0+)
 
 > **Escopo deste doc:** o PROCESSO de transporte fork→upstream (mecânica de branches, protocolo de saúde, disciplina de transporte). **NÃO** duplica estado dos arcos (isso é `ESTADO.md`/`ARCOS.md`) nem backlog de épicos (`roadmap.md`). Regra: mexeu → documenta no lugar certo.
 
-## Estado atual (30/set)
-- **Fila Henry: 0 PRs nossos abertos.** main fork sincronizada com upstream (fork-only à frente, 0 atrás).
-- **PRs de terceiros na nossa área (só observar, aguardam Henry):** #1391 (timkjr, `MCP_DECAY_ENABLED` — CLEAN+greptile-APPROVED, toca consolidation/, fecha furo do nosso arco rating; timkjr resolveu, não pegamos).
-- **Próximo PR nosso:** arco ingestão multi-agente, Fase 0 (Kiro→YAML) — aguarda discussion #1393.
+## Estado atual (1/out)
+- **1 PR nosso aberto: #1404** (fix #1352 — `update_memory_metadata` escreve coluna `superseded_by` + `list_superseded_orphans`). Gate completo (rok RED→reg GREEN→tuvok PASS) + refino pós-Greptile P1 (race: só escreve se pedido; reconcilia JSON) + parte b (órfãos). 419 storage verdes. CI re-rodando. Branch `pr/1352-superseded-by-column`, worktree `~/git/mcp-memory-service-pr1352`.
+- **main fork** 116+ à frente / 0 atrás do upstream.
+- **Comentamos (não mergeamos — fora do mandato):** #1401 (mem0/Harbor404, fecha #1390), #1402 (rate-limit/Harbor404, fecha #1096 — bug agent_id apontado).
+- **Mergeado pelo upstream 1/out:** #1391 (decay flag) fecha furo lateral do arco rating.
 
 ## Topologia
 ```

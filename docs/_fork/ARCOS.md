@@ -1,13 +1,15 @@
 # ARCOS — mapa de trabalho (agente)
 
 > Doc DENSO para carga rápida do agente. Onde estamos, por arco, cruzando RFC ↔ estado ↔ próximo passo.
-> Regra: mudou → atualiza AQUI (e no ESTADO.md a árvore). Atualizado: 2026-09-30.
+> Regra: mudou → atualiza AQUI (e no ESTADO.md a árvore). Atualizado: 2026-10-01.
 > Fonte de verdade dos arcos. RFCs em `docs/rfc/{planned,implemented}/`. Estado operacional em `pilha-prs-runbook.md`.
 
 ## Snapshot
-- **main fork:** sincronizada com upstream (0 atrás). Fila Henry: 0 PRs nossos abertos.
-- **PRs mergeados hoje (30/set):** #1378 (discovery workspace), #1379 (SQLite+idioma). #1368 (retention — fecha rating).
-- **Foco atual:** REDESENHO → arco de ingestão multi-agente (3 camadas). Ver abaixo.
+- **main fork:** sincronizada com upstream (0 atrás, 116+ à frente). **1 PR nosso aberto: #1404.**
+- **Mergeados pelo upstream (1/out):** #1391 (decay flag, timkjr — fecha furo lateral do arco rating), #1395 (scope by store), #1398/#1394 (log-sanit).
+- **PR nosso #1404** (fix #1352 supersession, área storage): aberto, CI re-rodando pós-refino do Greptile. NÃO self-merge.
+- **PRs de terceiro (Harbor404) na nossa vizinhança — comentados:** #1401 (mem0, fecha nosso #1390 — elogiado + pedimos ownership de sync/converters), #1402 (rate-limit, fecha #1096 — apontamos bug agent_id filtro-vs-identidade). #1403 (metrics, draft web, ignorado).
+- **Foco:** arco ingestão multi-agente (RFC #1393 aguarda Henry) + fechamento #1352.
 
 ## Arcos
 
@@ -21,7 +23,7 @@
 | │  ├ I0-lang idioma | ✅ #1379 merged | — | — |
 | │  ├ IA discovery / IB SQLite | ✅ #1378/#1379 merged | — | — |
 | │  └ I1 ToolResults CLI {kind} | 🟢 fork (78e29b05) | — | consolidar em PR upstream quando arco amadurecer |
-| ** Rating / quality-model** | ✅ FECHADO | implemented/rfc-quality-model | — #1349+#1368 fecharam. #1391 (timkjr, MCP_DECAY_ENABLED) aguarda Henry — fecha o último furo lateral |
+| ** Rating / quality-model** | ✅ FECHADO | implemented/rfc-quality-model | — #1349+#1368+#1391(decay, mergeado 1/out) fecharam. #1352 (supersession orphan) → PR #1404 nosso, área storage |
 | **Portabilidade** (bring your memory ⊕ use in any agent) | 🟡 design aceito | planned/rfc-memory-portability, planned/rfc-importers | wiki Memory-Portability-Map viva; conversor mem0 (#1390); parte absorvida pela ingestão multi-agente |
 | **Hub memória multi-agente** | 🟡 parcial | planned/rfc-hub-memoria-centralizada, planned/rfc-delta-sync, planned/rfc-sync-multi-agente, implemented/rfc-agent-id-multi-agent | agent_id F1/F2 mergeados; falta F3-F8 (estrela, consolidação nas pontas, NLI cross-agent) |
 

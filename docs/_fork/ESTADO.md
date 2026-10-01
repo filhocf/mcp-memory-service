@@ -1,16 +1,17 @@
 # ESTADO — mcp-memory-service (Claudio)
 
 > Para você abrir e entender onde estamos sem reconstruir contexto.
-> Árvore primeiro (visão), notas depois (detalhe). Atualizado: 2026-09-30.
+> Árvore primeiro (visão), notas depois (detalhe). Atualizado: 2026-10-01.
 
 ```
-mcp-memory-service (fork = linha viva · 0 atrás do upstream · 30/set)
+mcp-memory-service (fork = linha viva · 0 atrás do upstream · 1/out)
 │  Legenda: ✅ feito/mergeado · 🟢 feito fork-only · 🟡 parcial/design · 🔴 a fazer
 │
 ├─ ✅ ARCO RATING / QUALITY ............................. FECHADO
 │   ├─ #1312 quality-model → PR #1349 ................... ✅ MERGEADO (computed vs user_rating)
 │   ├─ #1368 retention_periods (ontologia) ............. ✅ upstream — desmascarou o decay
-│   └─ efeito: qualidade agora influencia esquecimento .. ✅ verificado (antes r=-0.006)
+│   ├─ #1391 MCP_DECAY_ENABLED (timkjr) ................. ✅ MERGEADO 1/out — furo lateral fechado
+│   └─ #1352 supersession orphan → PR #1404 ............. 🟢 nosso, aberto (fix coluna + list_orphans)
 │
 ├─ 🟡 ARCO INGESTÃO MULTI-AGENTE ....... REDESENHO (foco) · RFC #1393 na discussion
 │   │   "1 serviço, N agentes/clientes · regras por agente, plugáveis (YAML)"
