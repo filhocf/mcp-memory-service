@@ -9,8 +9,8 @@ mcp-memory-service (fork = linha viva · 0 atrás do upstream · 1/out)
 │
 ├─ ✅ ARCO RATING / QUALITY ............................. FECHADO
 │   ├─ quality-model (computed vs user_rating) ......... ✅ MERGED PR #1349
-│   ├─ #1368 retention_periods (ontologia) ............. ✅ upstream — desmascarou o decay
-│   ├─ MCP_DECAY_ENABLED (timkjr) ....................... ✅ MERGED PR #1391 — furo lateral fechado
+│   ├─ retention_periods (ontologia, upstream) ......... ✅ MERGED PR #1368 — desmascarou o decay
+│   ├─ MCP_DECAY_ENABLED (timkjr) ...................... ✅ MERGED PR #1391 — furo lateral fechado
 │   └─ supersession orphan (fix coluna + list_orphans) . 🟢 PR #1404 ABERTO (nosso)
 │
 ├─ 🟡 ARCO INGESTÃO MULTI-AGENTE ....... REDESENHO (foco) · RFC #1393 na discussion
