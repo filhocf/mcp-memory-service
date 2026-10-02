@@ -18,7 +18,7 @@ from ..config.locale import get_active_locales
 
 logger = logging.getLogger(__name__)
 
-# Provenance: starts at 3 to align with RFC-harvest-provenance phases (provenance tagging, 
+# Provenance: starts at 3 to align with RFC-harvest-provenance phases (provenance tagging,
 # re-harvest safety, session digest). Increment when the harvest pipeline changes materially.
 HARVEST_PIPELINE_VERSION = 3
 
@@ -182,8 +182,16 @@ class SessionHarvester:
 
         results = []
         for filepath in session_files:
+            # Reset coverage to ensure per-session scope
+            self.parser.reset_coverage()
             result = self._harvest_file(filepath, config)
+            # Capture coverage for this session only
+            result.coverage = self.parser.coverage_report()
             results.append(result)
+
+        # Log aggregated coverage across all sessions
+        self._log_aggregated_coverage(results)
+
         return results
 
     async def harvest_and_store(self, config: HarvestConfig) -> List[HarvestResult]:
@@ -199,9 +207,15 @@ class SessionHarvester:
 
         results = []
         for filepath in session_files:
+            # Reset coverage to ensure per-session scope
+            self.parser.reset_coverage()
+
             # _harvest_file does synchronous file I/O — offload so the event
             # loop stays responsive when harvest_and_store is called from HTTP.
             result = await asyncio.to_thread(self._harvest_file, filepath, config)
+
+            # Capture coverage for this session only
+            result.coverage = self.parser.coverage_report()
 
             if not config.dry_run and self.memory_service and result.candidates:
                 stored = 0
@@ -227,7 +241,73 @@ class SessionHarvester:
                 result.stored = stored
 
             results.append(result)
+
+        # Log aggregated coverage across all sessions
+        self._log_aggregated_coverage(results)
+
         return results
+
+    def _log_aggregated_coverage(self, results: List[HarvestResult]) -> None:
+        """Log coverage aggregated across all sessions in the run."""
+        aggregated_coverage = self._aggregate_coverage_from_sessions(results)
+
+        if aggregated_coverage:
+            logger.info("Harvest coverage: %s", self._format_coverage_summary(aggregated_coverage))
+        else:
+            logger.info("Harvest coverage: none measured (parser recorded no counters for this run)")
+
+    def _aggregate_coverage_from_sessions(self, results: List[HarvestResult]) -> dict:
+        """Aggregate coverage from multiple per-session results."""
+        aggregated = {}
+
+        for result in results:
+            if not result.coverage:
+                continue
+
+            for kind, stats in result.coverage.items():
+                if kind not in aggregated:
+                    aggregated[kind] = {
+                        "seen": 0,
+                        "extracted": 0,
+                        "dropped": 0,
+                    }
+
+                aggregated[kind]["seen"] += stats.get("seen", 0)
+                aggregated[kind]["extracted"] += stats.get("extracted", 0)
+                aggregated[kind]["dropped"] += stats.get("dropped", 0)
+
+                # Aggregate languages sub-dict if present
+                if "languages" in stats:
+                    if "languages" not in aggregated[kind]:
+                        aggregated[kind]["languages"] = {"extracted": {}, "dropped": {}}
+
+                    for outcome in ["extracted", "dropped"]:
+                        if outcome in stats["languages"]:
+                            for lang, count in stats["languages"][outcome].items():
+                                current = aggregated[kind]["languages"][outcome].get(lang, 0)
+                                aggregated[kind]["languages"][outcome][lang] = current + count
+
+        return aggregated
+
+    def _format_coverage_summary(self, coverage: dict) -> str:
+        """Format coverage report for readable logging."""
+        if not coverage:
+            return "empty"
+
+        parts = []
+        for kind, stats in coverage.items():
+            seen = stats.get("seen", 0)
+            extracted = stats.get("extracted", 0)
+            dropped = stats.get("dropped", 0)
+
+            if seen > 0:
+                # kind is read raw from the session JSON (external) — sanitise it
+                # before it reaches the log line (py/log-injection, same guard the
+                # rest of this module applies to external values).
+                safe_kind = _sanitize_log_value(str(kind))
+                parts.append(f"{safe_kind}: {seen} seen, {extracted} extracted, {dropped} dropped")
+
+        return "; ".join(parts) if parts else "empty"
 
     @staticmethod
     def _provenance(candidate, session_id=None):

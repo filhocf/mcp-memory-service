@@ -124,15 +124,27 @@ class TranscriptParser:
         is absent for non-text kinds. Empty until something is parsed. Read-only;
         does not affect harvesting.
 
-        Accumulates across multiple parse_file() calls on the same instance (by
-        design — a harvest run aggregates coverage over many sessions). Create a
-        fresh parser to reset. Not thread-safe: the instrument assumes the
-        sequential, single-parser use the harvest scheduler already has.
+        Accumulates across multiple parse_file() calls on the same instance
+        until reset_coverage() is called. The harvester resets before each
+        session, so each session's report reflects that session alone and the
+        run-level total is summed from the per-session reports. Not thread-safe:
+        the instrument assumes the sequential, single-parser use the harvester has.
 
         Returns a deep copy: mutating the result (including the nested
         "languages" dict) never affects the internal counters or a later report.
         """
         return copy.deepcopy(getattr(self, "_coverage", {}) or {})
+
+    def reset_coverage(self) -> None:
+        """Reset coverage counters to empty state.
+
+        Clears all accumulated coverage data from previous parse_file() calls.
+        Use this to scope coverage reports per session: the harvester calls it
+        before each session so each HarvestResult.coverage reflects that session
+        alone, and the run-level total is summed from the per-session reports.
+        """
+        if hasattr(self, "_coverage"):
+            delattr(self, "_coverage")
 
 
     def find_sessions(self, project_dir: Path, count: int = 1) -> List[Path]:
@@ -410,7 +422,7 @@ class TranscriptParser:
 
     def _parse_kiro_v4_line(self, obj: dict) -> List[ParsedMessage]:
         """Parse a single Kiro CLI v4 (payload-wrapped) JSONL line.
-        
+
         Format: {"id": "...", "timestamp": "...", "payload": {"type": "...", "content": "...", ...}}
         """
         pl = obj.get("payload")
@@ -426,7 +438,7 @@ class TranscriptParser:
             return []
         ts = obj.get("timestamp")
         uid = obj.get("id")
-        
+
         # Handle user/assistant messages
         if ptype in self.PAYLOAD_ROLE_MAP:
             role = self.PAYLOAD_ROLE_MAP[ptype]
@@ -438,7 +450,7 @@ class TranscriptParser:
                 self._record_coverage(ptype, was_extracted=False,
                                       text=content.strip() if isinstance(content, str) and content.strip() else None)
                 return []
-        
+
         # Handle tool_result as assistant message with rich content.
         # Reject injected markers (system-reminder / command / ide) so an injected
         # payload inside a tool result cannot become a harvested memory — but do NOT
@@ -457,7 +469,7 @@ class TranscriptParser:
                 self._record_coverage("tool_result", was_extracted=False,
                                       text=content if isinstance(content, str) and content.strip() else None)
                 return []
-        
+
         # Handle tool_call and metadata - not extracted but counted in coverage
         else:
             self._record_coverage(ptype, was_extracted=False)
