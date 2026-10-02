@@ -261,7 +261,6 @@ class ConsolidationScheduler:
         job_start = datetime.now()
         self.logger.info("Starting scheduled session harvest from %s", session_dir)
         try:
-            from ..harvest.models import HarvestConfig
             page_size = int(os.getenv("MCP_HARVEST_SCHEDULE_SESSIONS", "50"))
             use_llm = os.getenv("MCP_HARVEST_SCHEDULE_USE_LLM", "true").lower() in ("true", "1", "yes")
             # harvest_and_store stores via MemoryService.store_memory — pass the
@@ -273,7 +272,7 @@ class ConsolidationScheduler:
             # sessions, mirroring the memory_harvest handler so scheduled runs
             # don't re-process (and duplicate) sessions every cycle.
             already = await self._read_harvest_tracker(memory_service)
-            all_config = HarvestConfig(sessions=9999, project_path=session_dir)
+            all_config = harvest_config_from_env(sessions=9999, project_path=session_dir)
             all_sessions = harvester._resolve_sessions(all_config)
             pending = [s for s in all_sessions if harvester._session_id(s) not in already]
             if not pending:

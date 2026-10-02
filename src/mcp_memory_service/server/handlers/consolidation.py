@@ -565,15 +565,21 @@ async def handle_memory_consolidate(server, arguments: dict) -> List[types.TextC
                 return [types.TextContent(type="text", text="Error: storage not available")]
             try:
                 from ...harvest.harvester import SessionHarvester
-                from ...harvest.models import HarvestConfig
+                from ...harvest.models import HarvestConfig, harvest_config_from_env
                 from ...services.memory_service import MemoryService
             except Exception as e:
                 return [types.TextContent(type="text", text=f"Error: harvest module unavailable ({e})")]
 
             ms = MemoryService(server.storage)
             harvester = SessionHarvester(project_dir=path, memory_service=ms)
-            cfg = HarvestConfig(sessions=sessions, dry_run=dry_run, use_llm=use_llm,
-                                min_confidence=0.65, force_reharvest=force, project_path=path)
+            cfg = harvest_config_from_env(
+                sessions=sessions, 
+                dry_run=dry_run, 
+                use_llm=use_llm,
+                min_confidence=0.65, 
+                force_reharvest=force, 
+                project_path=path
+            )
             results = await harvester.harvest_and_store(cfg)
             n_sessions = len(results)
             candidates = sum(len(getattr(r, "candidates", []) or []) for r in results)
