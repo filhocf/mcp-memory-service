@@ -138,6 +138,18 @@ Qualquer coisa que mude **o que o harvest escreve** precisa de migração/compat
 - **R4 (marca `harvest:mode:design`)** é tag/metadata aditiva (padrão RFC-harvest-provenance), backward-compatible.
 - **Default OFF (R5)** garante que nada muda para setups existentes até opt-in explícito.
 
+### 6.1 Volume esperado — MEDIDO, válido APENAS para Kiro (02/out)
+
+> ⚠️ **Escopo da medição:** os números abaixo vêm do ÚNICO cliente que temos validado ponta a ponta — o **Kiro CLI** (parser + corpus curado). NÃO são extrapoláveis para outros clientes (Claude, OpenClaw, etc.): cada cliente tem formato de sessão, densidade e razão sinal/ruído próprios. Os números precisam ser **re-medidos cliente a cliente** antes de qualquer promessa de volume. Isto é consistente com o arco de ingestão multi-agente (RFC guarda-chuva, discussion #1393): regras e métricas são **por-agente**, não globais.
+
+- **Kiro (medido):** no corpus curado de 11 sessões, o harvest com extração LLM produziu ~2 candidatos/sessão (23 no total). Sessões de design denso produzem mais. A tag `harvest:mode:design` permite contar e filtrar/desligar.
+- **Retroativo ao #1366 (Kiro v4):** o path `tool_result` v4 (mergeado) já aumentou o que o harvest escreve — conteúdo de ToolResult entra como conteúdo assistant. Opt-out via as flags opt-in. Nenhuma sessão antiga é re-harvestada (R10).
+
+### 6.2 Kill-switch — valores INICIAIS, calibrar por cliente
+
+- **R6.2** — THE design mode SHALL computar `survival_rate` (candidatos que sobrevivem ao dedup / candidatos gerados) em janela de 7 dias. WHEN após 2 semanas de operação `survival_rate < 0.20`, THE mode SHALL auto-desligar e registrar o estado R6.1-(2). Revisão: 30 dias após o primeiro merge do extractor, na thread do RFC.
+  > Os valores (20% / 2 semanas / 30 dias) são proposta inicial por analogia ao miner de baixo-yield do #1287, medida só no Kiro. Como o volume (§6.1), o threshold deve ser recalibrado **por cliente** — o que é ruído num formato pode ser sinal noutro.
+
 ## 7. Estado
 
 DRAFT v0.4 — pronto para abrir como issue própria (não dobrar no #1286; Henry pediu thread própria). Após abrir: rodar o Phase 0 (instrumento de cobertura, incluindo a dimensão de idioma R0.4 como diagnóstico) e trazer os números de cobertura por tipo de bloco ANTES de propor o extractor — o padrão "bring numbers first". O escopo do primeiro PR é o próprio Phase 0 (instrumento), não o extractor. O locale do extractor (R3.1) segue o mecanismo existente (`config/locale.py` + patterns per-locale, como NER/NLI/harvest), não uma decisão por fração de corpus.
