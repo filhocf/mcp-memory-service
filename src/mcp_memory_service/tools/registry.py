@@ -100,6 +100,11 @@ TOOL_REGISTRY: list[ToolDef] = [
                                         "description": "Optional memory type. Validated against the built-in ontology. Common base types: observation, decision, learning, error, pattern, planning, ceremony, milestone, stakeholder, meeting, research, communication. Common subtypes: note, reference, code_edit, command, document, insight, gotcha, bug, action_item, finding. Unknown types are silently coerced to 'observation' and the response includes a warning. Register additional types via the MCP_CUSTOM_MEMORY_TYPES env var, e.g. '{\"foo\": [\"sub_a\", \"sub_b\"]}'. See docs/memory-ontology.md for the full taxonomy."
                                     }
                                 }
+                            },
+                            "store": {
+                                "type": "string",
+                                "description": "Target store partition. Default: 'default'. Use to isolate document chunks from working memory.",
+                                "default": "default"
                             }
                         },
                         "required": ["content"]
@@ -153,6 +158,11 @@ Example:
                             "metadata": {
                                 "type": "object",
                                 "description": "Optional extra metadata."
+                            },
+                            "store": {
+                                "type": "string",
+                                "description": "Target store partition. Default: 'default'. Use to isolate document chunks from working memory.",
+                                "default": "default"
                             }
                         },
                         "required": ["turns"]
@@ -294,6 +304,11 @@ Examples:
                                 "type": "boolean",
                                 "default": False,
                                 "description": "Include derived beliefs alongside memories. Beliefs are confidence-scored knowledge derived from observations. Each belief result includes result_type='belief' and confidence score."
+                            },
+                            "store": {
+                                "type": "string",
+                                "description": "Target store partition. Default: 'default'. Use store='all' or omit for federation across all stores.",
+                                "default": "default"
                             }
                         }
                     },
@@ -366,6 +381,11 @@ Examples:
                                 "type": "integer",
                                 "minimum": 1,
                                 "description": "Filter to memories not accessed in the last N days. Uses COALESCE(last_accessed, created_at) for memories never read. Currently supported on sqlite-vec backend only."
+                            },
+                            "store": {
+                                "type": "string",
+                                "description": "Target store partition. Default: 'default'. Use store='all' or omit for federation across all stores.",
+                                "default": "default"
                             }
                         }
                     },
@@ -437,6 +457,11 @@ Examples:
                                 "type": "boolean",
                                 "default": False,
                                 "description": "Preview deletions without executing"
+                            },
+                            "store": {
+                                "type": "string",
+                                "description": "Target store partition. Default: 'default'. Use store='all' or omit for federation across all stores.",
+                                "default": "default"
                             }
                         }
                     },
@@ -713,6 +738,11 @@ Examples:
                                 "type": "integer",
                                 "default": 100,
                                 "description": "For directory mode: maximum files to process"
+                            },
+                            "store": {
+                                "type": "string",
+                                "description": "Target store partition. Default: 'default'. Use to isolate document chunks from working memory.",
+                                "default": "default"
                             }
                         }
                     },
