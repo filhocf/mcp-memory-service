@@ -154,27 +154,64 @@ class MigrationsMixin:
                             has_partition = cursor.fetchone()[0] > 0
                             if not has_partition:
                                 logger.info("Migrating memory_embeddings to add store partition key...")
-                                # Read existing embeddings
-                                rows = self.conn.execute(
-                                    "SELECT rowid, content_embedding FROM memory_embeddings"
-                                ).fetchall()
-                                # Drop and recreate with partition key
-                                self.conn.execute("DROP TABLE IF EXISTS memory_embeddings")
+                                # Read existing embeddings count for verification
+                                old_count = self.conn.execute(
+                                    "SELECT COUNT(*) FROM memory_embeddings"
+                                ).fetchone()[0]
+
+                                # Step 1: Rename existing table to backup
+                                self.conn.execute(
+                                    "ALTER TABLE memory_embeddings RENAME TO memory_embeddings_backup"
+                                )
+
+                                # Step 2: Create new table with partition key
                                 embedding_dim_val = self.embedding_dimension
-                                self.conn.execute(f'''
-                                    CREATE VIRTUAL TABLE memory_embeddings USING vec0(
-                                        content_embedding FLOAT[{embedding_dim_val}] distance_metric=cosine,
-                                        store TEXT partition key
+                                try:
+                                    self.conn.execute(f'''
+                                        CREATE VIRTUAL TABLE memory_embeddings USING vec0(
+                                            content_embedding FLOAT[{embedding_dim_val}] distance_metric=cosine,
+                                            store TEXT partition key
+                                        )
+                                    ''')
+                                except Exception as e:
+                                    logger.error(f"Failed to create new memory_embeddings table: {e}")
+                                    self.conn.execute("ALTER TABLE memory_embeddings_backup RENAME TO memory_embeddings")
+                                    raise RuntimeError(f"Multi-store migration failed at CREATE: {e}")
+
+                                # Step 3: Re-insert from backup with store='default'
+                                try:
+                                    rows = self.conn.execute(
+                                        "SELECT rowid, content_embedding FROM memory_embeddings_backup"
+                                    ).fetchall()
+                                    for row in rows:
+                                        self.conn.execute(
+                                            "INSERT INTO memory_embeddings (rowid, content_embedding, store) VALUES (?, ?, ?)",
+                                            (row[0], row[1], 'default')
+                                        )
+                                except Exception as e:
+                                    logger.error(f"Failed to copy embeddings to new table: {e}")
+                                    self.conn.execute("DROP TABLE IF EXISTS memory_embeddings")
+                                    self.conn.execute("ALTER TABLE memory_embeddings_backup RENAME TO memory_embeddings")
+                                    raise RuntimeError(f"Multi-store migration failed at INSERT: {e}")
+
+                                # Step 4: Verify counts match
+                                new_count = self.conn.execute(
+                                    "SELECT COUNT(*) FROM memory_embeddings"
+                                ).fetchone()[0]
+                                if new_count != old_count:
+                                    logger.error(
+                                        f"Multi-store migration count mismatch: old={old_count}, new={new_count}"
                                     )
-                                ''')
-                                # Re-insert with store='default'
-                                for row in rows:
-                                    self.conn.execute(
-                                        "INSERT INTO memory_embeddings (rowid, content_embedding, store) VALUES (?, ?, ?)",
-                                        (row[0], row[1], 'default')
+                                    self.conn.execute("DROP TABLE IF EXISTS memory_embeddings")
+                                    self.conn.execute("ALTER TABLE memory_embeddings_backup RENAME TO memory_embeddings")
+                                    raise RuntimeError(
+                                        f"Multi-store migration aborted: count mismatch (old={old_count}, new={new_count})"
                                     )
+
+                                # Step 5: Drop backup only after successful verification
+                                self.conn.execute("DROP TABLE memory_embeddings_backup")
                                 self.conn.commit()
-                                logger.info(f"Multi-store migration complete: {len(rows)} embeddings migrated")
+                                logger.info(f"Multi-store migration complete: {new_count} embeddings migrated")
                                 return True
                             return False
 
@@ -182,7 +219,8 @@ class MigrationsMixin:
                         if migrated:
                             logger.info("Migration complete: store partition key added to memory_embeddings")
                     except Exception as e:
-                        logger.warning(f"Multi-store migration (non-fatal): {e}")
+                        logger.error(f"Multi-store migration failed: {e}")
+                        raise
 
                     # Add store column to memories table
                     try:
