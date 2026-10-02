@@ -5,17 +5,21 @@
 > Fonte de verdade dos arcos. RFCs em `docs/rfc/{planned,implemented}/`. Estado operacional em `pilha-prs-runbook.md`.
 
 ## Snapshot
-- **main fork:** sincronizada com upstream (0 atrás, 116+ à frente). **1 PR nosso aberto: #1404.**
-- **Mergeados pelo upstream (1/out):** #1391 (decay flag, timkjr — fecha furo lateral do arco rating), #1395 (scope by store), #1398/#1394 (log-sanit).
-- **PR nosso #1404** (fix #1352 supersession, área storage): aberto, CI re-rodando pós-refino do Greptile. NÃO self-merge.
-- **PRs de terceiro (Harbor404) na nossa vizinhança — comentados:** #1401 (mem0, fecha nosso #1390 — elogiado + pedimos ownership de sync/converters), #1402 (rate-limit, fecha #1096 — apontamos bug agent_id filtro-vs-identidade). #1403 (metrics, draft web, ignorado).
-- **Foco:** arco ingestão multi-agente (RFC #1393 aguarda Henry) + fechamento #1352.
+- **main fork:** sincronizada com upstream (0 atrás, 126+ à frente) via merge 2/out (4eb2d4e2). **2 fixes locais na main NÃO pushados** (10071cb1 rewriter, f83c6bf4 flag triagem).
+- **Mergeados pelo upstream:** #1404/#1352 (supersession orphan, NOSSO — fecha arco rating), #1405 (versioned-update fields), #1406/#1146 (log-sanit base mixin), #1396 (yearless dates), #1391 (decay flag), #1395 (scope by store).
+- **PR nosso ABERTO: #1418** (rewriter TYPE: leak, issue #1417). CI tests-prove-fix PASS + changelog PASS. BLOCKED/REVIEW_REQUIRED — aguarda Henry. NÃO self-merge. Branch filhocf:pr/rewriter-type-leak (recorte de upstream/main limpo).
+- **2 BUGS achados nesta sessão (2/out), corrigidos por GATE (reg G2/G3 + tuvok G5):**
+  - rewriter TYPE: leak → PR #1418 (acima).
+  - triagem flag não propagada (fork-only: triage.py não existe no upstream) → NÃO vira PR de bug; entra no PR de FEAT.
+- **11 OURO gravadas** no banco vivo (memory_consolidate action=harvest, in-process, triagem ON).
+- **Regra PR atualizada (Claudio 2/out):** FEAT 1-PR-por-vez; BUG abre conforme encontra. Skill memory-service-maintainer atualizado.
+- **Foco:** arco ingestão multi-agente. Henry respondeu o arco via #1346 (29/set), NÃO via #1393. Pedido dele = PR do coverage visível (ponto 1) + update RFC (pontos 2/3). Bola do nosso lado — entregar antes de pingar #1393.
 
 ## Arcos
 
 | Arco | Estado | RFCs (docs/rfc/) | Próximo passo |
 |------|--------|------------------|---------------|
-| **Ingestão multi-agente** (NOVO guarda-chuva) | 🔴 design | planned/rfc-ingestao-multi-agente v0.3 — discussion #1393 (evidência a postar) | escrever RFC guarda-chuva ✅ discussion #1393 postada → aguarda Henry |
+| **Ingestão multi-agente** (NOVO guarda-chuva) | 🟡 design + Henry respondeu via #1346 | planned/rfc-ingestao-multi-agente v0.3 — discussion #1393 (só nosso comentário) | PR ponto-1 de #1346: coverage_report() visível no resultado+log do harvest; depois update RFC (compat #2, kill-switch #3, legacy ToolResult #4) e comentar #1393 linkando |
 | ├ Camada 1: registro/descoberta de fontes N | 🔴 design | implemented/rfc-harvest-source-identity (ABSORVIDA) | declarativo + auto-descoberta assistida |
 | ├ Camada 2: perfil de parsing por agente (YAML) | 🔴 design | implemented/rfc-harvest-kiro-sessions (ABSORVIDA) | spec-fase0 escrita; triage.py consolidado (193 testes); aguarda aval #1393 |
 | ├ Camada 3: extração/qualidade sinal-ruído+LLM | 🟡 parcial | implemented/rfc-harvest-design-extraction (ABSORVIDA) | heurísticas declarativas 1º, LLM depois |

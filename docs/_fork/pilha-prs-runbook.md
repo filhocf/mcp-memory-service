@@ -1,14 +1,15 @@
 # Pilha de PRs — mcp-memory-service fork (runbook)
 
-**Criado:** 03/set/2026 · **Atualizado:** 01/out/2026 · **Estratégia:** PR sai de `upstream/main` limpo · **Base:** `upstream/main` (GitHub, v11.14.0+)
+**Criado:** 03/set/2026 · **Atualizado:** 02/out/2026 · **Estratégia:** PR sai de `upstream/main` limpo · **Base:** `upstream/main` (GitHub, v11.14.0+)
 
 > **Escopo deste doc:** o PROCESSO de transporte fork→upstream (mecânica de branches, protocolo de saúde, disciplina de transporte). **NÃO** duplica estado dos arcos (isso é `ESTADO.md`/`ARCOS.md`) nem backlog de épicos (`roadmap.md`). Regra: mexeu → documenta no lugar certo.
 
-## Estado atual (1/out)
-- **1 PR nosso aberto: #1404** (fix #1352 — `update_memory_metadata` escreve coluna `superseded_by` + `list_superseded_orphans`). Gate completo (rok RED→reg GREEN→tuvok PASS) + refino pós-Greptile P1 (race: só escreve se pedido; reconcilia JSON) + parte b (órfãos). 419 storage verdes. CI re-rodando. Branch `pr/1352-superseded-by-column`, worktree `~/git/mcp-memory-service-pr1352`.
-- **main fork** 116+ à frente / 0 atrás do upstream.
-- **Comentamos (não mergeamos — fora do mandato):** #1401 (mem0/Harbor404, fecha #1390), #1402 (rate-limit/Harbor404, fecha #1096 — bug agent_id apontado).
-- **Mergeado pelo upstream 1/out:** #1391 (decay flag) fecha furo lateral do arco rating.
+## Estado atual (2/out)
+- **1 PR nosso ABERTO: #1418** (rewriter TYPE: leak, issue #1417). Gate: reg G0-G4 → tuvok G5 (2 iter, APROVADO). CI tests-prove-fix PASS + changelog PASS. BLOCKED/REVIEW_REQUIRED, aguarda Henry. Branch `pr/rewriter-type-leak` (worktree `-dev`), commit recortado de upstream/main limpo.
+- **#1404/#1352 (supersession) MERGEADO** pelo Henry — fechou o arco rating.
+- **main fork** sincronizada (merge 2/out 4eb2d4e2, 0 atrás). **2 fixes locais NÃO pushados:** 10071cb1 (rewriter, = PR #1418) e f83c6bf4 (flag triagem, fork-only, vai no PR de feat). A main carrega os 2 como linha viva.
+- **Regra de PR (Claudio 2/out):** FEAT 1-PR-por-vez; BUG abre conforme encontra (bugs independentes coexistem). Skill atualizado.
+- **Devolutiva do Henry no arco ingestão** (#1346, 29/set): próximo = PR do coverage visível + update RFC. Bola do nosso lado (ver ARCOS/ESTADO).
 
 ## Topologia
 ```
@@ -26,7 +27,7 @@ upstream/main ──→ pr/<feat> ──(Henry mergeia)──→ upstream/main
 1. **VERIFICAR o upstream antes de transportar** — checar `arquivo:linha`. Não assumir que falta nem que já tem. (Evita submeter fix que o upstream já tem.)
 2. **REESCREVER, não cherry-pick cru** — o upstream anda rápido; adaptar a feature ao código atual.
 3. **Seguir o GATE** (dev-workflow): G0 arch → G3 testes RED → G4 GREEN → G5 review. TDD, não improviso.
-4. **1 PR por vez**, escopo mínimo, 1 assunto. Fila do Henry é serial.
+4. **FEAT: 1 PR por vez** (fila do Henry é serial p/ features). **BUG: abre conforme encontra** (bugs independentes coexistem). Escopo mínimo, 1 assunto por PR.
 5. **E2E real antes de PR** (mocks escondem bugs — lição #1265, tupla que mock mascarava).
 6. **Doc no MESMO commit** (anti-drift). >1 arquivo → gate.
 7. **Nunca self-merge.** Aguardar o Henry (padrão dele).

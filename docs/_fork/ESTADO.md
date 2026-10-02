@@ -4,14 +4,14 @@
 > Árvore primeiro (visão), notas depois (detalhe). Atualizado: 2026-10-01.
 
 ```
-mcp-memory-service (fork = linha viva · 0 atrás do upstream · 1/out)
+mcp-memory-service (fork = linha viva · 0 atrás do upstream · 2/out)
 │  Legenda: ✅ MERGED/feito · 🟢 feito fork-only · 🟡 parcial/design · 🔴 a fazer
 │
 ├─ ✅ ARCO RATING / QUALITY ............................. FECHADO
 │   ├─ quality-model (computed vs user_rating) ......... ✅ MERGED PR #1349
 │   ├─ retention_periods (ontologia, upstream) ......... ✅ MERGED PR #1368 — desmascarou o decay
 │   ├─ MCP_DECAY_ENABLED (timkjr) ...................... ✅ MERGED PR #1391 — furo lateral fechado
-│   └─ supersession orphan (fix coluna + list_orphans) . 🟢 PR #1404 ABERTO (nosso)
+│   └─ supersession orphan (fix coluna + list_orphans) . ✅ MERGED PR #1404 (nosso #1352)
 │
 ├─ 🟡 ARCO INGESTÃO MULTI-AGENTE ....... REDESENHO (foco) · RFC #1393 na discussion
 │   │   "1 serviço, N agentes/clientes · regras por agente, plugáveis (YAML)"
@@ -49,15 +49,24 @@ mcp-memory-service (fork = linha viva · 0 atrás do upstream · 1/out)
 ## Onde estamos, em uma frase
 Fechamos o arco de rating; descobrimos que os 3 arcos de harvest/identidade/portabilidade são **o mesmo problema** — colher bem de N agentes exige regras por agente **plugáveis (YAML)**, não hardcoded. Estamos redesenhando isso como um arco só (ingestão multi-agente) antes de escrever mais código.
 
-## Feito recentemente (30/set)
-- **Rating fechado:** o bug do retention (quase tudo caía em 30 dias) foi corrigido no upstream (#1368); trouxemos para a nossa main. Agora o nosso quality-split (#1349) tem efeito real no esquecimento.
-- **Harvest:** os 2 PRs (discovery de sessões workspace + parser SQLite/Crew) foram **mergeados pelo Henry**. O parser passou a colher ToolResults do CLI (antes descartados).
-- **Descoberta importante:** o "thinking" do Kiro é criptografado no disco (irrecuperável); o formato "{kind}" que o código chama de "legado" é na verdade o **atual** do CLI.
-- **Portabilidade:** Henry aceitou nosso modelo de 5 camadas; wiki no ar; issue do conversor mem0 aberta.
+## Feito recentemente (2/out)
+- **Fork sincronizado + serviço resgatado:** merge upstream/main (7 commits; nosso #1404/#1352 supersession mergeado pelo Henry). Serviço systemd em 11.14.0, 11 OURO colhidas.
+- **2 bugs achados e corrigidos POR GATE (reg + tuvok), não na mão:**
+  - **Bug rewriter `TYPE:` leak** (real, upstream também) → issue #1417 + **PR #1418 ABERTO** (CI tests-prove-fix verde, aguarda Henry). O LLM ecoava o placeholder literal `TYPE:` para dentro do content + degenerados; `_unleak_type` + prompt `<type>:`.
+  - **Bug triagem nunca ativada** (fork-only): `_apply_triage` plugado mas nenhum call-site passava a flag → feature morta. Corrigido (`harvest_config_from_env` nos 4 entry points, default OFF). NÃO vira PR de bug avulso — a triagem não existe no upstream, então entra junto no PR de FEAT.
+- **11 OURO gravadas** no banco vivo via `memory_consolidate action=harvest` (in-process, integridade intacta), triagem ativada (`MCP_HARVEST_TRIAGE=1`), rewriter já corrigido → 0 vazamento.
+- **Devolutiva do Henry (29/set) nos RFCs do arco** (ver "Em andamento").
 
 ## Em andamento
-- **Redesenho da ingestão multi-agente:** RFC guarda-chuva escrita (`docs/rfc/planned/rfc-ingestao-multi-agente.md`) e levada à **discussion #1393** — aguardando o Henry avaliar o formato em camadas + o 1º incremento (Kiro→YAML).
-- **Docs reorganizados:** RFCs no fork em `planned/`(22)/`implemented/`(23, verificadas por código); acompanhamento em `docs/_fork/`; estudos ficam no CdIA.
+- **Arco ingestão multi-agente — a bola está do NOSSO lado (Henry respondeu via #1346, não via #1393).**
+  A discussion #1393 (nosso guarda-chuva, 30/set) ainda só tem o nosso comentário. MAS o Henry respondeu o mesmo arco na **issue #1346 (design-extraction, 29/set)** com pedido concreto antes de qualquer extractor:
+  1. **Tornar o coverage visível** — `coverage_report()` (#1350) existe mas nenhum call-site em `src/` o lê; pôr no resultado do harvest + log. "Phase 0 isn't done" até isso. **← próximo PR que ele pediu.**
+  2. **Nota de compatibilidade** — quantas memórias a mais o harvest escreve (extractor + path v4 tool_result do #1366), tags `harvest:mode:*`, como desligar.
+  3. **Números do kill switch** — taxa de adoção + threshold + data de revisão.
+  4. **Legacy Kiro `ToolResult`** ainda dropado vs v4 mantido — unificar ou documentar o porquê.
+  Ordem dele: "cheapest first", PR do ponto 1 + respostas 2/3 como update do RFC. → Em vez de "ping" na #1393, entregar o ponto 1 e aí comentar linkando.
+- **#1345 delta-sync:** travado atrás do #1304 (remote_http); fica em design. ducanhnguyen223 prepara v0.4.
+- **PR #1418 (rewriter):** aguarda review do Henry. 1 PR de bug pode coexistir com outros (regra 2/out: 1-por-vez só p/ feat).
 
 ## A DOR (o que falta de verdade, em 1 frase)
 A colheita do Kiro **lê os formatos** (feito) mas **NÃO filtra valor**: hoje colheria "hello v3", testes e dumps junto com o conhecimento. A triagem que resolve isso (`harvest/triage.py` — score calibrável, 2 eixos, 11 testes verdes) **já existe no código mas NÃO está plugada no harvester**. Fechar a dor = plugar a triagem + colher o acervo bom.
