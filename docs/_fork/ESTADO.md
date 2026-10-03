@@ -25,7 +25,13 @@ mcp-memory-service (fork = linha viva · 0 atrás do upstream · 3/out noite · 
 │   ├─ L4 REAL = terminar RFC-MM-01 (feedback PASSIVO) . 🔨 PRÓXIMO · reaccess + job recálculo quality_score + wiring no fluxo · acceptance: quality 0.5→0.65
 │   ├─ N1 janela 1 semana — medir proveito REAL ........ 🔨 EM ANDAMENTO (até ~10/out) · get_usage_metrics no vivo · feedback_coverage sobe?
 │   ├─ N2 PUSH automático (hook harness) ............... 🔴 depois de N1 · hoje é PULL; push real = startup-hook chamar memory_context
-│   └─ N3 feedback positivo + sinal de uso auto ........ 🔴 depois de N1 · rating +1 reforça; belief reusado sobe sozinho
+│   ├─ N3 feedback positivo + sinal de uso auto ........ 🔴 depois de N1 · rating +1 reforça; belief reusado sobe sozinho
+│   │
+│   └─ 📦 COMOs resgatados (protótipo 2e1978d5 = os 3 jobs da trilogia; branch validacao, 93 testes):
+│       ├─ rfc-mm-02 fact-extraction (L2) ............. 🟢 resgatado · job scheduler + migration · spec: 6 req
+│       ├─ rfc-mm-03 gap-detection (L4) .............. 🟢 resgatado · migration + handler · spec: 0 EARS (completar)
+│       ├─ rfc-mm-01 feedback-loop (L4) .............. 🟢 resgatado = É o "L4 REAL" acima (passivo, da RFC do Claudio)
+│       └─ p/ virar PR: completar spec ⚠️ (doc payload window-tools #1286 · EARS mm-03 · changelog) → 3 PRs → responder #1286
 │
 ├─ 🟢 METODOLOGIA DE CURADORIA DE FORK (3/out) ......... nasceu do erro: reimplementei a trilogia que já existia
 │   ├─ metodologia-fork.md (3 rituais) + skill fork-curation + ref AGENTS.md . 🟢 permanente
@@ -34,9 +40,6 @@ mcp-memory-service (fork = linha viva · 0 atrás do upstream · 3/out noite · 
 │   ├─ delta-sync §8 (invariantes #1345) PORTADO ....... 🟢 @ef2555ac (era órfão em branch)
 │   ├─ 19 branches-lixo + 3 worktrees deletadas ........ ✅ fork limpo (3 branches: main, trilogia, audit)
 │   └─ limpeza cross-host (WI a0d5abf2) ................ 🔴 DNBSCDC289 + socrates (branches são por-máquina)
-│
-├─ 🟢 TRILOGIA fact/gap/feedback (resgatada) ........... branch validacao/prototipo-trilogia-2e1978d5 · 93 testes passam
-│   └─ p/ virar PR: completar spec ⚠️ (doc payload window-tools #1286 · EARS mm-03 · changelog) → 3 PRs → responder #1286
 │
 ├─ 🟡 ARCO INGESTÃO MULTI-AGENTE ....... REDESENHO (foco) · RFC #1393 na discussion
 │   │   "1 serviço, N agentes/clientes · regras por agente, plugáveis (YAML)"
