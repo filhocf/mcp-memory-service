@@ -29,6 +29,40 @@ def _sanitize_log_value(value: object) -> str:
     return str(value).replace("\n", "\\n").replace("\r", "\\r").replace("\x1b", "\\x1b")
 
 
+class DictRow(tuple):
+    """Hybrid sqlite3 row: a tuple that also supports mapping-style access.
+
+    Preserves the read path's integer indexing, slicing and unpacking
+    (``row[0]``, ``row[5:]``, ``a, b = row``) while adding column access by name
+    (``row['tool']``) and key-membership tests (``'timestamp' in row``). This is
+    needed because ``sqlite3.Row`` tests membership by VALUE, not by column name,
+    which the usage-telemetry tests rely on.
+    """
+
+    def __new__(cls, cursor, row):
+        obj = super().__new__(cls, row)
+        keys = [col[0] for col in cursor.description]
+        object.__setattr__(obj, "_keys", keys)
+        object.__setattr__(obj, "_map", {k: row[i] for i, k in enumerate(keys)})
+        return obj
+
+    def __getitem__(self, key):
+        if isinstance(key, str):
+            return self._map[key]
+        return tuple.__getitem__(self, key)
+
+    def __contains__(self, key):
+        if isinstance(key, str):
+            return key in self._map
+        return tuple.__contains__(self, key)
+
+    def keys(self):
+        return list(self._keys)
+
+    def get(self, key, default=None):
+        return self._map.get(key, default)
+
+
 def deserialize_embedding(blob: bytes) -> Optional[List[float]]:
     """Deserialize embedding blob from sqlite-vec format to list of floats."""
     if not blob:
@@ -278,6 +312,10 @@ SOLUTIONS:
         timeout_seconds = self._get_connection_timeout()
         self._reject_directory_path()
         self.conn = sqlite3.connect(self.db_path, timeout=timeout_seconds, check_same_thread=False)
+        # Enable column access by name (row['col']) and key-membership tests
+        # ('x' in row) while preserving index/slice/unpack access used throughout
+        # the read path. See DictRow for why sqlite3.Row is not sufficient.
+        self.conn.row_factory = DictRow
 
         self._load_sqlite_vec_extension()
 

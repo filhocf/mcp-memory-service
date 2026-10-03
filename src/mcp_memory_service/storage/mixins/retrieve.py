@@ -62,6 +62,7 @@ class RetrieveMixin:
 
     async def retrieve(self, query: str, n_results: int = 5, tags: Optional[List[str]] = None, min_confidence: float = 0.0, include_superseded: bool = False, start_time: Optional[float] = None, end_time: Optional[float] = None, store: Optional[str] = 'default') -> List[MemoryQueryResult]:
         """Retrieve memories using semantic search."""
+        _telemetry_t0 = time.time()
         try:
             if not self.conn:
                 logger.error("Database not initialized")
@@ -223,6 +224,25 @@ class RetrieveMixin:
                 logger.debug("min_confidence=%s filtered %s stale memories", _sanitize_log_value(min_confidence), before - len(results))
 
             logger.info(f"Retrieved {len(results)} memories for query: {_sanitize_log_value(query)}")
+
+            # Usage telemetry (best-effort, fire-and-forget). A failure here must
+            # NEVER break the read path, so it is fully wrapped in log_usage_event's
+            # own try/except and we additionally guard the call site.
+            try:
+                from ..usage_telemetry import log_usage_event, query_hash, get_telemetry_flag_value
+                if get_telemetry_flag_value():
+                    latency_ms = (time.time() - _telemetry_t0) * 1000.0
+                    await log_usage_event(
+                        self,
+                        "retrieval",
+                        tool="retrieval",
+                        n_results=len(results),
+                        latency_ms=latency_ms,
+                        query_hash=query_hash(query),
+                    )
+            except Exception as _tele_err:
+                logger.warning("Usage telemetry (retrieve) failed (non-fatal): %s", _sanitize_log_value(_tele_err))
+
             return results
 
         except Exception as e:

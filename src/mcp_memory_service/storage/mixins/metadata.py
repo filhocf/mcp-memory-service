@@ -23,6 +23,31 @@ logger = logging.getLogger(__name__)
 class MetadataMixin:
     """Mixin providing metadata updates, conflict detection, versioning, and staleness."""
 
+    async def record_feedback_event(
+        self,
+        content_hash: str,
+        rating: int,
+        source: Optional[str] = None,
+    ) -> None:
+        """Record an explicit/implicit feedback signal as a usage event.
+
+        Best-effort: a telemetry failure never raises. Writes a 'feedback'
+        usage event with {content_hash, rating, source}. Honors the
+        MCP_USAGE_TELEMETRY killswitch via log_usage_event.
+        """
+        try:
+            from ..usage_telemetry import log_usage_event
+            await log_usage_event(
+                self,
+                "feedback",
+                tool="feedback",
+                content_hash=content_hash,
+                rating=rating,
+                source=source,
+            )
+        except Exception as e:  # noqa: BLE001 - best-effort, never propagate
+            logger.warning("record_feedback_event failed (non-fatal): %s", _sanitize_log_value(e))
+
     async def _persist_access_metadata(self, memory: Memory):
         """Persist access tracking metadata (access_count, last_accessed_at) to storage."""
         def update_metadata():

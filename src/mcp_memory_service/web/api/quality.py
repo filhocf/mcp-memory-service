@@ -155,6 +155,24 @@ async def rate_memory(
             preserve_timestamps=True
         )
 
+        # Wire the feedback-event telemetry (D3 fix): record an explicit user
+        # feedback signal into usage_events. Best-effort — a telemetry failure
+        # must never break the rating flow.
+        try:
+            record_feedback_event = getattr(storage, "record_feedback_event", None)
+            if record_feedback_event is not None:
+                await record_feedback_event(
+                    content_hash=content_hash,
+                    rating=request.rating,
+                    source="user_explicit",
+                )
+        except Exception as telemetry_error:  # noqa: BLE001 - best-effort
+            logger.warning(
+                "record_feedback_event failed for %s (non-fatal): %s",
+                _sanitize_log_value(content_hash),
+                _sanitize_log_value(telemetry_error),
+            )
+
         rating_text = {-1: "thumbs down", 0: "neutral", 1: "thumbs up"}[request.rating]
 
         return RateMemoryResponse(
