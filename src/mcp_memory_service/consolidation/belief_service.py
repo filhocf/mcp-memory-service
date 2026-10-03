@@ -16,6 +16,8 @@ from .belief import (
     CONFIDENCE_FLOOR,
     LAMBDA,
     derive_confidence,
+    derive_confidence_with_feedback,
+    get_feedback_flag_value,
     should_promote,
     should_supersede,
 )
@@ -117,7 +119,7 @@ class BeliefService:
         4. Promote candidates meeting provenance floor
         5. Supersede beliefs below confidence floor
         """
-        stats = {"created": 0, "updated": 0, "promoted": 0, "superseded": 0, "errors": []}
+        stats = {"created": 0, "updated": 0, "promoted": 0, "superseded": 0, "errors": [], "down_rated_count": 0}
 
         try:
             observations = await self.storage.get_all_memories(memory_type="observation")
@@ -157,12 +159,27 @@ class BeliefService:
                     supporting_hashes = [o.content_hash for o in group_obs]
                     contradicting_hashes = [c.get("content_hash", "") for c in contradicting]
 
-                    confidence = derive_confidence(
-                        supporting=obs_dicts,
-                        contradicting=contradicting,
-                        current_time=now,
-                        lambda_weight=LAMBDA,
-                    )
+                    # Count down-rated observations if feedback is enabled
+                    if get_feedback_flag_value():
+                        for obs_dict in obs_dicts:
+                            metadata = obs_dict.get("metadata", {})
+                            if metadata.get("user_rating") == -1:
+                                stats["down_rated_count"] += 1
+
+                        confidence = derive_confidence_with_feedback(
+                            supporting=obs_dicts,
+                            contradicting=contradicting,
+                            observations_with_feedback=obs_dicts,  # All observations; user_rating=-1 filter is applied inside the function
+                            current_time=now,
+                            lambda_weight=LAMBDA,
+                        )
+                    else:
+                        confidence = derive_confidence(
+                            supporting=obs_dicts,
+                            contradicting=contradicting,
+                            current_time=now,
+                            lambda_weight=LAMBDA,
+                        )
 
                     belief_hash = _hash_content(group_content)
                     existing = await self._get_belief(belief_hash)
@@ -224,12 +241,21 @@ class BeliefService:
         supporting = await self._get_observations_by_hashes(derived_from)
         contradicting = await self._get_observations_by_hashes(contradicted_by)
 
-        confidence = derive_confidence(
-            supporting=supporting,
-            contradicting=contradicting,
-            current_time=now,
-            lambda_weight=LAMBDA,
-        )
+        if get_feedback_flag_value():
+            confidence = derive_confidence_with_feedback(
+                supporting=supporting,
+                contradicting=contradicting,
+                observations_with_feedback=supporting,  # Process supporting observations for feedback
+                current_time=now,
+                lambda_weight=LAMBDA,
+            )
+        else:
+            confidence = derive_confidence(
+                supporting=supporting,
+                contradicting=contradicting,
+                current_time=now,
+                lambda_weight=LAMBDA,
+            )
 
         # Reinstate or supersede based on new confidence
         if should_promote(confidence, len(supporting)):

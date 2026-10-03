@@ -57,12 +57,12 @@ O produto NÃO é "mais memórias colhidas" — é o **ciclo de aprendizado fech
 ```
 colher(limpo) → DESTILAR[L2] → VALIDAR/feedback[L4] → INJETAR proativo[L3] → agir melhor → recalibra ⟲
 ```
-- **L1 Memória** ✅ · **L2 Destilação** 🟡 ruidosa (beliefs conf≤0.64) · **L3 Injeção** 🟡 só pull · **L4 Feedback** 🔴 zero.
+- **L1 Memória** ✅ · **L2 Destilação** ✅ (beliefs active conf 0.87-0.98, noise filter ativo) · **L3 Injeção** 🟡 só pull · **L4 Feedback** 🟡 1º passo fechado (negative-use).
 - **Colher (Fase 0) é PRÉ-REQUISITO, não o objetivo** — enche o reservatório limpo. O motor é destilar+validar+injetar.
 - **Gargalo real = SINAL DE USO** (o serviço é cego pro agente; não sabe se a injeção ajudou). Priorizar **negative learning** (contradição = sinal forte e barato) antes do positivo.
 - **É do SERVIÇO, não do agente** (agente é efêmero; serviço é o substrato persistente). Não é fine-tuning — o aprendizado vive no harness, efeito indistinguível de aprender no contexto.
 - **Pesquisa JÁ EXISTE** (não reinventar): CdIA `padroes/mcp-memory-autolearn-rfc.md` (11 sistemas + 8 fases) + plano self-improvement. Reler autolearn-rfc §2.2/§2.4 antes de implementar.
-- **Caminho mínimo:** (1) limpar beliefs (task dc1c7756) → (2) destilação confiável (trilogia C1) → (3) feedback-loop (C3) → (4) injeção proativa (memory_context).
+- **Caminho mínimo:** (1) ~~limpar beliefs~~ ✅ já resolvido (noise filter existe; task dc1c7756 cancelada) → (2) destilação confiável ✅ (belief store já destila) → (3) feedback-loop 🟡 **1º passo fechado 3/out: negative-use** (rating −1 em obs-fonte derruba confiança do belief, opt-in `MCP_BELIEF_USE_FEEDBACK`; E2E: −47,8%) → (4) injeção proativa (memory_context) ← próximo.
 
 
 ## Feito recentemente (2/out)
