@@ -49,6 +49,22 @@ mcp-memory-service (fork = linha viva · 0 atrás do upstream · 2/out)
 ## Onde estamos, em uma frase
 Fechamos o arco de rating; descobrimos que os 3 arcos de harvest/identidade/portabilidade são **o mesmo problema** — colher bem de N agentes exige regras por agente **plugáveis (YAML)**, não hardcoded. Estamos redesenhando isso como um arco só (ingestão multi-agente) antes de escrever mais código.
 
+## ◄ RE-ENQUADRAMENTO (02/out): o NORTE é APRENDER, não colher
+> Pergunta do Claudio: "de que adianta colher memórias se não vira CONHECIMENTO? Como me fazer APRENDER?"
+> Nova RFC guarda-chuva: **`docs/rfc/planned/rfc-learning-loop.md`** (do colhedor ao aprendiz).
+
+O produto NÃO é "mais memórias colhidas" — é o **ciclo de aprendizado fechado**:
+```
+colher(limpo) → DESTILAR[L2] → VALIDAR/feedback[L4] → INJETAR proativo[L3] → agir melhor → recalibra ⟲
+```
+- **L1 Memória** ✅ · **L2 Destilação** 🟡 ruidosa (beliefs conf≤0.64) · **L3 Injeção** 🟡 só pull · **L4 Feedback** 🔴 zero.
+- **Colher (Fase 0) é PRÉ-REQUISITO, não o objetivo** — enche o reservatório limpo. O motor é destilar+validar+injetar.
+- **Gargalo real = SINAL DE USO** (o serviço é cego pro agente; não sabe se a injeção ajudou). Priorizar **negative learning** (contradição = sinal forte e barato) antes do positivo.
+- **É do SERVIÇO, não do agente** (agente é efêmero; serviço é o substrato persistente). Não é fine-tuning — o aprendizado vive no harness, efeito indistinguível de aprender no contexto.
+- **Pesquisa JÁ EXISTE** (não reinventar): CdIA `padroes/mcp-memory-autolearn-rfc.md` (11 sistemas + 8 fases) + plano self-improvement. Reler autolearn-rfc §2.2/§2.4 antes de implementar.
+- **Caminho mínimo:** (1) limpar beliefs (task dc1c7756) → (2) destilação confiável (trilogia C1) → (3) feedback-loop (C3) → (4) injeção proativa (memory_context).
+
+
 ## Feito recentemente (2/out)
 - **Fork sincronizado + serviço resgatado:** merge upstream/main (7 commits; nosso #1404/#1352 supersession mergeado pelo Henry). Serviço systemd em 11.14.0, 11 OURO colhidas.
 - **2 bugs achados e corrigidos POR GATE (reg + tuvok), não na mão:**

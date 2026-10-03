@@ -29,10 +29,11 @@
 | rfc-pipeline-harvest-quality | Ingestão | harvest/extractor.py (sentence + confidence gate) |
 | rfc-config-audit-2026-07-10 | Infra | fixes aplicados (graph_only, store_associations, schema_version) |
 
-## planned/ (22 — design/draft, sem código correspondente)
+## planned/ (23 — design/draft, sem código correspondente)
 
 | RFC | Arco | Nota |
 |-----|------|------|
+| **rfc-learning-loop** | **Aprendizado (guarda-chuva do PORQUÊ)** | **do colhedor ao aprendiz; L1-L4 (memória→destilação→injeção→feedback); gargalo=sinal de uso. Conecta ingestão (input) + trilogia-MM + self-service + persona-tier (COMOs). Consolida autolearn-rfc (CdIA) + plano self-improvement.** |
 | rfc-ingestao-multi-agente v0.1 | Ingestão multi-agente | guarda-chuva das 3 camadas |
 | rfc-hub-memoria-centralizada | Hub | SPEC F0-F8 |
 | rfc-delta-sync | Hub | #1345 (colab ducanhnguyen223) |
