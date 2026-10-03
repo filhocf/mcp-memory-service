@@ -4,7 +4,7 @@
 > Árvore primeiro (visão), notas depois (detalhe). Atualizado: 2026-10-03.
 
 ```
-mcp-memory-service (fork = linha viva · 0 atrás do upstream · 3/out · campanha seg #1146 absorvida)
+mcp-memory-service (fork = linha viva · 0 atrás do upstream · 3/out noite · fork limpo: 3 branches)
 │  Legenda: ✅ MERGED/feito · 🟢 feito fork-only · 🟡 parcial/design · 🔴 a fazer
 │
 ├─ ✅ ARCO RATING / QUALITY ............................. FECHADO
@@ -14,17 +14,29 @@ mcp-memory-service (fork = linha viva · 0 atrás do upstream · 3/out · campan
 │   └─ supersession orphan (fix coluna + list_orphans) . ✅ MERGED PR #1404 (nosso #1352)
 │
 ├─ 🟢 ARCO LEARNING LOOP ............... o NORTE (aprender, não só colher) · WorkItem 62046f1e
-│   │   Meta (Claudio 3/out): o CONJUNTO destilação+injeção+feedback. "Ao final, preciso de tudo."
-│   │   Modo: loop autônomo G0→G3→G4→G5→E2E por degrau; o MCP apoia a limitação do LLM.
+│   │   Meta (Claudio): o CONJUNTO destilação+injeção+feedback. "Ao final, preciso de tudo."
+│   │   Correção de rumo (3/out): L4 feedback = RFC-MM-01 do CLAUDIO (jul), Henry endossou #1286.
 │   │
 │   ├─ D0 limpar beliefs ............................... ✅ já resolvido (noise filter existe; task dc1c7756 cancelada)
 │   ├─ D1 destilação (L2) ............................... ✅ belief store já destila (240 active conf 0.87-0.98)
-│   ├─ D2 feedback negativo (L4) ....................... 🟢 FORK 3/out (dc452953) · rating −1→belief cai · E2E −47,8% · opt-in MCP_BELIEF_USE_FEEDBACK
 │   ├─ L1 telemetria de proveito (usage_events) ........ 🟢 FORK 3/out (cc412cfe) · migration 014 no banco VIVO · opt-out MCP_USAGE_TELEMETRY
 │   ├─ L2 injeção proativa (tool memory_context) ....... 🟢 FORK 3/out (f752dd13) · injeta por TEMA · E2E banco vivo 24k · opt-out MCP_CONTEXT_INJECTION_ENABLED
+│   ├─ D2 feedback SÍNCRONO (rating→belief) ............ ↩️ REVERTIDO 3/out · letra morta (rating manual que ninguém faz; a RFC-MM-01 já previa)
+│   ├─ L4 REAL = terminar RFC-MM-01 (feedback PASSIVO) . 🔨 PRÓXIMO · reaccess + job recálculo quality_score + wiring no fluxo · acceptance: quality 0.5→0.65
 │   ├─ N1 janela 1 semana — medir proveito REAL ........ 🔨 EM ANDAMENTO (até ~10/out) · get_usage_metrics no vivo · feedback_coverage sobe?
 │   ├─ N2 PUSH automático (hook harness) ............... 🔴 depois de N1 · hoje é PULL; push real = startup-hook chamar memory_context
 │   └─ N3 feedback positivo + sinal de uso auto ........ 🔴 depois de N1 · rating +1 reforça; belief reusado sobe sozinho
+│
+├─ 🟢 METODOLOGIA DE CURADORIA DE FORK (3/out) ......... nasceu do erro: reimplementei a trilogia que já existia
+│   ├─ metodologia-fork.md (3 rituais) + skill fork-curation + ref AGENTS.md . 🟢 permanente
+│   ├─ LEDGER-feats.md + ORFAOS.md (índice vivo) ....... 🟢 invariante: nenhuma feat sem rastro
+│   ├─ Inventário completo (29 refs órfãos, 1-a-1) ..... ✅ só 3 órfãos-reais; nenhum 2º protótipo escondido
+│   ├─ delta-sync §8 (invariantes #1345) PORTADO ....... 🟢 @ef2555ac (era órfão em branch)
+│   ├─ 19 branches-lixo + 3 worktrees deletadas ........ ✅ fork limpo (3 branches: main, trilogia, audit)
+│   └─ limpeza cross-host (WI a0d5abf2) ................ 🔴 DNBSCDC289 + socrates (branches são por-máquina)
+│
+├─ 🟢 TRILOGIA fact/gap/feedback (resgatada) ........... branch validacao/prototipo-trilogia-2e1978d5 · 93 testes passam
+│   └─ p/ virar PR: completar spec ⚠️ (doc payload window-tools #1286 · EARS mm-03 · changelog) → 3 PRs → responder #1286
 │
 ├─ 🟡 ARCO INGESTÃO MULTI-AGENTE ....... REDESENHO (foco) · RFC #1393 na discussion
 │   │   "1 serviço, N agentes/clientes · regras por agente, plugáveis (YAML)"

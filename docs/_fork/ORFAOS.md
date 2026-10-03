@@ -51,3 +51,8 @@ CONCLUSÃO: único trabalho significativo perdido era a trilogia (resgatada) + d
 Deletadas ~16 branches-lixo (local + remoto github sincronizado): pr/embedding-cache-lru-1099, pr/rewriter-type-leak, pr/graph-exc-info-log-forgery, pr/harvest-coverage-visible, fix/access-patterns-candidate-scoped, fix/versioned-superseded-columns, fix/decay-reads-last-accessed, fix/rating-records-provider-components, feat/nli-observability, feat/agent-id, feat/agent-id-phase2, design/quality-model, backup/design-quality-model-pre-v1114, wip/stash-multistore-0/1/2.
 PRESERVADAS: main, validacao/prototipo-trilogia-2e1978d5, docs/audit-memory-service.
 PENDENTE (WorkItem a0d5abf2): 3 worktrees presas em sirdata (git worktree remove) + limpeza nas outras máquinas (DNBSCDC289, socrates) — branches locais são por-máquina.
+
+## Limpeza FINALIZADA 2026-10-03 (worktrees)
+Removidas 3 worktrees presas (git worktree remove --force): -pr1349, -pr1350, -rfc.
+Deletadas branches liberadas: feat/quality-model-split, feat/harvest-coverage-instrument, doc/rfc-delta-sync-invariants (§8 já portado @ef2555ac, remota tb deletada).
+ESTADO FINAL sirdata: 3 branches (main, validacao/prototipo-trilogia-2e1978d5, docs/audit-memory-service), 1 worktree (main). PENDENTE outras máquinas: WI a0d5abf2.
