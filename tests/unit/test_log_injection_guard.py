@@ -60,6 +60,12 @@ GUARDED_MODULES = [
     "mcp_memory_service/storage/mixins/base.py",
     "mcp_memory_service/storage/mixins/metadata.py",
     "mcp_memory_service/web/oauth/middleware.py",
+    "mcp_memory_service/health/integrity.py",
+    "mcp_memory_service/models/memory.py",
+    "mcp_memory_service/storage/mixins/delete.py",
+    "mcp_memory_service/api/client.py",
+    "mcp_memory_service/api/operations.py",
+    "mcp_memory_service/storage/mixins/store.py",
     "mcp_memory_service/utils/db_utils.py",
     "mcp_memory_service/utils/health_check.py",
     "mcp_memory_service/server/handlers/utility.py",
@@ -138,6 +144,12 @@ EXTERNAL_NAMES = frozenset({
     "venv_path",
     "user_path",
     "installed_version",
+    # The path health/integrity.py exports surviving memories to, built from the database location.
+    "export_path",
+    # What storage/mixins/store.py logs when the backend fails while it stores or purges:
+    # the error of an embedding delete, and the message built from a transaction error.
+    "vec_err",
+    "error_msg",
     # The errors utils/db_utils.py logs while it validates, reads and repairs a backend.
     "init_error",
     "embed_error",
@@ -177,13 +189,13 @@ def _is_sanitised(node: ast.expr) -> bool:
 
 
 def _is_guarded_logger_call(node: ast.AST) -> bool:
-    """True for `logger.<level>(...)` at one of the levels the gate guards."""
+    """True for `logger.<level>(...)` or `logging.<level>(...)` at one of the levels the gate guards."""
     return (
         isinstance(node, ast.Call)
         and isinstance(node.func, ast.Attribute)
         and node.func.attr in GUARDED_LEVELS
         and isinstance(node.func.value, ast.Name)
-        and node.func.value.id == "logger"
+        and node.func.value.id in ("logger", "logging")
     )
 
 
@@ -484,6 +496,27 @@ def test_lazy_scan_flags_db_utils_backend_errors():
     for name in ("init_error", "embed_error", "stats_error"):
         assert _lazy_findings(f'logger.warning("failed: %s", {name})\n')
         assert not _lazy_findings(f'logger.warning("failed: %s", _sanitize_log_value({name}))\n')
+
+
+@pytest.mark.unit
+def test_lazy_scan_flags_store_backend_errors():
+    """What storage/mixins/store.py logs when the backend raises while it stores."""
+    for name in ("vec_err", "error_msg"):
+        assert _lazy_findings(f'logger.error("failed: %s", {name})\n')
+        assert not _lazy_findings(f'logger.error("failed: %s", _sanitize_log_value({name}))\n')
+
+
+@pytest.mark.unit
+def test_lazy_scan_flags_integrity_export_path():
+    """What health/integrity.py logs about the file it exports memories to."""
+    assert _lazy_findings('logger.info("to %s", export_path)\n')
+    assert not _lazy_findings('logger.info("to %s", _sanitize_log_value(export_path))\n')
+
+
+def test_scans_cover_logging_module_calls():
+    """A guarded module that logs through the root `logging` module is scanned too."""
+    assert _lazy_findings('logging.error("failed: %s", e)\n')
+    assert not _lazy_findings('logging.error("failed: %s", _sanitize_log_value(e))\n')
 
 
 @pytest.mark.unit
