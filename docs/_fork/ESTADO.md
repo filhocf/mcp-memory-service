@@ -104,5 +104,6 @@ A colheita do Kiro **lê os formatos** (feito) mas **NÃO filtra valor**: hoje c
 
 ## Onde está o quê
 - **RFCs:** `docs/rfc/planned/` (futuro) e `docs/rfc/implemented/` (feito). Índice: `docs/rfc/_index.md`.
+- **Radar de terceiros:** `docs/_fork/radar-terceiros.md` (PRs/issues de terceiros na nossa área)
 - **Acompanhamento (fork-only):** `docs/_fork/` — roadmap, pilha de PRs, este ESTADO.md, ARCOS.md (versão densa p/ o agente).
 - **Estudos/pesquisas/guias:** ficam no CdIA (`conhecimentos-de-ia/ferramentas/mcp/memory-service/estudos|guias`).
