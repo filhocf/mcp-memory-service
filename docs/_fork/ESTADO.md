@@ -13,6 +13,19 @@ mcp-memory-service (fork = linha viva · 0 atrás do upstream · 3/out · campan
 │   ├─ MCP_DECAY_ENABLED (timkjr) ...................... ✅ MERGED PR #1391 — furo lateral fechado
 │   └─ supersession orphan (fix coluna + list_orphans) . ✅ MERGED PR #1404 (nosso #1352)
 │
+├─ 🟢 ARCO LEARNING LOOP ............... o NORTE (aprender, não só colher) · WorkItem 62046f1e
+│   │   Meta (Claudio 3/out): o CONJUNTO destilação+injeção+feedback. "Ao final, preciso de tudo."
+│   │   Modo: loop autônomo G0→G3→G4→G5→E2E por degrau; o MCP apoia a limitação do LLM.
+│   │
+│   ├─ D0 limpar beliefs ............................... ✅ já resolvido (noise filter existe; task dc1c7756 cancelada)
+│   ├─ D1 destilação (L2) ............................... ✅ belief store já destila (240 active conf 0.87-0.98)
+│   ├─ D2 feedback negativo (L4) ....................... 🟢 FORK 3/out (dc452953) · rating −1→belief cai · E2E −47,8% · opt-in MCP_BELIEF_USE_FEEDBACK
+│   ├─ L1 telemetria de proveito (usage_events) ........ 🟢 FORK 3/out (cc412cfe) · migration 014 no banco VIVO · opt-out MCP_USAGE_TELEMETRY
+│   ├─ L2 injeção proativa (tool memory_context) ....... 🟢 FORK 3/out (f752dd13) · injeta por TEMA · E2E banco vivo 24k · opt-out MCP_CONTEXT_INJECTION_ENABLED
+│   ├─ N1 janela 1 semana — medir proveito REAL ........ 🔨 EM ANDAMENTO (até ~10/out) · get_usage_metrics no vivo · feedback_coverage sobe?
+│   ├─ N2 PUSH automático (hook harness) ............... 🔴 depois de N1 · hoje é PULL; push real = startup-hook chamar memory_context
+│   └─ N3 feedback positivo + sinal de uso auto ........ 🔴 depois de N1 · rating +1 reforça; belief reusado sobe sozinho
+│
 ├─ 🟡 ARCO INGESTÃO MULTI-AGENTE ....... REDESENHO (foco) · RFC #1393 na discussion
 │   │   "1 serviço, N agentes/clientes · regras por agente, plugáveis (YAML)"
 │   │
@@ -49,6 +62,33 @@ mcp-memory-service (fork = linha viva · 0 atrás do upstream · 3/out · campan
 ## Onde estamos, em uma frase
 Fechamos o arco de rating; descobrimos que os 3 arcos de harvest/identidade/portabilidade são **o mesmo problema** — colher bem de N agentes exige regras por agente **plugáveis (YAML)**, não hardcoded. Estamos redesenhando isso como um arco só (ingestão multi-agente) antes de escrever mais código.
 
+## 📋 BACKLOG COMPLETO — todas as RFCs/ideias (para enxergar tudo)
+> Detalhe e evidência de código em `docs/rfc/_index.md` (47 RFCs: 23 implemented, 24 planned). Aqui = visão de uma linha por ideia, agrupada. Regra: toda RFC/arco/ideia nova entra AQUI no mesmo passo.
+
+**🟢 ARCO LEARNING LOOP (o NORTE)** — ver árvore acima. RFCs: `rfc-learning-loop` (guarda-chuva).
+Alimentado por (os COMOs, hoje design/0-EARS): `rfc-mm-01-feedback-loop`, `rfc-mm-02-fact-extraction`, `rfc-mm-03-gap-detection`, `rfc-fact-extraction`, `rfc-self-service-memory-intelligence`, `rfc-autolearn-autodream`, `rfc-server-side-lifecycle`.
+
+**🟡 ARCO INGESTÃO MULTI-AGENTE** — ver árvore. RFCs: `rfc-ingestao-multi-agente` (guarda-chuva), `spec-fase0-kiro-yaml-triagem` (Fase 0 pronta), `rfc-pipeline-harvest-quality` ✅impl.
+
+**🟡 ARCO HUB MULTI-AGENTE** — ver árvore. RFCs: `rfc-hub-memoria-centralizada` (SPEC F0-F8), `rfc-delta-sync` (#1345), `rfc-agent-id-multi-agent` ✅impl, `rfc-sync-multi-agente` ✅impl.
+
+**🟡 ARCO PORTABILIDADE** — ver árvore. RFCs: `rfc-memory-portability` (5 camadas, #1364), `rfc-importers` (mem0/letta/zep, #1390).
+
+**⚪ BACKLOG DE IDEIAS (sem arco ainda — ranking de prioridade a definir):**
+- `rfc-query-intent` — 🟡 PAUSADA (WorkItem 9fa7e0ef, hold): teste do modelo de gerência; 4 arquivos não-commitados; valor marginal (ver ironia learning-loop). Decidir retomar/arquivar.
+- `rfc-working-memory` — contexto quente auto-gerenciado (tier de memória recente). Conecta com injeção/L3.
+- `rfc-ranking-upgrades` — Weibull decay + polyphonic recall (melhora recuperação).
+- `rfc-memory-hygiene` — noise audit & safe cleanup (limpeza segura do acervo).
+- `rfc-persona-tier` — identidade portável auto-gerada (conecta learning-loop + portabilidade).
+- `rfc-skill-auto-generation` — pipeline de auto-geração de skill (padrão→skill).
+- `rfc-embedding-quantization` — int8/binary vectors (performance/espaço).
+- `rfc-multimodal-memory` — imagem/vídeo/áudio → texto recallável.
+- `rfc-onboarding-discoverable` — guias de uso MCP agent-native (discovery protocol).
+- `rfc-kiro-headless-llm-provider` — Kiro CLI headless como LLM provider (destilação sem API externa).
+- `rfc-structural-improvements` — melhorias estruturais diversas.
+
+**✅ INFRA JÁ IMPLEMENTADA (base, não precisa ação):** belief-store, nli-cascade, anti-hallucination, handler/tool-registry/routing, split-config, schema-versioning, multi-store-NER, quality-model. Detalhe no `_index.md`.
+
 ## ◄ RE-ENQUADRAMENTO (02/out): o NORTE é APRENDER, não colher
 > Pergunta do Claudio: "de que adianta colher memórias se não vira CONHECIMENTO? Como me fazer APRENDER?"
 > Nova RFC guarda-chuva: **`docs/rfc/planned/rfc-learning-loop.md`** (do colhedor ao aprendiz).
@@ -62,7 +102,7 @@ colher(limpo) → DESTILAR[L2] → VALIDAR/feedback[L4] → INJETAR proativo[L3]
 - **Gargalo real = SINAL DE USO** (o serviço é cego pro agente; não sabe se a injeção ajudou). Priorizar **negative learning** (contradição = sinal forte e barato) antes do positivo.
 - **É do SERVIÇO, não do agente** (agente é efêmero; serviço é o substrato persistente). Não é fine-tuning — o aprendizado vive no harness, efeito indistinguível de aprender no contexto.
 - **Pesquisa JÁ EXISTE** (não reinventar): CdIA `padroes/mcp-memory-autolearn-rfc.md` (11 sistemas + 8 fases) + plano self-improvement. Reler autolearn-rfc §2.2/§2.4 antes de implementar.
-- **Caminho mínimo:** (1) ~~limpar beliefs~~ ✅ já resolvido (noise filter existe; task dc1c7756 cancelada) → (2) destilação confiável ✅ (belief store já destila) → (3) feedback-loop 🟡 **1º passo fechado 3/out: negative-use** (rating −1 em obs-fonte derruba confiança do belief, opt-in `MCP_BELIEF_USE_FEEDBACK`; E2E: −47,8%) → (4) injeção proativa (memory_context) ← próximo.
+- **Caminho mínimo:** (1) ~~limpar beliefs~~ ✅ já resolvido → (2) destilação ✅ (belief store já destila) → (3) feedback-loop ✅ **1º passo 3/out: negative-use** (rating −1 derruba confiança; E2E −47,8%) → (4) injeção proativa ✅ **3/out: tool `memory_context` por tema** (E2E banco vivo) + (5) **telemetria de proveito ✅ 3/out** (usage_events, migration 014 no vivo). **PRÓXIMO: janela 1 semana medindo proveito real (N1), depois push automático (N2) e feedback positivo/automático (N3).**
 
 
 ## Feito recentemente (2/out)
