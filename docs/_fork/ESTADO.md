@@ -1,10 +1,10 @@
 # ESTADO — mcp-memory-service (Claudio)
 
 > Para você abrir e entender onde estamos sem reconstruir contexto.
-> Árvore primeiro (visão), notas depois (detalhe). Atualizado: 2026-10-01.
+> Árvore primeiro (visão), notas depois (detalhe). Atualizado: 2026-10-03.
 
 ```
-mcp-memory-service (fork = linha viva · 0 atrás do upstream · 2/out)
+mcp-memory-service (fork = linha viva · 0 atrás do upstream · 3/out · campanha seg #1146 absorvida)
 │  Legenda: ✅ MERGED/feito · 🟢 feito fork-only · 🟡 parcial/design · 🔴 a fazer
 │
 ├─ ✅ ARCO RATING / QUALITY ............................. FECHADO
