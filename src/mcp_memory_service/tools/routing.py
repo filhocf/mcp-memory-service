@@ -45,6 +45,7 @@ _PRIMARY: dict[str, tuple[str, str]] = {
     "unquarantine_memory": ("__self__", "handle_unquarantine_memory"),
     "commit_session_legacy": ("__self__", "handle_commit_session_legacy"),
     "get_bootstrap_profile": ("__self__", "handle_get_bootstrap_profile"),
+    "memory_context": ("__self__", "handle_memory_context"),
     "get_onboarding_guide": ("__self__", "handle_get_onboarding_guide"),
     "memory_distill": ("__self__", "handle_memory_distill"),
 }

@@ -2575,6 +2575,22 @@ class MemoryServer:
             logger.error("Error in get_bootstrap_profile: %s", _sanitize_log_value(e))
             return [types.TextContent(type="text", text="=== BEHAVIORAL PROFILE (v1) ===\n\nNo data available yet.\n=== END PROFILE ===")]
 
+    async def handle_memory_context(self, arguments: dict) -> List[types.TextContent]:
+        """Proactively inject theme-relevant beliefs/memories for a task."""
+        await self._ensure_storage_initialized()
+        try:
+            from mcp_memory_service.storage.context_injection import memory_context
+            result = await memory_context(
+                self.storage,
+                task=arguments.get("task"),
+                budget_tokens=arguments.get("budget_tokens"),
+                limit=arguments.get("limit"),
+            )
+            return [types.TextContent(type="text", text=json.dumps(result, indent=2, default=str))]
+        except Exception as e:
+            logger.error("Error in memory_context: %s", _sanitize_log_value(e))
+            return [types.TextContent(type="text", text=json.dumps({"error": str(e)}, indent=2))]
+
     # ============================================================
     # Test Compatibility Wrapper Methods
     # ============================================================

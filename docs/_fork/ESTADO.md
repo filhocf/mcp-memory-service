@@ -57,7 +57,7 @@ O produto NÃO é "mais memórias colhidas" — é o **ciclo de aprendizado fech
 ```
 colher(limpo) → DESTILAR[L2] → VALIDAR/feedback[L4] → INJETAR proativo[L3] → agir melhor → recalibra ⟲
 ```
-- **L1 Memória** ✅ · **L2 Destilação** ✅ (beliefs active conf 0.87-0.98, noise filter ativo) · **L3 Injeção** 🟡 só pull · **L4 Feedback** 🟡 1º passo fechado (negative-use).
+- **L1 Memória** ✅ · **L2 Destilação** ✅ (beliefs active conf 0.87-0.98, noise filter ativo) · **L3 Injeção** 🟡 por-tema (memory_context, one-shot) · **L4 Feedback** 🟡 1º passo fechado (negative-use).
 - **Colher (Fase 0) é PRÉ-REQUISITO, não o objetivo** — enche o reservatório limpo. O motor é destilar+validar+injetar.
 - **Gargalo real = SINAL DE USO** (o serviço é cego pro agente; não sabe se a injeção ajudou). Priorizar **negative learning** (contradição = sinal forte e barato) antes do positivo.
 - **É do SERVIÇO, não do agente** (agente é efêmero; serviço é o substrato persistente). Não é fine-tuning — o aprendizado vive no harness, efeito indistinguível de aprender no contexto.

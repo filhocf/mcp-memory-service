@@ -1271,6 +1271,29 @@ Examples:
         annotations={"readOnlyHint": True},
     ),
     ToolDef(
+        name="memory_context",
+        description="""Proactively inject theme-relevant beliefs/memories for a task (one-shot context).""",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "task": {
+                    "type": "string",
+                    "description": "Task or theme to inject relevant context for",
+                },
+                "budget_tokens": {
+                    "type": "integer",
+                    "description": "Token budget for injected context (overrides env default)",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of items to inject",
+                },
+            },
+            "required": ["task"],
+        },
+        annotations={"readOnlyHint": True},
+    ),
+    ToolDef(
         name="get_onboarding_guide",
         description="""Get integration guide for a specific client type. """,
         input_schema={
