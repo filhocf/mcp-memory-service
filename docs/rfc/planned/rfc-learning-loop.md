@@ -28,6 +28,29 @@ comportamento por mérito.
 observável é indistinguível de aprender *dentro do contexto de cada sessão* — e é
 isso que faz o sistema (não o modelo) ser mais útil a cada semana.
 
+## 2.1. Enquadramento: o MCP apoia uma LIMITAÇÃO (Claudio, 3/out)
+
+Perder contexto **não é culpa do agente/LLM — é limitação do modelo.** O memory-service
+existe para **APOIAR** nessa limitação: é a prótese de memória/aprendizado que compensa
+o que o modelo não faz sozinho. As RFCs autolearn/autodream nasceram **das dores reais**,
+não da teoria. E as 4 camadas não são escolha excludente — **são um conjunto**. A ordem
+de ataque é tática; a definição de PRONTO é o ciclo fechado completo.
+
+## 2.2. Valor de cada camada (por que cada dor importa — Claudio)
+
+- **DESTILAÇÃO (L2):** *"não tem porque se afogar em memórias. O que é o destilado
+  daquele tema? É o que você precisa."* → recebo conhecimento, não 40 eventos crus.
+- **INJEÇÃO (L3):** *"te ajuda a ser mais assertivo porque não fica fazendo rodadas
+  buscando a info certa — já chega de cara, one-shot."* → acerto na primeira.
+- **FEEDBACK (L4):** *"te deixa mais efetivo, não erra tanto e não perde TEMPO. Imagina
+  refazer todas as vezes porque tocou direto e não delegou. Tempo e recursos."* → não
+  repito erros; economizo tempo e recursos.
+
+Ironia que reforça a prioridade: otimizar a **busca** (ex: ranking keyword×semantic,
+D3/query-intent) é afinar um comportamento que o objetivo final quer **reduzir** — se
+destilação+injeção funcionam, eu **busco menos**, porque o conhecimento vem até mim.
+Logo, melhorar busca é valor marginal perto de fechar o ciclo.
+
 ## 3. Por que do lado do SERVIÇO, não do agente
 
 O agente é efêmero e troca de máquina (Zero×3 + Scotty + T'Pol). Se o aprendizado
