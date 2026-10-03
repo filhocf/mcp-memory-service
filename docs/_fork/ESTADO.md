@@ -146,4 +146,5 @@ A colheita do Kiro **lê os formatos** (feito) mas **NÃO filtra valor**: hoje c
 - **RFCs:** `docs/rfc/planned/` (futuro) e `docs/rfc/implemented/` (feito). Índice: `docs/rfc/_index.md`.
 - **Radar de terceiros:** `docs/_fork/radar-terceiros.md` (PRs/issues de terceiros na nossa área)
 - **Acompanhamento (fork-only):** `docs/_fork/` — roadmap, pilha de PRs, este ESTADO.md, ARCOS.md (versão densa p/ o agente).
+- **Metodologia de fork:** `docs/_fork/metodologia-fork.md` (3 rituais) + `LEDGER-feats.md` (estado de cada feat) + `ORFAOS.md` (detector de trabalho não-relandado). Consultar ANTES de sync/merge/implementar feat.
 - **Estudos/pesquisas/guias:** ficam no CdIA (`conhecimentos-de-ia/ferramentas/mcp/memory-service/estudos|guias`).

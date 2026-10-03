@@ -74,6 +74,7 @@ RETURN caller.name, caller.filePath
 2. **Buscar estado recente:** `memory_search("mcp-memory-service Henry mandato fila", tags=["mcp-memory-service","henry"], limit=5)`.
 3. **Ler o runbook:** `docs/_fork/pilha-prs-runbook.md`
    (processo de transporte fork→upstream, mecânica de branches, disciplina). Estado dos arcos: `docs/_fork/ARCOS.md`.
+4. **Metodologia de fork (OBRIGATÓRIA):** `docs/_fork/metodologia-fork.md` — 3 rituais (triar upstream, landar feats, não perder trabalho). Antes de QUALQUER sync/merge/reset: rodar o detector de órfãos e consultar `LEDGER-feats.md` + `ORFAOS.md`. INVARIANTE: nenhuma feat fork-only sem linha no LEDGER. Antes de implementar feat nova: conferir no LEDGER se já existe (não reimplementar — lição 3/out: trilogia 2e1978d5 reimplementada por falta de ledger).
 4. **ANTES de analisar/implementar código deste repo — consultar o GRAFO primeiro (codebase-memory, não grep):**
    `list_projects`/`index_status` (indexado e fresco?) → roteie a tarefa (entender arquitetura → `get_architecture`;
    quem chama X → `trace_path(inbound)`; o que X chama → `trace_path(outbound)`; impacto de mudança → `detect_changes`;
