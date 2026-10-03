@@ -29,3 +29,20 @@
 → **AÇÃO (pendente OK do Claudio):** deletar após re-confirmar 0 no detector. Decisão: DESCARTAR.
 
 ## Próxima varredura: a cada sync do upstream (Ritual 1) + mensal.
+
+## Inventário COMPLETO 2026-10-03 (varredura total: branches+tags+dangling+worktrees+remotas)
+Fork 100% sincronizado local (22 branches). 29 refs órfãos investigados UM A UM com evidência git grep.
+
+### ÓRFÃOS-REAIS (3):
+| ref | veredito | ação |
+|-----|----------|------|
+| validacao/prototipo-trilogia-2e1978d5 | RELAND (trilogia, já ledgerada) | decidir reintegração sobre v11.15 |
+| doc/rfc-delta-sync-invariants | **PORTADO 3/out** (§8 invariantes #1345 → main) | branch deletável |
+| docs/audit-memory-service | INCERTO baixo valor (macro-map histórico 23/set) | mover p/ _fork ou deletar |
+
+### LIXO confirmado (26 refs — conteúdo provado no main via grep):
+- 14 branches landed/obsoletas: 4 pr/*, 3 fix/*, feat/quality-model-split, feat/harvest-coverage-instrument, feat/agent-id, design/quality-model, backup/design-quality-model, 3 wip/stash-multistore (multi-store #57 landou SUPERIOR no main).
+- NUANCE feat/nli-observability: OBSOLETO — resgatar REVERTERIA melhorias do main (max_achievable_confidence, provenance). Deletar, não resgatar.
+- 10 dangling: de00681d(chain 23 bootstrap jul), embedding-cache stashes, cascading-fallback #873, insight-cards, temporal-decay #119, mem0-adapter, Kiro-JSONL — TODOS relandados.
+
+CONCLUSÃO: único trabalho significativo perdido era a trilogia (resgatada) + delta-sync §8 (portado). NÃO há segundo protótipo escondido. Relatório detalhado: ~/.kiro/tmp/inventario-oculto.md.
