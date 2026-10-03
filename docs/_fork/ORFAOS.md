@@ -46,3 +46,8 @@ Fork 100% sincronizado local (22 branches). 29 refs órfãos investigados UM A U
 - 10 dangling: de00681d(chain 23 bootstrap jul), embedding-cache stashes, cascading-fallback #873, insight-cards, temporal-decay #119, mem0-adapter, Kiro-JSONL — TODOS relandados.
 
 CONCLUSÃO: único trabalho significativo perdido era a trilogia (resgatada) + delta-sync §8 (portado). NÃO há segundo protótipo escondido. Relatório detalhado: ~/.kiro/tmp/inventario-oculto.md.
+
+## Limpeza EXECUTADA 2026-10-03 (OK do Claudio)
+Deletadas ~16 branches-lixo (local + remoto github sincronizado): pr/embedding-cache-lru-1099, pr/rewriter-type-leak, pr/graph-exc-info-log-forgery, pr/harvest-coverage-visible, fix/access-patterns-candidate-scoped, fix/versioned-superseded-columns, fix/decay-reads-last-accessed, fix/rating-records-provider-components, feat/nli-observability, feat/agent-id, feat/agent-id-phase2, design/quality-model, backup/design-quality-model-pre-v1114, wip/stash-multistore-0/1/2.
+PRESERVADAS: main, validacao/prototipo-trilogia-2e1978d5, docs/audit-memory-service.
+PENDENTE (WorkItem a0d5abf2): 3 worktrees presas em sirdata (git worktree remove) + limpeza nas outras máquinas (DNBSCDC289, socrates) — branches locais são por-máquina.

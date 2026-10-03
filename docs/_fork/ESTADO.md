@@ -62,6 +62,23 @@ mcp-memory-service (fork = linha viva · 0 atrás do upstream · 3/out · campan
 ## Onde estamos, em uma frase
 Fechamos o arco de rating; descobrimos que os 3 arcos de harvest/identidade/portabilidade são **o mesmo problema** — colher bem de N agentes exige regras por agente **plugáveis (YAML)**, não hardcoded. Estamos redesenhando isso como um arco só (ingestão multi-agente) antes de escrever mais código.
 
+## 📍 ONDE ESTAMOS / PRA ONDE VAMOS (atualizado 3/out noite)
+
+**Entregue hoje (fork main, pushado, aplicado no banco vivo):**
+- 🟢 **Telemetria de proveito** (`usage_events` + `get_usage_metrics`, migration 014) — o serviço observa o próprio uso. Opt-out `MCP_USAGE_TELEMETRY`.
+- 🟢 **Injeção proativa** (tool `memory_context`) — injeta beliefs por TEMA, não top-N cego. Opt-out `MCP_CONTEXT_INJECTION_ENABLED`.
+- 🟢 **Metodologia de curadoria de fork** — `metodologia-fork.md` + `LEDGER-feats.md` + `ORFAOS.md` + skill `fork-curation` + ref no AGENTS.md. Nasceu de um erro real (reimplementei a trilogia que já existia).
+- 🟢 **Inventário completo de material oculto** — 29 refs órfãos varridos 1-a-1. Só 3 órfãos-reais (trilogia resgatada, delta-sync §8 portado, audit macro-map). 26 refs-lixo deletados (local+remoto). Fork limpo.
+- ↩️ **Revertido:** feedback síncrono (rating→belief) — LETRA MORTA (depende de rating manual que ninguém faz; a RFC-MM-01 já previa).
+
+**Correção de rumo:** o L4 feedback é a **RFC-MM-01 do Claudio** (jul, feedback PASSIVO "zero disciplina"), que o Henry endossou na #1286 — não "modelo do Henry". A telemetria de hoje materializa ela.
+
+**Pra onde vamos (ordem):**
+1. 🔨 **Terminar a RFC-MM-01** fork-only sobre a telemetria: captar reaccess + job de recálculo de quality_score + wiring real no fluxo + acceptance (quality 0.5→0.65, bootstrap noise <10%). Arco 62046f1e.
+2. **Janela 1 semana** (N1, ~10/out) medindo proveito real → decide N2 (push via hook) e N3 (feedback positivo).
+3. **Trilogia** (branch `validacao/prototipo-trilogia`, 93 testes): completar spec p/ PR (doc payload window-tools #1286, EARS mm-03, changelog) → 3 PRs + responder #1286 (draft EN+PT-BR).
+4. **Limpeza cross-host** (WorkItem a0d5abf2): worktrees sirdata + branches-lixo DNBSCDC289/socrates.
+
 ## 📋 BACKLOG COMPLETO — todas as RFCs/ideias (para enxergar tudo)
 > Detalhe e evidência de código em `docs/rfc/_index.md` (47 RFCs: 23 implemented, 24 planned). Aqui = visão de uma linha por ideia, agrupada. Regra: toda RFC/arco/ideia nova entra AQUI no mesmo passo.
 
