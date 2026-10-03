@@ -1,1 +1,0 @@
-Belief confidence now learns from negative human feedback (opt-in via `MCP_BELIEF_USE_FEEDBACK`, default off): a source observation rated `-1` is treated as a contradiction when (re)deriving the belief, lowering its confidence. Additive, no migration, baseline unchanged when disabled. First closed step of the learning-loop feedback layer (L4).

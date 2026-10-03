@@ -15,7 +15,7 @@ IDEIA → DESIGN(RFC/discussion) → IMPL-FORK → PR-ABERTO → MERGED
 
 | feat | arco | estado | ref git | PR/issue | RFC | salvo-na-main? | nota |
 |------|------|--------|---------|----------|-----|----------------|------|
-| D2 feedback negativo síncrono (belief) | learning-loop | IMPL-FORK | main @dc452953 | — (candidato) | rfc-learning-loop / rfc-mm-01 | ✅ sim | rating −1→belief cai. E2E −47,8%. Opt-in MCP_BELIEF_USE_FEEDBACK. DIVERGE do design Henry (síncrono ≠ job 6h). |
+| ~~D2 feedback negativo síncrono~~ | learning-loop | **REVERTIDO** | revert de dc452953 | — | rfc-mm-01 | ❌ removido | LETRA MORTA: dependia de rating manual que ninguém faz (a própria RFC-MM-01 do Claudio previa isso). Substituído por: terminar RFC-MM-01 (feedback PASSIVO) sobre a telemetria. |
 | L1 telemetria proveito (usage_events) | learning-loop | IMPL-FORK | main @cc412cfe | — | — | ✅ sim | usage_events + get_usage_metrics. migration 014. Peça adjacente (não está na trilogia #1286). |
 | L2 injeção proativa (memory_context) | learning-loop | IMPL-FORK | main @f752dd13 | — | — | ✅ sim | tool por tema. Peça adjacente (não está na trilogia #1286). |
 | **Trilogia fact/gap/feedback (jobs scheduler)** | learning-loop | **RESGATADA (branch viva)** | branch `validacao/prototipo-trilogia-2e1978d5` (pushada) | discussion #1286 (Henry validou direção) | rfc-mm-01/02/03 | 🟡 branch (não-main) | 93/93 testes passam vs v11.15. Banco vivo já tem memory_gaps+feedback_signals (tabelas órfãs). PENDENTE p/ PR: doc payload window-tools (Henry), EARS mm-03, changelog.d, resolver colisão 014. |
