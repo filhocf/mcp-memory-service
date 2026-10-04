@@ -39,3 +39,10 @@ IDEIA → DESIGN(RFC/discussion) → IMPL-FORK → PR-ABERTO → MERGED
 | recompute_quality_scores (job RFC-MM-01) | learning-loop | IMPL-FORK (função) | usage_telemetry.py | signed_sigmoid+decay 14d; NEG_WEIGHT 2.5 |
 **v1 (feito):** produtor de dados VIVO (retrieval grava returned_hashes; injection grava belief_hashes) + derivação + métricas + função de recálculo, com gate completo + E2E no banco real (reaccess=1, quality pos 1.405 / neg -0.487). 8 testes.
 **v2 (declarado pendente — evita reabrir furo-D3):** WIRING = (a) job de scheduler que chama recompute_quality_scores periodicamente; (b) tool/endpoint get_assertiveness_metrics p/ o agente consultar; (c) clamp [0,1] no quality_score. Hoje as funções existem e derivam, mas nenhum job/tool as chama ainda.
+
+## Estado de contribuição upstream (4/out) — NADA em PR ainda
+Tudo fork-only. 0 PRs abertos no doobidoo. Gatilhos p/ virar PR:
+- Telemetria + métrica (usage_events, memory_context, assertividade): PR QUANDO a janela de 1 semana provar valor (ADR-0005). Maturar local primeiro (RFC learning-loop).
+- Trilogia fact/gap/feedback (branch validacao): 3 PRs QUANDO spec completa (doc payload window-tools #1286 + EARS mm-03 + changelog).
+- delta-sync (ADR-0002): PR QUANDO implementado.
+- ADRs + docs/_fork/: FORK-ONLY PERMANENTE (nunca viram PR — AGENTS.md).
