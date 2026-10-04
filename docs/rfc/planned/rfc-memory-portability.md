@@ -220,6 +220,8 @@ que carrega a caracterização detalhada (não mais "a caracterizar"). A RFC-mã
 |-------|------|--------|------|
 | `rfc-memory-portability-agent-kiro.md` | use (§4.1) | 🟢 caracterizado | **espelho de referência** — como um harness usa bem o serviço (hooks startup/pré-tarefa/checkpoint/shutdown) |
 | `rfc-memory-portability-agent-hermes.md` | use + bring | 🟢 caracterizado | loop maduro / store raso 3.5KB; já MCP-capable; issue #1095 = export path. Resolve gargalo deles → justifica adapter nativo |
+| `rfc-memory-portability-memory-mem0.md` | bring (§4.2) | 🟢 caracterizado | Apache-2.0; fatos atômicos LLM-extraídos NA ESCRITA (ADD/UPDATE/DELETE) = feature-parity forte; export via get_all. Par-alvo Claude Code⊕mem0 |
+| `rfc-memory-portability-memory-mnemosyne.md` | bring + BENCHMARK | 🟢 caracterizado | MIT; **10 importers** com BaseImporter = referência direta p/ rfc-importers (copiar padrão); BEAM working/episodic; 1 sqlite. 1º importer a construir |
 
 Estrutura do anexo-agente: (1) quem é · (2) como tem memória hoje · (3) como conectar · (4) como usar da melhor forma · (5) direção p/ construção. Próximos: anexos de memory-system (mem0 etc) quando o par virar foco.
 
