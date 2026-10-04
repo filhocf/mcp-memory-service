@@ -239,6 +239,7 @@ class RetrieveMixin:
                         n_results=len(results),
                         latency_ms=latency_ms,
                         query_hash=query_hash(query),
+                        returned_hashes=[r.memory.content_hash for r in results],
                     )
             except Exception as _tele_err:
                 logger.warning("Usage telemetry (retrieve) failed (non-fatal): %s", _sanitize_log_value(_tele_err))

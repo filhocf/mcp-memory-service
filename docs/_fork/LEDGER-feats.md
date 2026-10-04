@@ -29,3 +29,13 @@ IDEIA → DESIGN(RFC/discussion) → IMPL-FORK → PR-ABERTO → MERGED
 - ✅ sim = o código está na linha viva (main), não só em backup.
 - ❌ não = só existe em tag/branch de backup → RISCO de perda, precisa veredito.
 - ? / parcial = a verificar (próxima varredura).
+
+## Métrica de assertividade + reaccess (ADR-0005, 4/out)
+| feat | arco | estado | ref | nota |
+|------|------|--------|-----|------|
+| captura returned_hashes (retrieval) | learning-loop | IMPL-FORK | usage_telemetry.py + retrieve.py:242 | sem migration; privacidade ok |
+| derive_signals (reaccess/retry_failed) | learning-loop | IMPL-FORK | usage_telemetry.py | deriva de usage_events |
+| get_assertiveness_metrics (3 sub-métricas) | learning-loop | IMPL-FORK | usage_telemetry.py | re_query_rate/injection_coverage/lost_context |
+| recompute_quality_scores (job RFC-MM-01) | learning-loop | IMPL-FORK (função) | usage_telemetry.py | signed_sigmoid+decay 14d; NEG_WEIGHT 2.5 |
+**v1 (feito):** produtor de dados VIVO (retrieval grava returned_hashes; injection grava belief_hashes) + derivação + métricas + função de recálculo, com gate completo + E2E no banco real (reaccess=1, quality pos 1.405 / neg -0.487). 8 testes.
+**v2 (declarado pendente — evita reabrir furo-D3):** WIRING = (a) job de scheduler que chama recompute_quality_scores periodicamente; (b) tool/endpoint get_assertiveness_metrics p/ o agente consultar; (c) clamp [0,1] no quality_score. Hoje as funções existem e derivam, mas nenhum job/tool as chama ainda.

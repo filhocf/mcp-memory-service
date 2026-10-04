@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS feedback_signals (
 
 Job diário (ou a cada 6h):
 ```
-quality_score = base_score + sigmoid(Σ positive_signals - 2×Σ negative_signals) × decay(age)
+quality_score = base + signed_sigmoid(Σ pos − 2.5×Σ neg) × decay(age, half_life=14d)   # signed_sigmoid=2σ(x)−1 ∈(−1,1); 2.5 compensa o +1 reaccess mecânico do burst de re-query (implementado 4/out, ADR-0005)
 ```
 
 Onde `decay(age)` = signals recentes pesam mais que antigos (half-life 14 dias).
