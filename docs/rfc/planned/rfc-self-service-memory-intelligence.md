@@ -1,3 +1,5 @@
+> 🟡 PARTIALLY — absorvido como geração anterior da learning-loop (P1/P3/P4/P5/P8 no código). Ver ADR-0003.
+
 # RFC: Self-Service Memory Intelligence for Ephemeral AI Agents
 
 **Data:** 2026-05-29 (consolidado: 2026-07-02)

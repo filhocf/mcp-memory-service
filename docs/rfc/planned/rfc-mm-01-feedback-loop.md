@@ -1,3 +1,5 @@
+> ✅ PARTIALLY IMPLEMENTED: usage_events + usage_telemetry.py materializam o tracking passivo (L4). Falta job de recálculo. Ver ADR-0003. Fonte de verdade: uso real (não commit_session_legacy).
+
 # RFC-MM-01: Feedback Loop Automático (Server-Side, Zero Disciplina)
 
 **Data:** 2026-07-20

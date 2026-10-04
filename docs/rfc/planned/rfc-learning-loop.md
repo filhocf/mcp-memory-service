@@ -1,3 +1,5 @@
+> 🟡 PARTIALLY IMPLEMENTED (L3 injeção + L4 telemetria no código; L2 destilação já no belief store). Guarda-chuva. Ver ADR-0003/0004/0005.
+
 # RFC: Learning Loop — do colhedor ao aprendiz (closed-loop agent learning)
 
 **Status:** planned (draft v0.1) · **Criado:** 2026-10-02 · **Fork-only (amadurecimento)**

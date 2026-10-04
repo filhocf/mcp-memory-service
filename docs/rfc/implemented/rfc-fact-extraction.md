@@ -1,3 +1,5 @@
+> ⚠️ SUPERSEDED by rfc-mm-02-fact-extraction (mais maduro: batch 20x, incremental, dedup). Mantido como histórico. Ver docs/adr/README.md.
+
 # Spec: Fact Extraction de Documentos (GAP H)
 
 **Data:** 2026-06-12

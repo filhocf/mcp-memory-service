@@ -1,3 +1,5 @@
+> 🟡 PARTIALLY — memory_distill + scheduler feitos; diagnóstico §1.3 virou ADR-0003.
+
 # Plano: Tornar Autolearn e Autodream Produtivos
 
 **Data:** 2026-05-30 (consolidado: 2026-07-02)
