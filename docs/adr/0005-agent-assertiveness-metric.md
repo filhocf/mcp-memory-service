@@ -1,7 +1,7 @@
 # ADR-0005: Agent-assertiveness metric (the "am I getting better?" number)
 
 - **Date:** 2026-10-04
-- **Status:** Proposed
+- **Status:** Accepted
 - **Deciders:** Claudio (owner), Zero (agent — as the MCP's own client)
 
 ## Context
@@ -13,7 +13,7 @@ the first try more often? redo less work? lose less context between sessions? Th
 north star — "each week more useful than the last" — has no measurement. Without a
 baseline the agent builds the learning-loop blind (nearly repeated this session).
 
-## Decision (proposed)
+## Decision
 
 Define an **agent-assertiveness metric** derived from `usage_events` + a few new signals,
 aggregating three sub-metrics into one weekly number:
