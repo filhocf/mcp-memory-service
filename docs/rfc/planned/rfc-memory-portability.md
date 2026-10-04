@@ -211,6 +211,18 @@ Cada célula (harness × memory-system) é um par potencial. Priorizamos pela po
 
 ---
 
+## 9.4 Anexos por célula (caracterização concreta — o groundwork §4.1/§4.2 materializado)
+
+Cada agente/memory-system priorizado ganha um anexo próprio `rfc-memory-portability-{agent,memory}-<nome>.md`
+que carrega a caracterização detalhada (não mais "a caracterizar"). A RFC-mãe indexa; os anexos detalham.
+
+| Anexo | Lado | Estado | Nota |
+|-------|------|--------|------|
+| `rfc-memory-portability-agent-kiro.md` | use (§4.1) | 🟢 caracterizado | **espelho de referência** — como um harness usa bem o serviço (hooks startup/pré-tarefa/checkpoint/shutdown) |
+| `rfc-memory-portability-agent-hermes.md` | use + bring | 🟢 caracterizado | loop maduro / store raso 3.5KB; já MCP-capable; issue #1095 = export path. Resolve gargalo deles → justifica adapter nativo |
+
+Estrutura do anexo-agente: (1) quem é · (2) como tem memória hoje · (3) como conectar · (4) como usar da melhor forma · (5) direção p/ construção. Próximos: anexos de memory-system (mem0 etc) quando o par virar foco.
+
 ## 10. Próximos passos
 
 1. Amadurecer esta RFC localmente (v0.1 → v0.2), incorporando os insumos do §8.
