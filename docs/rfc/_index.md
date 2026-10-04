@@ -30,7 +30,7 @@
 | rfc-config-audit-2026-07-10 | Infra | fixes aplicados (graph_only, store_associations, schema_version) |
 | rfc-fact-extraction | Aprendizado | SUPERSEDED by rfc-mm-02 (geração anterior, histórico) |
 
-## planned/ (23 — design/draft)
+## planned/ (24 — design/draft)
 
 > Materializados no código (4/out, telemetria+injeção): `usage_events` + `usage_telemetry.py` (feedback passivo L4, mm-01) e `memory_context` (injeção proativa L3). Ver docs/adr/ e docs/rfc/README.md.
 
@@ -38,6 +38,7 @@
 |-----|------|------|
 | **rfc-learning-loop** | **Aprendizado (guarda-chuva do PORQUÊ)** 🟡 parcial | **L3 injeção (memory_context) + L4 telemetria (usage_events) NO CÓDIGO; L2 belief store destila. Linhagem: self-service→autolearn→mm-01/02/03→learning-loop. ADR-0003/0004/0005.** |
 | rfc-ingestao-multi-agente v0.3 | Ingestão multi-agente | guarda-chuva das 3 camadas |
+| spec-fase0-kiro-yaml-triagem | Ingestão multi-agente | filha executável (Kiro→YAML + triagem) |
 | rfc-hub-memoria-centralizada | Hub/Sync | transporte HISTÓRICO — ADR-0002 escolheu delta-sync |
 | rfc-delta-sync | Hub/Sync | **transporte ESCOLHIDO (ADR-0002)** · §8 invariantes #1345 portados |
 | rfc-memory-portability | Portabilidade | #1364 wiki; 5 camadas |
