@@ -1,0 +1,54 @@
+# Kiro CLI agent profile (Fase 0 Kiro→YAML, #1287 arc).
+#
+# Declarative extraction config for TranscriptParser. Values here MUST stay
+# byte-identical to the hardcoded constants previously inlined in parser.py
+# (L35-L38 role maps, find_sessions discovery globs, and the _is_injected_content
+# markers + _is_system_content 10k cutoff). The loader
+# (harvest.agents.load_agent_profile) mirrors harvest.patterns.load_patterns and
+# falls back to the same defaults if this file is missing (S0.6 compat).
+
+agent: kiro
+
+# Role mapping: how a transcript entry becomes a user/assistant message.
+roles:
+  # Harvestable role types (Claude Code "type" field).
+  relevant_types:
+    - user
+    - assistant
+  # Kiro CLI legacy "kind" field → role.
+  by_kind:
+    Prompt: user
+    Response: assistant
+    AssistantMessage: assistant
+  # Kiro CLI v4 payload "type" field → role.
+  by_payload_type:
+    user: user
+    assistant: assistant
+
+# Format detection hints.
+detect:
+  # OpenClaw gateway event types that carry harvestable turns.
+  openclaw_message_types:
+    - prompt.submitted
+    - model.completed
+
+# Session file discovery (find_sessions). ORDER AND DEDUP ARE SIGNIFICANT.
+discovery:
+  globs:
+    - "*.jsonl"
+    - "*.trajectory.jsonl"
+    - "cli/*.jsonl"
+    - "*/*/messages.jsonl"
+
+# Noise filtering (injected/system content).
+noise:
+  # Harness-injected markers → block is dropped by _is_injected_content.
+  injected_markers:
+    - "<system-reminder>"
+    - "</system-reminder>"
+    - "<command-name>"
+    - "<command-message>"
+    - "<ide_opened_file>"
+  # Blocks longer than this (chars) are treated as injected context, not
+  # conversation (NOT applied to tool results). _is_system_content cutoff.
+  system_cutoff_chars: 10000

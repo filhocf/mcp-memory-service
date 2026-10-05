@@ -32,10 +32,36 @@ class TranscriptParser:
     - Unknown → warning logged, returns empty
     """
 
+    # Legacy hardcoded constants, kept for reference. The live values now come
+    # from the declarative agent profile (kiro.yaml) via load_agent_profile,
+    # loaded in __init__ into instance attributes of the same name. The loader
+    # falls back to these exact values when the YAML is absent (S0.6 compat), so
+    # parsing stays byte-identical.
     RELEVANT_TYPES = {"user", "assistant"}
     KIRO_KIND_MAP = {"Prompt": "user", "Response": "assistant", "AssistantMessage": "assistant"}
     OPENCLAW_MESSAGE_TYPES = {"prompt.submitted", "model.completed"}
     PAYLOAD_ROLE_MAP = {"user": "user", "assistant": "assistant"}
+
+    def __init__(self, agent: str = "kiro") -> None:
+        """Load the declarative extraction profile and bind its values.
+
+        The profile (kiro.yaml) is the single source of truth for role maps,
+        discovery globs, and noise filters. Instance attributes mirror the
+        legacy class constants' names so the existing parse logic reads from the
+        profile with no behavioral change (the loader's hardcoded default equals
+        the former constants, so a missing YAML is byte-identical).
+        """
+        from .agents import load_agent_profile
+
+        self._profile = load_agent_profile(agent=agent)
+        roles = self._profile["roles"]
+        self.RELEVANT_TYPES = set(roles["relevant_types"])
+        self.KIRO_KIND_MAP = dict(roles["by_kind"])
+        self.PAYLOAD_ROLE_MAP = dict(roles["by_payload_type"])
+        self.OPENCLAW_MESSAGE_TYPES = set(self._profile["detect"]["openclaw_message_types"])
+        self._discovery_globs = list(self._profile["discovery"]["globs"])
+        self._injected_markers = list(self._profile["noise"]["injected_markers"])
+        self._system_cutoff_chars = int(self._profile["noise"]["system_cutoff_chars"])
 
     # --- Phase 0 coverage instrument (#1287) -------------------------------
     # Counts, per block kind/type, how many were seen vs extracted vs dropped,
@@ -155,14 +181,14 @@ class TranscriptParser:
         discovery was missing. Pointing directly at cli/ stays backward-compatible.
         """
         project_dir = Path(project_dir)
-        # Support both .jsonl (Claude/Kiro) and .trajectory.jsonl (OpenClaw)
-        all_jsonl = list(project_dir.glob("*.jsonl")) + list(project_dir.glob("*.trajectory.jsonl"))
-        # The flat CLI mirror when the root is ~/.kiro/sessions (not .../cli):
-        # scope to cli/ specifically rather than a wildcard */*.jsonl, so an
-        # unrelated .jsonl in some other subdir is not pulled in.
-        all_jsonl += list(project_dir.glob("cli/*.jsonl"))
-        # Nested Kiro workspace sessions: {hash}/{uuid}/messages.jsonl
-        all_jsonl += list(project_dir.glob("*/*/messages.jsonl"))
+        # Discovery globs come from the agent profile (discovery.globs), applied
+        # in order. Default order (byte-identical to the former hardcoded calls):
+        #   *.jsonl, *.trajectory.jsonl (Claude/Kiro + OpenClaw);
+        #   cli/*.jsonl (flat CLI mirror, scoped to cli/ not a wildcard subdir);
+        #   */*/messages.jsonl (nested Kiro v4 {hash}/{uuid}/messages.jsonl).
+        all_jsonl = []
+        for pattern in self._discovery_globs:
+            all_jsonl += list(project_dir.glob(pattern))
         # Deduplicate (*.jsonl already matches *.trajectory.jsonl)
         seen = set()
         unique = []
@@ -600,29 +626,35 @@ class TranscriptParser:
 
         return []
 
-    @staticmethod
-    def _is_injected_content(text: str) -> bool:
+    def _is_injected_content(self, text: str) -> bool:
         """True if the text carries a harness-injected marker (reminder/command/ide).
 
         No length heuristic here: this is the shared 'is it injected?' check. Used
         directly for tool results, where large content is legitimate rich data.
+        The marker strings come from the agent profile (noise.injected_markers);
+        the matching semantics are preserved: the reminder/command markers match
+        anywhere ("in"), while the ide marker matches only as a prefix
+        ("startswith"), exactly as before.
         """
-        if "<system-reminder>" in text or "</system-reminder>" in text:
-            return True
-        if "<command-name>" in text or "<command-message>" in text:
-            return True
-        if text.startswith("<ide_opened_file>"):
+        markers = self._injected_markers
+        # markers[0..3]: <system-reminder>, </system-reminder>,
+        #                <command-name>, <command-message> → substring match.
+        for marker in markers[:4]:
+            if marker in text:
+                return True
+        # markers[4]: <ide_opened_file> → prefix match only.
+        if len(markers) > 4 and text.startswith(markers[4]):
             return True
         return False
 
-    @staticmethod
-    def _is_system_content(text: str) -> bool:
+    def _is_system_content(self, text: str) -> bool:
         """Filter out system prompts, skill outputs, and injected content."""
-        if TranscriptParser._is_injected_content(text):
+        if self._is_injected_content(text):
             return True
-        # Extremely long blocks (>10k chars) — likely injected context, not conversation.
-        # This length cutoff is intentionally NOT applied to tool results (see
-        # _parse_kiro_v4_line), where long output is the rich data we want.
-        if len(text) > 10000:
+        # Extremely long blocks (>cutoff chars) — likely injected context, not
+        # conversation. This length cutoff is intentionally NOT applied to tool
+        # results (see _parse_kiro_v4_line), where long output is the rich data
+        # we want. Cutoff comes from the agent profile (noise.system_cutoff_chars).
+        if len(text) > self._system_cutoff_chars:
             return True
         return False
