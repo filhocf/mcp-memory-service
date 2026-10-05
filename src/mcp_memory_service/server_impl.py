@@ -2591,6 +2591,17 @@ class MemoryServer:
             logger.error("Error in memory_context: %s", _sanitize_log_value(e))
             return [types.TextContent(type="text", text=json.dumps({"error": str(e)}, indent=2))]
 
+    async def handle_get_assertiveness_metrics(self, arguments: dict) -> List[types.TextContent]:
+        """Report assertiveness telemetry (re_query_rate / injection_coverage / lost_context_rate)."""
+        await self._ensure_storage_initialized()
+        try:
+            from mcp_memory_service.storage.usage_telemetry import get_assertiveness_metrics
+            result = await get_assertiveness_metrics(self.storage)
+            return [types.TextContent(type="text", text=json.dumps(result, indent=2, default=str))]
+        except Exception as e:
+            logger.error("Error in get_assertiveness_metrics: %s", _sanitize_log_value(e))
+            return [types.TextContent(type="text", text=json.dumps({"error": str(e)}, indent=2))]
+
     # ============================================================
     # Test Compatibility Wrapper Methods
     # ============================================================

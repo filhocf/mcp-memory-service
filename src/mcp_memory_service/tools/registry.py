@@ -1326,6 +1326,15 @@ Examples:
         annotations={"readOnlyHint": True},
     ),
     ToolDef(
+        name="get_assertiveness_metrics",
+        description="""Report assertiveness telemetry: re_query_rate / injection_coverage / lost_context_rate (read-only).""",
+        input_schema={
+            "type": "object",
+            "properties": {},
+        },
+        annotations={"readOnlyHint": True},
+    ),
+    ToolDef(
         name="memory_distill",
         description="""Extract insights from existing memories via LLM rewriter (batch mode). """,
         input_schema={
