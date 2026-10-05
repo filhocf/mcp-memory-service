@@ -38,7 +38,7 @@ IDEIA → DESIGN(RFC/discussion) → IMPL-FORK → PR-ABERTO → MERGED
 | get_assertiveness_metrics (3 sub-métricas) | learning-loop | IMPL-FORK | usage_telemetry.py | re_query_rate/injection_coverage/lost_context |
 | recompute_quality_scores (job RFC-MM-01) | learning-loop | IMPL-FORK (função) | usage_telemetry.py | signed_sigmoid+decay 14d; NEG_WEIGHT 2.5 |
 **v1 (feito):** produtor de dados VIVO (retrieval grava returned_hashes; injection grava belief_hashes) + derivação + métricas + função de recálculo, com gate completo + E2E no banco real (reaccess=1, quality pos 1.405 / neg -0.487). 8 testes.
-**v2 (declarado pendente — evita reabrir furo-D3):** WIRING = (a) job de scheduler que chama recompute_quality_scores periodicamente; (b) tool/endpoint get_assertiveness_metrics p/ o agente consultar; (c) clamp [0,1] no quality_score. Hoje as funções existem e derivam, mas nenhum job/tool as chama ainda.
+**v2 WIRING (FEITO 5/out, commit a5049863, ATIVO):** job de scheduler `_run_quality_recalc_job` (opt-in MCP_QUALITY_RECALC_SCHEDULE=6h) chama recompute → clamp [0,1] → grava computed_quality + materializa quality_score via effective_quality (PRESERVA user_rating, modelo split #1312); tool `get_assertiveness_metrics` exposta (registry+routing+handler). Gate G0-G5: tuvok pegou P1 (job gravava direto em quality_score, apagaria rating humano) → corrigido. 11 testes + regressão verde. E2E vivo: tool retorna números reais, clamp provou valor (1º recalc = -0.135 cru). FORK-ONLY, não pushado como PR (aguarda janela N1 provar valor — toca retrieval, confirmar #1286).
 
 ## Estado de contribuição upstream (4/out) — NADA em PR ainda
 Tudo fork-only. 0 PRs abertos no doobidoo. Gatilhos p/ virar PR:
