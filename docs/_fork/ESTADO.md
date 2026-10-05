@@ -18,7 +18,7 @@ mcp-memory-service (fork = linha viva · 0 atrás do upstream · 3/out noite · 
 │   │   Correção de rumo (3/out): L4 feedback = RFC-MM-01 do CLAUDIO (jul), Henry endossou #1286.
 │   │
 │   ├─ D0 limpar beliefs ............................... ✅ já resolvido (noise filter existe; task dc1c7756 cancelada)
-│   ├─ D1 destilação (L2) ............................... ✅ belief store já destila (240 active conf 0.87-0.98)
+│   ├─ D1 destilação (L2) .............................. ✅ belief store já destila (240 active conf 0.87-0.98)
 │   ├─ L1 telemetria de proveito (usage_events) ........ 🟢 FORK 3/out (cc412cfe) · migration 014 no banco VIVO · opt-out MCP_USAGE_TELEMETRY
 │   ├─ L2 injeção proativa (tool memory_context) ....... 🟢 FORK 3/out (f752dd13) · injeta por TEMA · E2E banco vivo 24k · opt-out MCP_CONTEXT_INJECTION_ENABLED
 │   ├─ D2 feedback SÍNCRONO (rating→belief) ............ ↩️ REVERTIDO 3/out · letra morta (rating manual que ninguém faz; a RFC-MM-01 já previa)
@@ -30,8 +30,8 @@ mcp-memory-service (fork = linha viva · 0 atrás do upstream · 3/out noite · 
 │   │
 │   └─ 📦 COMOs resgatados (protótipo 2e1978d5 = os 3 jobs da trilogia; branch validacao, 93 testes):
 │       ├─ rfc-mm-02 fact-extraction (L2) ............. 🟢 resgatado · job scheduler + migration · spec: 6 req
-│       ├─ rfc-mm-03 gap-detection (L4) .............. 🟢 resgatado · migration + handler · spec: 0 EARS (completar)
-│       ├─ rfc-mm-01 feedback-loop (L4) .............. 🟢 resgatado = É o "L4 REAL" acima (passivo, da RFC do Claudio)
+│       ├─ rfc-mm-03 gap-detection (L4) ............... 🟢 resgatado · migration + handler · spec: 0 EARS (completar)
+│       ├─ rfc-mm-01 feedback-loop (L4) ............... 🟢 resgatado = É o "L4 REAL" acima (passivo, da RFC do Claudio)
 │       └─ p/ virar PR: completar spec ⚠️ (doc payload window-tools #1286 · EARS mm-03 · changelog) → 3 PRs → responder #1286
 │
 ├─ 🟢 METODOLOGIA DE CURADORIA DE FORK (3/out) ......... nasceu do erro: reimplementei a trilogia que já existia
@@ -52,14 +52,14 @@ mcp-memory-service (fork = linha viva · 0 atrás do upstream · 3/out noite · 
 │   │   ├─ IB parser SQLite/Crew .......................... ✅ MERGED PR #1379 (conversations_v2 read-only)
 │   │   └─ I1 ToolResults CLI {kind} (78e29b05) ........... 🟢 FORK (msg+bloco; thinking=redacted, só contado)
 │   │
-│   ├─ C1 registro/descoberta de N fontes .............. 🔴 design (absorve source-identity)
+│   ├─ C1 registro/descoberta de N fontes ............... 🔴 design (absorve source-identity)
 │   │      declarativo + auto-descoberta assistida · lê sidecar identidade (agent_id.name/workspacePaths)
-│   ├─ C2 perfil de parsing por agente (YAML) .......... 🔴 design (absorve kiro-sessions)
+│   ├─ C2 perfil de parsing por agente (YAML) ........... 🔴 design (absorve kiro-sessions)
 │   │      padrão patterns-por-locale · hooks p/ navegação irredutível · add agente = escrever YAML
-│   ├─ C3 extração/qualidade sinal-ruído ............... 🟡 design (absorve design-extraction)
+│   ├─ C3 extração/qualidade sinal-ruído ................ 🟡 design (absorve design-extraction)
 │   │      heurísticas O(n) 1º (95% prosa / 4% json medido) → LLM só gated · honra locale
 │   │
-│   ├─ triage.py (score valor, 2 eixos, 193 testes) ... 🟢 PRONTO mas NÃO PLUGADO no harvester
+│   ├─ triage.py (score valor, 2 eixos, 193 testes) ..... 🟢 PRONTO mas NÃO PLUGADO no harvester
 │   └─ ⚠️ FASE 0 (fecha a dor, NÃO depende do Henry): plugar triage + Kiro→YAML + colher 11 OURO curados
 │
 ├─ 🟡 ARCO PORTABILIDADE ............... design aceito pelo Henry (5 camadas)
