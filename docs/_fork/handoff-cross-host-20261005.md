@@ -45,3 +45,35 @@ Fechou o ciclo colher→destilar→injetar→VALIDAR. 3 peças ligadas:
 - `~/local-data/kiro-conflict-backups/` (faxina .kiro: steering, agents, skills, FULL 964M)
 - `~/local-data/mcp-db-backups/` (banco pré-restart + pré-L4wiring)
 - `~/local-data/kiro-sessions-backup/` — **EXCLUÍDO** hoje (conteúdo único já resgatado; só DNBSCDC289).
+
+---
+
+## 8. TARDE 05/out — PRs atômicos do arco ingestão (atualização)
+
+**PR1 Kiro→YAML — FEITO (commit 5308efda, na linha viva).** harvest/agents/kiro.yaml + loader
+(load_agent_profile, espelha patterns/) + parser lê do profile. Byte-idêntico (arch provou: parser
+novo vs HEAD, 0 mismatches). Gate G0-G5. Triagem já estava plugada (02/out). Pronto p/ virar PR upstream
+(toca harvest/, nosso mandato). Sem migration.
+
+**PR1.5 — bug canal MCP (NÃO é bug de código).** Arco "3 fontes Kiro" (WI d500bdfb). A tool
+`memory_consolidate action=harvest` com sessions=20 dá sessions:1. Arch (seven) PROVOU que o handler
+real dá 20 — o código está correto. É stale no CANAL MCP (mcp-proxy/cliente Kiro com schema/conexão em
+cache). **Claudio vai REINICIAR O CLIENTE Kiro.** Após reiniciar: testar a tool (sessions=20 deve dar
+20) → se OK, PR1.5 fechado como stale de cliente. Evidência: ~/.kiro/active-tasks/bug-harvest-sessions-evidencia.md.
+
+**Arco 3 fontes Kiro (WI d500bdfb):** CLI ✅. IDE 🟡 (neste host JÁ é v4 payload-wrapped = CLI, só path
+difere; history[] é formato antigo de outros hosts; discovery do path IDE = evolução WI ad09b221).
+Crew ❌ (schema episodic_memories próprio, parse_sqlite só lê conversations_v2 do CLI; importar via
+memory_store = evolução WI 0a0fb0f9). Doc base no CdIA: ferramentas/kiro/importar-sessoes-kiro.md.
+
+**Specs reconciliadas:** MM-02 (fonte=uso real, ADR-0003), MM-03 (9 EARS). Achado: trilogia (branch
+validacao) tem núcleo+testes mas DESPLUGADA (igual padrão L4).
+
+**Pings postados:** #346 (discussioncomment-18760031), #1393 (discussioncomment-18762368).
+
+**PRÓXIMO (pós-reinício cliente):** testar harvest → fechar PR1.5 → PR2 gap-detection (wiring: hook
+record_gap no search + tool registry + migration 015) → PR3 fact-extraction (migration 016 + job + tool).
+Janela N1 learning-loop até ~10/out.
+
+**Regra reforçada (mistake 5a08fe0f):** "mesmo código, resultado diferente" = ambiente/runtime
+(processo/proxy/cache), NÃO lógica. Diagnosticar runtime primeiro; delegar arch ao 1º sinal de túnel.

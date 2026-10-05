@@ -54,10 +54,16 @@ mcp-memory-service (fork = linha viva · 0 atrás do upstream · 3/out noite · 
 │   │
 │   ├─ C1 registro/descoberta de N fontes ............... 🔴 design (absorve source-identity)
 │   │      declarativo + auto-descoberta assistida · lê sidecar identidade (agent_id.name/workspacePaths)
-│   ├─ C2 perfil de parsing por agente (YAML) ........... 🔴 design (absorve kiro-sessions)
-│   │      padrão patterns-por-locale · hooks p/ navegação irredutível · add agente = escrever YAML
+│   ├─ C2 perfil de parsing por agente (YAML) ........... 🟢 PR1 FEITO 5/out (5308efda) — harvest/agents/kiro.yaml + loader, parser lê do profile, byte-idêntico (arch provou). Gate G0-G5. Triagem já plugada (02/out). Vira PR upstream.
 │   ├─ C3 extração/qualidade sinal-ruído ................ 🟡 design (absorve design-extraction)
 │   │      heurísticas O(n) 1º (95% prosa / 4% json medido) → LLM só gated · honra locale
+│   │
+│   ├─ 📦 3 FONTES Kiro (WI d500bdfb — guarda-chuva "bring your agent"):
+│   │   ├─ CLI (cli/*.jsonl + nested v4) ................ ✅ parse+discovery OK
+│   │   ├─ IDE (workspace-sessions) .................... 🟡 neste host JÁ é v4 payload-wrapped (= CLI, só path difere; parse ok). history[] = formato ANTIGO (outros hosts). discovery do path IDE = evolução (WI ad09b221)
+│   │   └─ Crew (memory.db episodic/semantic) .......... 🔴 schema próprio, parse_sqlite lê só conversations_v2 (CLI). Importar via memory_store = evolução (WI 0a0fb0f9)
+│   │
+│   └─ 🐛 BUG CANAL MCP (WI e5ac16db) ................... tool memory_consolidate action=harvest dá sessions:1 com sessions=20. Arch PROVOU: NÃO é código (handler real dá 20). Stale no canal (mcp-proxy/cliente Kiro cache). FIX: reiniciar CLIENTE Kiro. Não é bug do produto.
 │   │
 │   ├─ triage.py (score valor, 2 eixos, 193 testes) ..... 🟢 PRONTO mas NÃO PLUGADO no harvester
 │   └─ ⚠️ FASE 0 (fecha a dor, NÃO depende do Henry): plugar triage + Kiro→YAML + colher 11 OURO curados
