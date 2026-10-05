@@ -1,7 +1,7 @@
 # ESTADO — mcp-memory-service (Claudio)
 
 > Para você abrir e entender onde estamos sem reconstruir contexto.
-> Árvore primeiro (visão), notas depois (detalhe). Atualizado: 2026-10-03.
+> Árvore primeiro (visão), notas depois (detalhe). Atualizado: 2026-10-05.
 
 ```
 mcp-memory-service (fork = linha viva · 0 atrás do upstream · 3/out noite · fork limpo: 3 branches)
@@ -22,8 +22,10 @@ mcp-memory-service (fork = linha viva · 0 atrás do upstream · 3/out noite · 
 │   ├─ L1 telemetria de proveito (usage_events) ........ 🟢 FORK 3/out (cc412cfe) · migration 014 no banco VIVO · opt-out MCP_USAGE_TELEMETRY
 │   ├─ L2 injeção proativa (tool memory_context) ....... 🟢 FORK 3/out (f752dd13) · injeta por TEMA · E2E banco vivo 24k · opt-out MCP_CONTEXT_INJECTION_ENABLED
 │   ├─ D2 feedback SÍNCRONO (rating→belief) ............ ↩️ REVERTIDO 3/out · letra morta (rating manual que ninguém faz; a RFC-MM-01 já previa)
-│   ├─ L4 REAL = terminar RFC-MM-01 (feedback PASSIVO) . 🔨 PRÓXIMO · reaccess + job recálculo quality_score + wiring no fluxo · acceptance: quality 0.5→0.65
-│   ├─ N1 janela 1 semana — medir proveito REAL ........ 🔨 EM ANDAMENTO (até ~10/out) · get_usage_metrics no vivo · feedback_coverage sobe?
+│   ├─ L4 REAL = terminar RFC-MM-01 (feedback PASSIVO) . 🟢 JOB FEITO+DORMENTE 5/out (14005d3f) · persist_quality_scores + wiring scheduler · gate G0-G5 · dry-run default + opt-in disabled
+│   │     └─ ⛔ persistência BLOQUEADA até agent_id no retrieve() (ADR-0006) · shadow vivo: 5847 scored 4998↑/538↓, mas reaccess×retry contaminados por agent_id=None
+│   ├─ L4-next agent_id no retrieve() (Fase 2) ......... 🔨 PRÓXIMO DEGRAU · destrava feedback honesto · item 62357eb7 · G0 1º (RFC está em implemented/ mas retrieve parece não entregue)
+│   ├─ N1 janela 1 semana — medir proveito REAL ........ 🔨 EM ANDAMENTO (até ~10/out) · get_usage_metrics no vivo · mede telemetria/injeção (feedback só após agent_id)
 │   ├─ N2 PUSH automático (hook harness) ............... 🔴 depois de N1 · hoje é PULL; push real = startup-hook chamar memory_context
 │   ├─ N3 feedback positivo + sinal de uso auto ........ 🔴 depois de N1 · rating +1 reforça; belief reusado sobe sozinho
 │   │

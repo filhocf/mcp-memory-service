@@ -1,4 +1,4 @@
-> ✅ PARTIALLY IMPLEMENTED: usage_events + usage_telemetry.py materializam o tracking passivo (L4). Falta job de recálculo. Ver ADR-0003. Fonte de verdade: uso real (não commit_session_legacy).
+> 🟢 JOB IMPLEMENTED (DORMANT) 2026-10-05, commit 14005d3f: usage_events + usage_telemetry.py (tracking passivo) + persist_quality_scores + scheduler wiring (opt-in, dry-run default). Gate G0-G5. PERSISTÊNCIA BLOQUEADA até agent_id no retrieve() — shadow dry-run no banco vivo revelou reaccess×retry contaminados por agent_id=None (ADR-0006). Falta: 0 EARS acionável (implementado por G0+testes); retroencaixar EARS. Fonte de verdade: uso real (ADR-0003).
 
 # RFC-MM-01: Feedback Loop Automático (Server-Side, Zero Disciplina)
 
