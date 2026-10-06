@@ -132,12 +132,22 @@ Tornar o secondary do `hybrid` plugável: `cloudflare` (default, nada muda) ou `
 
 > EARS: THE `RemoteHTTPStorage` SHALL redact the API key and host from logs (reuse `_sanitize_log_value`).
 
+**R9b**: O cliente suporta o esquema de auth que o hub real exige (nascido da nossa infra, SPEC-hub §12).
+
+> EARS: WHEN talking to a hub placed behind an nginx `auth_basic` layer (our VPS topology), THE `RemoteHTTPStorage` SHALL send the API key via the `X-API-Key` header (not only `Authorization: Bearer`), because nginx basic-auth occupies the `Authorization` header; AND THE client SHALL optionally send HTTP basic-auth credentials for the nginx layer.
+
+> **Evidência (SPEC-hub §12, verificado 24/set):** nosso hub no VPS roda `memory-service` em `127.0.0.1:8000` atrás de `nginx location /memory/` com `auth_basic`+`.htpasswd-memory`+TLS (camada 1) + API key nativa (camada 2). O servidor aceita a key por 3 vias (Bearer, `X-API-Key`, `?api_key=`), MAS atrás do nginx basic-auth **só `X-API-Key` funciona** — o `Authorization` é ocupado pelo basic. O RemoteHTTPStorage atual só manda Bearer → **não autentica contra a própria infra que motivou o #1304.** Config: `MCP_HYBRID_SECONDARY_AUTH_STYLE=bearer|x-api-key` (default `x-api-key` para o caso-alvo? decidir) + `MCP_HYBRID_SECONDARY_BASIC_USER/PASS` opcionais.
+
 ### 6.3 Design
 - `storage/remote_http.py`: `httpx` client; mapeia os métodos do subconjunto para as rotas REST;
-  reusa `/api/memories/hashes` (Fase 1) para `list_content_hashes_page`.
-- `config/base.py`: `MCP_HYBRID_SECONDARY_BACKEND`, `MCP_HYBRID_SECONDARY_URL`, API key.
-- `factory.py`: ramo `http` monta o `RemoteHTTPStorage`.
-- Doc: `configuration-guide.md`, `README.md`, `SUPPORTED_BACKENDS`.
+  reusa `/api/memories/hashes` (Fase 1) para `list_content_hashes_page`. **Auth: suportar `X-API-Key`
+  (header, default para hub atrás de nginx) e `Authorization: Bearer` (hub direto), + basic-auth opcional
+  (camada nginx). Reusar as 3 vias que o servidor já aceita.**
+- `config/storage.py`: `MCP_HYBRID_SECONDARY_BACKEND`, `MCP_HYBRID_SECONDARY_URL`,
+  `MCP_HYBRID_SECONDARY_API_KEY`, `MCP_HYBRID_SECONDARY_AUTH_STYLE`, `MCP_HYBRID_SECONDARY_BASIC_USER/PASS`.
+- `factory.py`/`hybrid.__init__`: ramo `http` monta o `RemoteHTTPStorage`.
+- Doc: `configuration-guide.md`, `README.md`, `STORAGE_BACKENDS.md`.
+- **Validação E2E real: contra o hub do VPS (cfnarede.dev/memory/, X-API-Key + basic), não só mock.**
 
 ### 6.4 Aceite
 - [ ] `RemoteHTTPStorage` implementa o subconjunto + list_content_hashes_page via HTTP.
