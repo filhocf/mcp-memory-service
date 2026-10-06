@@ -7,6 +7,15 @@
 mcp-memory-service (fork = linha viva · 0 atrás do upstream · 3/out noite · fork limpo: 3 branches)
 │  Legenda: ✅ MERGED/feito · 🟢 feito fork-only · 🟡 parcial/design · 🔴 a fazer
 │
+├─ ⭐ #1304 HYBRID SELF-HOSTED SECONDARY (http) ........ 🎯 CENTRO DO RADAR · issue ATRIBUÍDA a nós (Henry 27/set, help-wanted) · OPEN, parada ~10d · é a RAIZ que destrava delta-sync (#1345) + colaborador ducanhnguyen223
+│   │   Escopo FECHADO no diálogo c/ Henry. SPEC: 🔴 NÃO EXISTE (criar RFC EARS antes de codar). Código: 0.
+│   │   Problema: hybrid.py tem secondary HARDWIRED em Cloudflare (135 menções CF). Rodamos a topologia em produção (3 clientes + hub VPS) por fora, com sidecar — é a evidência que validou a issue.
+│   ├─ PR-A: list_content_hashes() na base + endpoint bulk de hashes no hub .. 🔴 (o "pedaço que falta", valor isolado — Henry destacou)
+│   ├─ PR-B: storage/remote_http.py (MemoryStorage via REST) + MCP_HYBRID_SECONDARY_BACKEND=cloudflare|http .. 🔴
+│   ├─ PR-C: desacoplar hybrid.py do CF (capability-gating: Vectorize/normalização/10KB) .. 🔴 (o maior)
+│   ├─ PR-D: model-match STARTUP CHECK (recusa iniciar se modelo do hub ≠ local) + campo modelo em status autenticado .. 🔴 (nasceu da nossa evidência: ~10d recall degradado silencioso; health tem embedding_model atrás de hasattr que sqlite-vec não satisfaz → falha silenciosa)
+│   └─ terminal-only (sem two-hop) — decidido c/ Henry. Fatiável em PRs independentes.
+│
 ├─ ✅ ARCO RATING / QUALITY ............................. FECHADO
 │   ├─ quality-model (computed vs user_rating) ......... ✅ MERGED PR #1349
 │   ├─ retention_periods (ontologia, upstream) ......... ✅ MERGED PR #1368 — desmascarou o decay
