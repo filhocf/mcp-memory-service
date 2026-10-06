@@ -330,7 +330,10 @@ async def list_content_hashes(
         next_cursor = page[-1][0] if (page and has_more) else None
         return ContentHashListResponse(hashes=hashes, next_cursor=next_cursor, has_more=has_more)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f'Failed to list content hashes: {str(e)}')
+        # Log the real error for operators; return a generic message so a
+        # read-access client never sees raw DB/internal details (Greptile P2).
+        logger.error("Failed to list content hashes: %s", _sanitize_log_value(e))
+        raise HTTPException(status_code=500, detail="Failed to list content hashes")
 
 
 @router.get("/memories/{content_hash}", response_model=MemoryResponse, tags=["memories"])
