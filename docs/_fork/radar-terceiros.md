@@ -5,7 +5,7 @@
 > nossos arcos. PR de terceiro que toca storage/harvest pode conflitar com a linha viva,
 > duplicar trabalho nosso, ou abrir oportunidade de review/colaboração.
 > **Mantido pelo ritual `memory-service-context`** (passo 2). Regra: mexeu → atualiza aqui.
-> Atualizado: 2026-10-03.
+> Atualizado: 2026-10-06.
 
 ## Legenda
 - 🟢 complementar (não conflita, bom pro projeto) · 🟡 cruza nossa área (vigiar) · 🔴 conflita/duplica (agir)
@@ -20,18 +20,14 @@
 | **timkjr** | bugs rating/supersession (#1352→nosso #1404, #1355 retention) | fonte dos bugs que fecharam nosso arco rating |
 | **ducanhnguyen223** | colab delta-sync (#1345 v0.4) | 🟢 nosso arco hub — colaboração ativa |
 
-## PRs de terceiros ABERTOS (snapshot 3/out)
+## PRs de terceiros ABERTOS (snapshot 6/out)
 
 | PR | Autor | Área | Status p/ nós |
 |----|-------|------|---------------|
-| #1442 | mrhard9090 | api/client+operations (#1146) | 🟡 vigiar — campanha seg |
-| #1441 | mrhard9090 | storage/mixins/store (#1146) | 🟡 nossa área — merge pode tocar linha viva |
-| #1439 | mrhard9090 | storage/mixins/delete (#1146) | 🟡 **delete.py = onde fica purge_deleted do #1352** — vigiar conflito |
-| #1412 | rubenmarcus | versioned metadata (fecha #1408) | 🟡 ACIONÁVEL — Henry pediu design ao Claudio no #1408; thread Greptile pendente |
-| #1403 | Harbor404 | Prometheus endpoint | 🟢 = nosso #1097 (sem urgência) |
-| #1402 | Harbor404 | rate-limit per-agent | 🟡 = nosso #1096; agent_id (nosso) destravou keying — pode citar nosso trabalho |
-| #1401 | Harbor404 | mem0 export converter | 🟡 **fecha NOSSA issue #1390** (portabilidade) — se mergear, nosso tracking vira done |
-| #1400 | Harbor404 | pymilvus 3.x | 🟢 complementar |
+| #1402 | Harbor404 | rate-limit per-agent (`server_impl`+`web/api/mcp`+util novo) | 🟡 = nosso #1096; agent_id (nosso) destravou keying. Sliding-window process-local, default unlimited (opt-in `MCP_RATE_LIMIT_PER_MINUTE`). Toca server_impl — vigiar vs linha viva |
+| #1401 | Harbor404 | mem0 export converter (`sync/converters/mem0.py`) | 🟡 **Fixes #1390** (NOSSA issue de portabilidade). +944/0, só add. Se mergear → nosso tracking #1390 vira done |
+
+> **Resto da fila de 3/out foi ABSORVIDA pelo Henry (merges 6/out):** #1442/#1441/#1439 (mrhard9090 campanha seg #1146) MERGED · #1412 (rubenmarcus versioned) MERGED · #1400 (pymilvus 3.x) MERGED · #1403 (Prometheus terceiro) CLOSED — nosso #1456 venceu. Todos já na linha viva via sync 6/out. Nenhum conflito com purge_deleted #1352 (delete.py mergeado limpo).
 
 ## Issues de terceiros na nossa área
 
@@ -41,9 +37,8 @@
 | #1355 | timkjr | retention keyed por nomes legados — pode mascarar nosso #1349 (arco rating). Avaliar. |
 
 ## O que exige AÇÃO nossa agora
-- **#1412** (rubenmarcus): está no inbox acionável. Decidir se revisamos (área storage/versioned nossa).
-- **#1439** (mrhard, delete.py): quando mergear, próximo `git merge upstream/main` traz mudança no delete.py — conferir que não briga com nosso purge_deleted do #1352.
-- **#1401** (Harbor404, mem0): se mergear, fechar nossa issue #1390 como "resolvido por terceiro".
+- **#1401** (Harbor404, mem0): continua OPEN e tem `Fixes #1390`. Se Henry mergear, fechar nossa issue #1390 (tracking) como "resolvido por terceiro". Vigiar — é cortês comentar reconhecendo (fecha trabalho que era nosso tracking).
+- **#1402** (Harbor404, rate-limit per-agent): toca `server_impl.py` (dispatcher) — quando mergear, próximo `git merge upstream/main` entra na linha viva; conferir que não briga com nosso wiring de telemetria no `call_tool`. É o nosso #1096.
 
 ## Oportunidade estratégica
 A campanha #1146 é contribuição fácil e bem-vista. Pegar 1-2 arquivos restantes na

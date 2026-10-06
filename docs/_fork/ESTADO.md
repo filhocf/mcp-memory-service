@@ -1,20 +1,21 @@
 # ESTADO — mcp-memory-service (Claudio)
 
 > Para você abrir e entender onde estamos sem reconstruir contexto.
-> Árvore primeiro (visão), notas depois (detalhe). Atualizado: 2026-10-03.
+> Árvore primeiro (visão), notas depois (detalhe). Atualizado: 2026-10-06.
 
 ```
 mcp-memory-service (fork = linha viva · 0 atrás do upstream · 3/out noite · fork limpo: 3 branches)
 │  Legenda: ✅ MERGED/feito · 🟢 feito fork-only · 🟡 parcial/design · 🔴 a fazer
 │
-├─ ⭐ #1304 HYBRID SELF-HOSTED SECONDARY (http) ........ 🎯 CENTRO DO RADAR · issue ATRIBUÍDA a nós (Henry 27/set, help-wanted) · OPEN, parada ~10d · é a RAIZ que destrava delta-sync (#1345) + colaborador ducanhnguyen223
-│   │   Escopo FECHADO no diálogo c/ Henry. SPEC: 🔴 NÃO EXISTE (criar RFC EARS antes de codar). Código: 0.
-│   │   Problema: hybrid.py tem secondary HARDWIRED em Cloudflare (135 menções CF). Rodamos a topologia em produção (3 clientes + hub VPS) por fora, com sidecar — é a evidência que validou a issue.
-│   ├─ Fase 1 list_content_hashes + endpoint ... ✅ PR #1470 ABERTO (CI verde, Greptile 4 fix) + main
-│   ├─ Fase 2 RemoteHTTPStorage secondary ...... 🟢 IMPL-FORK main 358b9489 (G0-G5 APPROVED) — vira PR pós-Fase1
-│   ├─ PR-C: desacoplar hybrid.py do CF (capability-gating: Vectorize/normalização/10KB) .. 🔴 (o maior)
-│   ├─ PR-D: model-match STARTUP CHECK (recusa iniciar se modelo do hub ≠ local) + campo modelo em status autenticado .. 🔴 (nasceu da nossa evidência: ~10d recall degradado silencioso; health tem embedding_model atrás de hasattr que sqlite-vec não satisfaz → falha silenciosa)
-│   └─ terminal-only (sem two-hop) — decidido c/ Henry. Fatiável em PRs independentes.
+├─ ⭐ #1304 HYBRID SELF-HOSTED SECONDARY (http) ........ 🎯 CENTRO DO RADAR · issue OPEN, atribuída a nós · RAIZ que destrava delta-sync (#1345, Harbor404/ducanhnguyen223)
+│   │   SPEC: ✅ rfc-hybrid-http-secondary (EARS R1-R16, Fases 1-4). Problema: hybrid.py secondary HARDWIRED em Cloudflare (135 menções CF). Topologia validada em prod (3 clientes + hub VPS) por sidecar.
+│   ├─ Fase 1 (R1-R5) list_content_hashes + bulk endpoint ... ✅ MERGED PR #1470 (6/out, Greptile 4 fix)
+│   ├─ Fase 2 (R6-R9) RemoteHTTPStorage secondary ........... 🟢 IMPL-FORK main 358b9489 (G0-G5 APPROVED) — PRÓXIMO PR (fila feat LIVRE)
+│   ├─ Fase 2 R9b auth style configurável (bearer|x-api-key + basic) 🟢 IMPL-FORK main eb526499 (G0-G5) — fecha wiring morto hybrid.__init__; vai no MESMO PR da Fase 2
+│   │     ⚠️ PENDENTE p/ virar PR: E2E REAL contra VPS cfnarede.dev/memory/ (nginx basic + X-API-Key); VPS precisa chegar a versão c/ /hashes. Hoje só E2E quente local (4 modos auth provados).
+│   ├─ Fase 3 (R10-R13): desacoplar hybrid.py do CF (capability-gating: Vectorize/normalização/10KB) .. 🔴 (o maior, 135 menções)
+│   ├─ Fase 4 (R14-R16): model-match STARTUP CHECK (recusa iniciar se modelo hub ≠ local) + campo modelo em status .. 🔴 (nasceu da evidência: ~10d recall degradado silencioso)
+│   └─ terminal-only (sem two-hop) — decidido c/ Henry. Estratégia: desenvolve na main (linha viva), recorta commit atômico p/ PR conforme Henry absorve.
 │
 ├─ ✅ ARCO RATING / QUALITY ............................. FECHADO
 │   ├─ quality-model (computed vs user_rating) ......... ✅ MERGED PR #1349
@@ -171,7 +172,7 @@ colher(limpo) → DESTILAR[L2] → VALIDAR/feedback[L4] → INJETAR proativo[L3]
   3. **Números do kill switch** — taxa de adoção + threshold + data de revisão.
   4. **Legacy Kiro `ToolResult`** ainda dropado vs v4 mantido — unificar ou documentar o porquê.
   Ordem dele: "cheapest first", PR do ponto 1 + respostas 2/3 como update do RFC. → Em vez de "ping" na #1393, entregar o ponto 1 e aí comentar linkando.
-- **#1345 delta-sync:** travado atrás do #1304 (remote_http); fica em design. ducanhnguyen223 prepara v0.4.
+- **#1345 delta-sync:** Fase 1 do #1304 MERGEADA (#1470) destravou a raiz (list_content_hashes). Falta Fase 2 (remote_http) virar PR. PR #4 recuperado em recovered/pr4-delta-sync-v04.
 - **PR #1418 (rewriter):** aguarda review do Henry. 1 PR de bug pode coexistir com outros (regra 2/out: 1-por-vez só p/ feat).
 
 ## A DOR (o que falta de verdade, em 1 frase)
