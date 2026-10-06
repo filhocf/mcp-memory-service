@@ -6,9 +6,17 @@
 **Base:** `upstream/main` v11.11.0 (22c3dde3)
 **Versão:** 0.1 (draft)
 **Issue:** GitHub #1100 (origem Codeberg #118) — Henry confirmou publicamente "@filhocf is implementing it" (Fase 1)
+**Estado no upstream GH (atualizado 6/out):**
+- **#1100** (issue, CLOSED) — proposta original agent_id em todas as memórias + cross-agent.
+- **#1278** (PR, MERGED) — Fase 1: `agent_id` autor no `store_memory` (precedência arg > MCP_AGENT_ID > metadata > null).
+- **#1297** (PR, MERGED) — Fase 2: filtro `agent_id` em `search`/`list` (metadata.agent_id OU tag `agent:<id>`) + header X-Agent-ID.
+- **#1285** (discussion, OPEN) — RFC per-memory agent_id + conflito cross-agent (base da Fase 3 NLI).
+- **#1312** (discussion, OPEN) — separar computed quality_score de human rating (ligado ao L4/#1312 split).
+- Fase 3 (NLI cross-agent) — ainda fork-only / não submetida.
+- **agent_id na TELEMETRIA (`usage_events`, leitor da busca) — NÃO coberto por #1278/#1297** (essas tratam autor da MEMÓRIA, escrita; telemetria é quem LÊ). É o elo fork-only que o learning-loop L4 precisa (ADR-0006). Sem issue/PR/discussion upstream próprio ainda.
 **Estende:** `docs/rfc/rfc-self-service-memory-intelligence.md` (v1.0) — que já ASSUME `agent_id` por observação (§Observation Store: "cada observação tem session_id, agent_id, ...") e constrói o Bootstrap Profile **per-agent** (§4, URI `memory://agent/{agent_id}/bootstrap`) em cima disso, mas NÃO especifica como o `agent_id` chega à memória. Esta RFC é o **pré-requisito de plumbing** que a self-service dava como dado.
 **Reintegra:** o sintoma `conflict:unresolved` observado entre memórias T'Pol/Hermes (base compartilhada) — é o caso que a Fase 3 resolve.
-**Status:** DRAFT — amadurecer localmente; Fase 1 é o compromisso público em curso
+**Status:** Fase 1 (#1278) e Fase 2-filtro (#1297) MERGED upstream. Fase 2-telemetria (agent_id no retrieve/feedback/injection usage_events) = fork-only em curso (6/out, ADR-0006). Fase 3 NLI = fork-only a amadurecer.
 
 ---
 

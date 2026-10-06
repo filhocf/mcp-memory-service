@@ -1,8 +1,29 @@
 # ADR-0006: Passive quality recompute ships dormant, persistence blocked until agent_id reaches retrieve()
 
-- **Date:** 2026-10-05
-- **Status:** Accepted
+- **Date:** 2026-10-05 (updated 2026-10-06)
+- **Status:** Accepted — unblocker landed 2026-10-06 (agent_id now on retrieve/feedback/injection); persistence still gated on history window
 - **Deciders:** Claudio (owner), Zero (agent)
+
+## Update 2026-10-06 — agent_id landed on the telemetry hot path
+
+The unblocker named in this ADR is DONE: `_resolve_telemetry_agent_id()`
+(MCP_AGENT_ID, null-safe per RFC #1100 precedence) is now passed at all three
+telemetry call sites — `retrieve()`, `record_feedback_event()`, and
+`memory_context()` injection. `derive_signals` already partitioned by agent, so
+new events no longer cross-contaminate. 5 tests (incl. REQ-A5 anti-contamination
+proving 2 agents reading the same hash → 0 cross reaccess). Live DB proof: a real
+retrieve now writes `agent_id='zero'`.
+
+**But persistence stays dry-run for now (honest shadow result):** the 16,965
+historical retrieval events were written pre-fix with `agent_id=None`, so a
+shadow `derive_signals` on the live DB still shows 96% (5,613/5,848) with
+reaccess+retry overlap — that is OLD data, not the fix failing. The fix prevents
+FUTURE contamination; the past does not rewrite. The 14-day reaccess window will
+age the None events out naturally (~2 weeks), after which the signal is clean.
+
+**Next decision (owner):** keep `MCP_QUALITY_RECOMPUTE_DRY_RUN=true` until the
+history window clears, OR purge the pre-fix `agent_id IS NULL` usage_events to
+clean the signal immediately. Only then flip persistence on.
 
 ## Context
 

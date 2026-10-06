@@ -261,12 +261,13 @@ async def memory_context(
 
     # Best-effort injection telemetry.
     try:
-        from .usage_telemetry import log_usage_event
+        from .usage_telemetry import log_usage_event, _resolve_telemetry_agent_id
 
         await log_usage_event(
             storage,
             "injection",
             n_results=count,
+            agent_id=_resolve_telemetry_agent_id(),
             metadata=json.dumps(
                 {"belief_hashes": belief_hashes, "count": count}
             ),

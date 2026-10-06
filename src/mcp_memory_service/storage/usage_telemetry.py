@@ -55,6 +55,22 @@ def get_telemetry_flag_value() -> bool:
     return raw.strip().lower() not in _DISABLED_VALUES
 
 
+def _resolve_telemetry_agent_id() -> Optional[str]:
+    """Resolve agent_id for telemetry events.
+
+    Follows RFC #1100 precedence (arg > env > metadata > null), but on the
+    read/telemetry path there is no explicit arg nor reader-metadata, so the
+    source is MCP_AGENT_ID.  Returns None when unset — derive_signals treats
+    None as its own bucket (graceful degradation, unchanged behavior).
+
+    ⚠️ OBRIGATÓRIO: todo call site de log_usage_event DEVE passar
+    agent_id=_resolve_telemetry_agent_id(). Se não passar, o derive_signals
+    agrupa tudo num bucket None e reaccess×retry contaminam cross-sessão
+    (ADR-0006). Conferir ao adicionar novo call site.
+    """
+    return os.environ.get("MCP_AGENT_ID") or None
+
+
 def query_hash(query: Optional[str]) -> Optional[str]:
     """Compute a privacy-preserving hash of a query.
 

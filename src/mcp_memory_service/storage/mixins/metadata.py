@@ -36,7 +36,7 @@ class MetadataMixin:
         MCP_USAGE_TELEMETRY killswitch via log_usage_event.
         """
         try:
-            from ..usage_telemetry import log_usage_event
+            from ..usage_telemetry import log_usage_event, _resolve_telemetry_agent_id
             await log_usage_event(
                 self,
                 "feedback",
@@ -44,6 +44,7 @@ class MetadataMixin:
                 content_hash=content_hash,
                 rating=rating,
                 source=source,
+                agent_id=_resolve_telemetry_agent_id(),
             )
         except Exception as e:  # noqa: BLE001 - best-effort, never propagate
             logger.warning("record_feedback_event failed (non-fatal): %s", _sanitize_log_value(e))

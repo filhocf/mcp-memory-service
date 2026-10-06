@@ -116,6 +116,13 @@ Onde `decay(age)` = signals recentes pesam mais que antigos (half-life 14 dias).
 
 Nenhuma. Pode rodar independente de #116.
 
+## Referências upstream GH (atualizado 6/out)
+
+- **#1286** (discussion, OPEN) — RFC trilogia fact-extraction / gap-detection / feedback-loop. Henry validou a direção. A RFC-MM-01 É a camada de feedback da trilogia.
+- **#1312** (discussion, OPEN) — Design: separar computed quality_score de human rating. Implementado via modelo split (#1349 MERGED: `computed_quality` + `user_rating` → `effective_quality`).
+- **#1100** (issue, CLOSED) / **#1278** (PR, MERGED) / **#1297** (PR, MERGED) — agent_id: fases 1-2. O agent_id na telemetria (retrieve/feedback/injection `usage_events`) é o elo faltante que esta RFC precisa para separar buckets por agente (ADR-0006: sem ele, reaccess×retry contamina cross-sessão).
+- **ADR-0006** (fork, Accepted) — passive quality recompute ships dormant, persistence blocked until agent_id reaches retrieve(). O resultado direto do shadow dry-run desta RFC.
+
 ## Estimativa
 
 3-4 dias implementação + 2 semanas observação de convergência.
