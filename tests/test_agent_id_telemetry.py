@@ -171,3 +171,27 @@ async def test_two_agents_do_not_cross_contaminate(storage, monkeypatch):
         "cross-agent reads of the same hash must NOT count as reaccess "
         f"(got {slot}); buckets are contaminated"
     )
+
+
+@pytest.mark.asyncio
+async def test_empty_agent_id_env_becomes_null(storage, monkeypatch):
+    """REQ-A6: MCP_AGENT_ID='' (empty string) => agent_id NULL in usage_event.
+
+    Parity with the store path (test_agent_id.py: empty env → no agent_id).
+    resolve_telemetry_agent_id does `os.environ.get(...) or None`, so '' → None.
+    """
+    monkeypatch.setenv("MCP_AGENT_ID", "")
+    from mcp_memory_service.models.memory import Memory
+    from mcp_memory_service.utils.hashing import generate_content_hash
+
+    content = "Empty-env telemetry memory for edge case test"
+    mem = Memory(content=content, content_hash=generate_content_hash(content),
+                 tags=["test"], memory_type="note")
+    await storage.store(mem)
+    await storage.retrieve("edge case empty env", n_results=3)
+
+    agent_ids = _agent_ids_for(storage, "retrieval")
+    assert agent_ids, "a retrieval event should still be written"
+    assert all(a is None for a in agent_ids), (
+        f"MCP_AGENT_ID='' must result in NULL agent_id, got {agent_ids}"
+    )

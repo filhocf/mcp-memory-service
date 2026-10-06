@@ -229,7 +229,7 @@ class RetrieveMixin:
             # NEVER break the read path, so it is fully wrapped in log_usage_event's
             # own try/except and we additionally guard the call site.
             try:
-                from ..usage_telemetry import log_usage_event, query_hash, get_telemetry_flag_value, _resolve_telemetry_agent_id
+                from ..usage_telemetry import log_usage_event, query_hash, get_telemetry_flag_value, resolve_telemetry_agent_id
                 if get_telemetry_flag_value():
                     latency_ms = (time.time() - _telemetry_t0) * 1000.0
                     await log_usage_event(
@@ -240,7 +240,7 @@ class RetrieveMixin:
                         latency_ms=latency_ms,
                         query_hash=query_hash(query),
                         returned_hashes=[r.memory.content_hash for r in results],
-                        agent_id=_resolve_telemetry_agent_id(),
+                        agent_id=resolve_telemetry_agent_id(),
                     )
             except Exception as _tele_err:
                 logger.warning("Usage telemetry (retrieve) failed (non-fatal): %s", _sanitize_log_value(_tele_err))
