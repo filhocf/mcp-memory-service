@@ -9,7 +9,7 @@ import traceback
 import asyncio
 from collections import Counter
 from datetime import datetime, timezone, timedelta
-from typing import List, Dict, Any, Optional, Sequence, Set
+from typing import List, Dict, Any, Optional, Sequence, Set, Tuple
 
 try:
     from sqlite_vec import serialize_float32
@@ -62,7 +62,6 @@ class RetrieveMixin:
 
     async def retrieve(self, query: str, n_results: int = 5, tags: Optional[List[str]] = None, min_confidence: float = 0.0, include_superseded: bool = False, start_time: Optional[float] = None, end_time: Optional[float] = None, store: Optional[str] = 'default') -> List[MemoryQueryResult]:
         """Retrieve memories using semantic search."""
-        _telemetry_t0 = time.time()
         try:
             if not self.conn:
                 logger.error("Database not initialized")
@@ -224,27 +223,6 @@ class RetrieveMixin:
                 logger.debug("min_confidence=%s filtered %s stale memories", _sanitize_log_value(min_confidence), before - len(results))
 
             logger.info(f"Retrieved {len(results)} memories for query: {_sanitize_log_value(query)}")
-
-            # Usage telemetry (best-effort, fire-and-forget). A failure here must
-            # NEVER break the read path, so it is fully wrapped in log_usage_event's
-            # own try/except and we additionally guard the call site.
-            try:
-                from ..usage_telemetry import log_usage_event, query_hash, get_telemetry_flag_value, resolve_telemetry_agent_id
-                if get_telemetry_flag_value():
-                    latency_ms = (time.time() - _telemetry_t0) * 1000.0
-                    await log_usage_event(
-                        self,
-                        "retrieval",
-                        tool="retrieval",
-                        n_results=len(results),
-                        latency_ms=latency_ms,
-                        query_hash=query_hash(query),
-                        returned_hashes=[r.memory.content_hash for r in results],
-                        agent_id=resolve_telemetry_agent_id(),
-                    )
-            except Exception as _tele_err:
-                logger.warning("Usage telemetry (retrieve) failed (non-fatal): %s", _sanitize_log_value(_tele_err))
-
             return results
 
         except Exception as e:
@@ -542,6 +520,23 @@ class RetrieveMixin:
         except Exception as e:
             logger.error("Failed to get all content hashes: %s", _sanitize_log_value(e))
             return set()
+
+    async def list_content_hashes_page(self, after_id: int = 0, limit: int = 1000, include_deleted: bool = False) -> "List[Tuple[int, str]]":
+        """Cursor-paginated (id ASC, id > after_id) list of (id, content_hash)."""
+        try:
+            if not self.conn:
+                return []
+            def _page():
+                if include_deleted:
+                    sql = 'SELECT id, content_hash FROM memories WHERE id > ? ORDER BY id ASC LIMIT ?'
+                else:
+                    sql = 'SELECT id, content_hash FROM memories WHERE deleted_at IS NULL AND id > ? ORDER BY id ASC LIMIT ?'
+                return self.conn.execute(sql, (after_id, limit)).fetchall()
+            rows = await self._execute_with_retry(_page)
+            return [(row[0], row[1]) for row in rows]
+        except Exception as e:
+            logger.error('list_content_hashes_page failed: %s', _sanitize_log_value(e))
+            raise
 
     async def get_by_exact_content(self, content: str) -> List[Memory]:
         """Retrieve memories by exact content match."""
