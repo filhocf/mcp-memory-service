@@ -104,5 +104,123 @@ Tornar o secondary do `hybrid` plugável: `cloudflare` (default, nada muda) ou `
 - **Fase 4:** `http` recusa iniciar se modelo do hub ≠ local (ou ausente); campo de modelo
   em status autenticado dedicado (não o `hasattr` de `/health/detailed` que falha open). Doc: configuration-guide, troubleshooting.
 
-## 6. Fora de escopo
+---
+
+## 6. Fase 2 — `remote_http.py` + secondary-backend config
+
+### 6.1 Achados (codebase)
+- `MemoryStorage` (base) tem ~47 métodos, mas o secondary de sync usa um subconjunto:
+  store, get_by_hash, delete, update_memory_metadata, `list_content_hashes[_page]` (Fase 1).
+  O Henry: "store/get-by-hash/delete/metadata já cobertos por `web/api/memories.py`".
+- `factory.py:159-181` só monta `cloudflare_config`; `SUPPORTED_BACKENDS` (`config/base.py:356`)
+  não tem knob de secondary.
+
+### 6.2 Requisitos (EARS)
+**R6**: Existe um backend de storage que fala com a REST API de outra instância.
+
+> EARS: THE system SHALL provide a `RemoteHTTPStorage(MemoryStorage)` that implements store, get-by-hash, delete, metadata update and `list_content_hashes[_page]` by calling another instance's REST API (`/api/memories*`, `/api/memories/hashes`).
+
+**R7**: O secondary do hybrid é configurável, com Cloudflare como default.
+
+> EARS: WHEN `MCP_HYBRID_SECONDARY_BACKEND` is `http`, THE factory SHALL assemble the hybrid secondary as a `RemoteHTTPStorage` from `MCP_HYBRID_SECONDARY_URL` + API key; WHERE the var is unset or `cloudflare`, THE factory SHALL keep the current Cloudflare secondary unchanged.
+
+**R8**: Métodos não suportados pelo remote falham explícito, não silencioso.
+
+> EARS: WHERE a `MemoryStorage` method is not serviceable over the REST surface, THE `RemoteHTTPStorage` SHALL raise `NotImplementedError` rather than return an empty/plausible result.
+
+**R9**: Credenciais e URL nunca são logadas em claro.
+
+> EARS: THE `RemoteHTTPStorage` SHALL redact the API key and host from logs (reuse `_sanitize_log_value`).
+
+### 6.3 Design
+- `storage/remote_http.py`: `httpx` client; mapeia os métodos do subconjunto para as rotas REST;
+  reusa `/api/memories/hashes` (Fase 1) para `list_content_hashes_page`.
+- `config/base.py`: `MCP_HYBRID_SECONDARY_BACKEND`, `MCP_HYBRID_SECONDARY_URL`, API key.
+- `factory.py`: ramo `http` monta o `RemoteHTTPStorage`.
+- Doc: `configuration-guide.md`, `README.md`, `SUPPORTED_BACKENDS`.
+
+### 6.4 Aceite
+- [ ] `RemoteHTTPStorage` implementa o subconjunto + list_content_hashes_page via HTTP.
+- [ ] factory monta http quando a env pede; default cloudflare intocado.
+- [ ] método não suportado → NotImplementedError (teste).
+- [ ] E2E quente: cliente local sincroniza contra um hub http real (nossa topologia).
+
+---
+
+## 7. Fase 3 — desacoplar `BackgroundSyncService` do Cloudflare
+
+### 7.1 Achados (codebase)
+- `BackgroundSyncService` (hybrid.py:190-964) é tipado contra `CloudflareStorage`;
+  `_fetch_secondary_content_hashes` (145-187) fala direto com D1.
+- 135 menções a Cloudflare em `hybrid.py` (acoplamento forte).
+- `HybridMemoryStorage` (967-2142), 30 callers — mas via interface pública (seguro).
+
+### 7.2 Requisitos (EARS)
+**R10**: O serviço de sync opera sobre a interface, não um backend concreto.
+
+> EARS: THE `BackgroundSyncService` SHALL be typed against `MemoryStorage`, not `CloudflareStorage`, and SHALL drive sync through interface methods.
+
+**R11**: A detecção de drift usa o contrato polimórfico.
+
+> EARS: WHEN detecting drift, THE service SHALL call `secondary.list_content_hashes[_page]()` instead of the Cloudflare D1 special-case.
+
+**R12**: Os trechos específicos de Cloudflare ficam atrás de capability-gate.
+
+> EARS: WHERE a Cloudflare-only concern applies (Vectorize capacity, metadata normalization, the 10 KB metadata limit), THE service SHALL gate it behind a capability check, not run it unconditionally.
+
+**R13**: Comportamento com secondary Cloudflare é inalterado.
+
+> EARS: WHEN the secondary is Cloudflare, THE sync behavior SHALL be identical to today (regression suite green).
+
+### 7.3 Design
+- Typar `BackgroundSyncService.__init__` contra `MemoryStorage`.
+- Substituir `_fetch_secondary_content_hashes` por `secondary.list_content_hashes_page()`.
+- Capability-gate: `getattr(secondary, 'is_cloudflare', False)` ou um método de capacidade
+  (`supports_vectorize_capacity()` etc.) — decidir no arch.
+- Doc: `architecture-overview.md` (hoje diz "background Cloudflare sync — recommended"),
+  `cloudflare-setup.md`.
+
+### 7.4 Aceite
+- [ ] sync funciona com secondary http (nossa topologia, E2E quente).
+- [ ] sync com Cloudflare inalterado (regressão verde).
+- [ ] nenhum caminho CF-only roda quando o secondary é http.
+
+---
+
+## 8. Fase 4 — model-match startup check
+
+### 8.1 Achados (codebase)
+- `/health/detailed` (web/api/health.py:167) tem `embedding_model` MAS atrás de
+  `if hasattr(storage, 'embedding_model_name')` — sqlite-vec não expõe → **falha open**
+  (campo ausente lido como "sem info"). O Henry: um check que trata "sem info" como
+  "match" é pior que não ter check.
+
+### 8.2 Requisitos (EARS)
+**R14**: O hub expõe o modelo de embedding configurado como dado, autenticado.
+
+> EARS: THE REST API SHALL expose the configured embedding model as an explicit field on an authenticated status response (not the fail-open `hasattr` path on `/health/detailed`).
+
+**R15**: O secondary http recusa iniciar em mismatch de modelo.
+
+> EARS: WHEN `MCP_HYBRID_SECONDARY_BACKEND=http` AND the hub's embedding model differs from the local one, THE service SHALL refuse to start and SHALL name both disagreeing values.
+
+**R16**: Ausência de info de modelo também bloqueia (fail-closed).
+
+> EARS: WHERE the hub does not report its embedding model, THE startup check SHALL refuse to start (treat absent model info as a failure, never as a match).
+
+### 8.3 Design
+- Campo dedicado de modelo numa resposta autenticada (não sobrecarregar `/health`).
+- Startup check no caminho `http` secondary: busca o modelo do hub, compara, aborta em
+  mismatch OU ausência, com mensagem clara (os dois valores).
+- Doc: `configuration-guide.md` (a env + o check), `troubleshooting.md` (mudança
+  intencional de modelo exige **re-embed do hub**, não só restart — o check previne nova
+  divergência, não cura vetores já escritos).
+
+### 8.4 Aceite
+- [ ] endpoint autenticado retorna o modelo configurado (campo explícito).
+- [ ] http secondary aborta em mismatch, nomeando os dois valores (teste).
+- [ ] http secondary aborta em modelo ausente (fail-closed, teste).
+- [ ] doc do re-embed no troubleshooting.
+
+## 9. Fora de escopo
 - Two-hop; event-log (#1345); backends além de http; criptografia (herda do delta-sync).
