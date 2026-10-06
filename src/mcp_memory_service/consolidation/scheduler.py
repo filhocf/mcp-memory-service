@@ -126,8 +126,8 @@ class ConsolidationScheduler:
             # Add scheduled session-harvest job (opt-in via MCP_HARVEST_SCHEDULE)
             self._schedule_harvest_job()
 
-            # Add scheduled quality-score recalc job (opt-in via MCP_QUALITY_RECALC_SCHEDULE)
-            self._schedule_quality_recalc_job()
+            # Add scheduled quality recompute job (opt-in via MCP_QUALITY_RECOMPUTE_SCHEDULE)
+            self._schedule_quality_recompute_job()
 
             # Start the scheduler
             self.scheduler.start()
@@ -224,104 +224,94 @@ class ConsolidationScheduler:
         except Exception as e:
             self.logger.error(f"Error scheduling session harvest: {e}")
 
-    def _schedule_quality_recalc_job(self):
-        """Schedule autonomous quality-score recalc (opt-in via MCP_QUALITY_RECALC_SCHEDULE).
+    def _schedule_quality_recompute_job(self):
+        """Schedule quality recomputation job (opt-in via MCP_QUALITY_RECOMPUTE_SCHEDULE).
 
         Recompute per-memory quality scores from derived usage signals and
-        persist them back into storage. Mirrors _schedule_harvest_job: it runs
-        in-process on the server host and piggybacks on the consolidation
-        cadence rather than as an external cron.
+        persist them back into storage via ``persist_quality_scores``. Mirrors
+        _schedule_harvest_job: it runs in-process on the server host and
+        piggybacks on the consolidation cadence rather than as an external cron.
 
-        MCP_QUALITY_RECALC_SCHEDULE accepts an interval like "6h", "30m", "90s",
-        or a plain number of hours ("6"). Unset/blank/"disabled" → no job
-        (default, zero regression).
+        MCP_QUALITY_RECOMPUTE_SCHEDULE accepts an interval like "6h", "30m", "90s", or a
+        plain number of hours ("6"). Unset/blank/"disabled" → no job (default,
+        zero regression).
         """
-        schedule_spec = os.getenv("MCP_QUALITY_RECALC_SCHEDULE", "").strip()
+        if not self.scheduler:
+            self.logger.debug("Quality recompute scheduling skipped - scheduler not available")
+            return
+
+        schedule_spec = os.getenv("MCP_QUALITY_RECOMPUTE_SCHEDULE", "").strip()
         if not schedule_spec or schedule_spec.lower() == "disabled":
-            self.logger.debug("Scheduled quality recalc disabled (MCP_QUALITY_RECALC_SCHEDULE unset)")
+            self.logger.debug("Quality recompute scheduling disabled (MCP_QUALITY_RECOMPUTE_SCHEDULE unset)")
             return
 
         seconds = self._parse_interval_seconds(schedule_spec)
         if not seconds or seconds <= 0:
             self.logger.error(
-                "Invalid MCP_QUALITY_RECALC_SCHEDULE=%r — expected e.g. '6h', '30m', '90s' or hours; skipping",
+                "Invalid MCP_QUALITY_RECOMPUTE_SCHEDULE=%r — expected e.g. '6h', '30m', '90s' or hours; skipping",
                 schedule_spec,
             )
             return
 
         try:
             self.scheduler.add_job(
-                func=self._run_quality_recalc_job,
+                func=self._run_quality_recompute,
                 trigger=IntervalTrigger(seconds=seconds),
-                id="quality_recalc",
-                name="Quality Score Recalc",
+                id="quality_recompute",
+                name="Quality Recompute",
                 replace_existing=True,
             )
-            self.logger.info("Scheduled quality recalc every %ss (MCP_QUALITY_RECALC_SCHEDULE=%s)", seconds, schedule_spec)
+            self.logger.info("Scheduled quality recompute every %ss (MCP_QUALITY_RECOMPUTE_SCHEDULE=%s)", seconds, schedule_spec)
         except Exception as e:
-            self.logger.error(f"Error scheduling quality recalc: {e}")
+            self.logger.error("Error scheduling quality recompute: %s", e)
 
-    async def _run_quality_recalc_job(self):
-        """Recompute MACHINE quality, clamp to [0, 1], and persist (best-effort).
+    async def _run_quality_recompute(self):
+        """Execute quality score recomputation and persistence.
 
-        Reads the recomputed {content_hash: score} map from
-        recompute_quality_scores. Each score is the MACHINE origin, so it is
-        written to ``computed_quality``; the effective ``quality_score`` is then
-        re-materialized via ``effective_quality`` so an existing human
-        ``user_rating`` (thumbs up/down) still wins and is NOT erased by the
-        periodic recompute (quality model split #1312). This mirrors the
-        set_memory_rating handler and QualityScorer._update_memory_metadata.
+        Reads MCP_QUALITY_RECOMPUTE_DRY_RUN env var (default 'true') to control
+        whether to actually persist scores or just compute statistics.
 
-        We read the current ``user_rating`` per hash via ``storage.get_by_hash``
-        (the batch is bounded to hashes that actually have usage signals, so the
-        extra read is cheap and keeps the general case correct even when a human
-        rating exists). Any failure is logged and swallowed per hash so a bad
-        recompute never derails the scheduler.
+        Persistence writes ``computed_quality`` (machine origin) and the
+        effective ``quality_score`` via ``effective_quality`` so an existing
+        human ``user_rating`` (thumbs up/down) still wins and is NOT erased by
+        the periodic recompute (quality model split #1312). Dry-run ships as the
+        default because a shadow run on the live DB revealed agent_id=None
+        contamination (reaccess × retry overlap) — see ADR-0006.
         """
         storage = getattr(self.consolidator, "storage", None)
         if storage is None:
-            self.logger.warning("Quality recalc skipped: consolidator has no storage")
+            self.logger.warning("Quality recompute skipped: consolidator has no storage")
             return
 
         try:
-            from ..storage.usage_telemetry import recompute_quality_scores
-            from ..quality.config import effective_quality
+            from ..storage.usage_telemetry import persist_quality_scores
+
+            # Read dry_run setting from environment (default True)
+            dry_run_env = os.getenv("MCP_QUALITY_RECOMPUTE_DRY_RUN", "true").lower()
+            dry_run = dry_run_env in ("true", "1", "yes")
+
+            job_start = datetime.now()
+            self.logger.info("Starting quality recompute (dry_run=%s)", dry_run)
+
+            # Execute quality score computation/persistence
+            result = await persist_quality_scores(storage, dry_run=dry_run)
+
+            # Update execution stats
+            self.execution_stats['successful_jobs'] += 1
+            self.last_execution_times['quality_recompute'] = job_start
+            duration = (datetime.now() - job_start).total_seconds()
+
+            # Log the result report
+            self.logger.info(
+                "Completed quality recompute in %.2fs: %s",
+                duration, result
+            )
+
         except Exception as e:
-            self.logger.warning(f"Quality recalc skipped: usage_telemetry unavailable ({e})")
-            return
-
-        try:
-            scores = await recompute_quality_scores(storage)
-        except Exception as e:
-            self.logger.warning(f"Quality recalc skipped: recompute failed ({e})")
-            return
-
-        for content_hash, score in (scores or {}).items():
-            try:
-                clamped = max(0.0, min(1.0, float(score)))
-
-                # Read the current human rating (None if none). effective_quality
-                # maps a set rating via USER_RATING_TO_QUALITY (human wins) and
-                # falls back to the machine computed value only when unrated.
-                user_rating = None
-                try:
-                    memory = await storage.get_by_hash(content_hash)
-                    if memory is not None:
-                        user_rating = memory.metadata.get("user_rating")
-                except Exception as read_err:
-                    self.logger.warning(
-                        "Quality recalc could not read rating for %s: %s",
-                        _sanitize_log_value(content_hash), _sanitize_log_value(read_err),
-                    )
-
-                new_effective = effective_quality(computed=clamped, user_rating=user_rating)
-                await storage.update_memory_metadata(
-                    content_hash,
-                    {"computed_quality": clamped, "quality_score": new_effective},
-                    preserve_timestamps=True,
-                )
-            except Exception as e:
-                self.logger.warning("Quality recalc persist failed for %s: %s", _sanitize_log_value(content_hash), _sanitize_log_value(e))
+            # Never re-raise: a failing quality recompute must not tear down the scheduler
+            # or the consolidation jobs sharing it.
+            self.execution_stats['failed_jobs'] += 1
+            self.logger.error("Quality recompute failed: %s", e)
 
     @staticmethod
     def _parse_interval_seconds(spec: str) -> Optional[int]:

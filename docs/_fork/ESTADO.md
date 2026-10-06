@@ -22,7 +22,7 @@ mcp-memory-service (fork = linha viva · 0 atrás do upstream · 3/out noite · 
 │   ├─ L1 telemetria de proveito (usage_events) ........ 🟢 FORK 3/out (cc412cfe) · migration 014 no banco VIVO · opt-out MCP_USAGE_TELEMETRY
 │   ├─ L2 injeção proativa (tool memory_context) ....... 🟢 FORK 3/out (f752dd13) · injeta por TEMA · E2E banco vivo 24k · opt-out MCP_CONTEXT_INJECTION_ENABLED
 │   ├─ D2 feedback SÍNCRONO (rating→belief) ............ ↩️ REVERTIDO 3/out · letra morta (rating manual que ninguém faz; a RFC-MM-01 já previa)
-│   ├─ L4 REAL = terminar RFC-MM-01 (feedback PASSIVO) . 🟢 FORK 5/out (a5049863) · WIRING ATIVO: job quality_recalc (MCP_QUALITY_RECALC_SCHEDULE=6h) grava computed_quality+materializa quality_score via effective_quality (PRESERVA user_rating #1312) · tool get_assertiveness_metrics (ADR-0005) · gate G0-G5 (tuvok pegou P1 clobber-rating) · clamp [0,1] (1º recalc real deu -0.135)
+│   ├─ L4 REAL = terminar RFC-MM-01 (feedback PASSIVO) . 🟢 FORK 5/out (reconciliado 6/out) · WIRING ATIVO: job quality_recompute (MCP_QUALITY_RECOMPUTE_SCHEDULE=6h, dry-run=true ADR-0006: agent_id=None contamina) + persist_quality_scores delega (clamp+effective_quality PRESERVA user_rating #1312) · tool get_assertiveness_metrics (ADR-0005) · 2944 tests pass
 │   ├─ N1 janela 1 semana — medir proveito REAL ........ 🔨 EM ANDAMENTO (até ~10/out) · baseline 5/out: re_query_rate=0.125 injection_coverage=0.0 lost_context_rate=0.625 (1 hash c/ sinal; telemetria recém-ligada, acumula)
 │   ├─ (próximo) ligar score no ranking do retrieval ... 🔴 SÓ após N1 provar (ADR-0005: baseline antes de mexer) · RFC-MM-01 §5
 │   ├─ N2 PUSH automático (hook harness) ............... 🔴 depois de N1 · hoje é PULL; push real = startup-hook chamar memory_context

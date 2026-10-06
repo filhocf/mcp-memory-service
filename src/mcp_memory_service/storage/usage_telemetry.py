@@ -690,3 +690,121 @@ async def recompute_quality_scores(
     except Exception as e:  # noqa: BLE001 - best-effort recompute
         logger.warning("recompute_quality_scores failed (non-fatal): %s", e)
         return {}
+
+
+async def persist_quality_scores(
+    storage,
+    base: float = 0.5,
+    dry_run: bool = True,
+    signals_override: Optional[Dict[str, Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
+    """Persist computed quality scores to memory metadata.
+
+    Args:
+        storage: Storage backend instance
+        base: Base quality score for neutral memories
+        dry_run: If True (DEFAULT), don't persist; just return statistics
+        signals_override: Override signals for testing/what-if analysis
+
+    Returns:
+        Dict with statistics and results:
+        - dry_run=True: {'dry_run': True, 'total': N, 'would_update': N, ...stats}
+        - dry_run=False: {'dry_run': False, 'updated': N, ...stats, 'errors': N}
+    """
+    from ..quality.config import effective_quality
+    
+    try:
+        # Get computed scores
+        scores = await recompute_quality_scores(storage, base, signals_override)
+        
+        # Calculate statistics
+        total = len(scores)
+        if total == 0:
+            return {
+                'dry_run': dry_run,
+                'total': 0,
+                'would_update' if dry_run else 'updated': 0,
+                'raised_count': 0,
+                'lowered_count': 0,
+                'neutral_count': 0,
+                'min': None,
+                'max': None,
+                **({"errors": 0} if not dry_run else {})
+            }
+        
+        score_values = list(scores.values())
+        raised_count = sum(1 for s in score_values if s > base)
+        lowered_count = sum(1 for s in score_values if s < base)
+        neutral_count = sum(1 for s in score_values if s == base)
+        min_score = min(score_values)
+        max_score = max(score_values)
+        
+        if dry_run:
+            return {
+                'dry_run': True,
+                'total': total,
+                'would_update': total,
+                'raised_count': raised_count,
+                'lowered_count': lowered_count,
+                'neutral_count': neutral_count,
+                'min': min_score,
+                'max': max_score,
+            }
+        
+        # Persist scores to storage
+        updated = 0
+        errors = 0
+        
+        for content_hash, computed_score in scores.items():
+            try:
+                # Get existing user_rating from metadata using real storage interface
+                user_rating = None
+                memory = await storage.get_by_hash(content_hash)
+                user_rating = (memory.metadata or {}).get('user_rating') if memory else None
+                
+                # Calculate effective quality score
+                quality_score = effective_quality(computed=computed_score, user_rating=user_rating)
+                
+                # Update metadata
+                success, _ = await storage.update_memory_metadata(
+                    content_hash,
+                    {
+                        'computed_quality': computed_score,
+                        'quality_score': quality_score
+                    },
+                    preserve_timestamps=True
+                )
+                
+                if success:
+                    updated += 1
+                else:
+                    errors += 1
+                    
+            except Exception as e:  # noqa: BLE001 - best-effort per-memory persist
+                logger.warning("Failed to persist quality score for %s: %s", content_hash, e)
+                errors += 1
+        
+        return {
+            'dry_run': False,
+            'updated': updated,
+            'raised_count': raised_count,
+            'lowered_count': lowered_count,
+            'neutral_count': neutral_count,
+            'min': min_score,
+            'max': max_score,
+            'errors': errors,
+        }
+        
+    except Exception as e:  # noqa: BLE001 - best-effort operation
+        logger.error("persist_quality_scores failed: %s", e)
+        return {
+            'dry_run': dry_run,
+            'total': 0,
+            'would_update' if dry_run else 'updated': 0,
+            'raised_count': 0,
+            'lowered_count': 0,
+            'neutral_count': 0,
+            'min': None,
+            'max': None,
+            **({"errors": 1} if not dry_run else {})
+        }
