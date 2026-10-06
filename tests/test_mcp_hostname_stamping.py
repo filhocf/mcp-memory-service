@@ -1,5 +1,5 @@
 """
-RED tests for server-side hostname stamping on the MCP store path.
+Tests for server-side hostname stamping on the MCP store path.
 
 Spec: docs/rfc/planned/rfc-mcp-hostname-stamping.md
 
@@ -15,7 +15,7 @@ Requirements (RFC §3):
 - R4: resolved host persisted in metadata.hostname + source:{host} tag.
 - R5: gethostname() failure → store still succeeds, no host (best-effort).
 
-These target handle_store_memory, which does NOT resolve host yet → MUST fail RED.
+Cover the server-side hostname resolution on the MCP store path.
 """
 
 import os
@@ -169,16 +169,54 @@ async def test_store_session_also_stamps_host(server, monkeypatch):
                    {"role": "assistant", "content": "hi from the session path"}]},
     )
     assert result and "Error" not in result[0].text
-    # Find the session memory and assert host stamped
-    import sqlite3, json
+    # Find the session memory and assert host stamped.
+    # Exclude soft-deleted tombstones (repo requires live-row filter).
+    import json
     rows = server.storage.conn.execute(
-        "SELECT metadata FROM memories WHERE memory_type='session'"
+        "SELECT metadata FROM memories WHERE memory_type='session' AND deleted_at IS NULL"
     ).fetchall()
     assert rows, "a session memory should have been stored"
     assert any(
         (json.loads(r[0]) if r[0] else {}).get("hostname") == socket.gethostname()
         for r in rows
     ), "session memory must carry the server hostname"
+
+
+@pytest.mark.asyncio
+async def test_store_session_chunked_stamps_every_chunk(server, monkeypatch):
+    """R1 (chunked session): host is stamped on EVERY chunk, not just single-write.
+
+    The hostname resolution lives inside the chunk loop too; a long session that
+    exceeds the chunk threshold must stamp each stored chunk (regression guard
+    flagged in review).
+    """
+    import json
+    import socket
+    from mcp_memory_service.server.handlers.memory import handle_store_session
+    monkeypatch.setattr(
+        "mcp_memory_service.server.handlers.memory.INCLUDE_HOSTNAME", True, raising=False
+    )
+    # chunk_size comes from SESSION_CHUNK_SIZE env (default 1500), not the arg.
+    monkeypatch.setenv("SESSION_CHUNK_SIZE", "80")
+    # Many turns + tiny chunk_size → forces the chunked branch (multiple chunks).
+    turns = [{"role": "user" if i % 2 == 0 else "assistant",
+              "content": f"turn number {i} with enough prose to be a real chunk body"}
+             for i in range(12)]
+    result = await handle_store_session(
+        server, {"turns": turns}
+    )
+    assert result and "Error" not in result[0].text
+    rows = server.storage.conn.execute(
+        "SELECT metadata, tags FROM memories "
+        "WHERE memory_type='session' AND deleted_at IS NULL"
+    ).fetchall()
+    # Keep only the chunked rows (tag chunk:i/N).
+    chunk_rows = [r for r in rows if r[1] and "chunk:" in r[1]]
+    assert len(chunk_rows) >= 2, f"expected multiple chunks, got {len(chunk_rows)}"
+    assert all(
+        (json.loads(r[0]) if r[0] else {}).get("hostname") == socket.gethostname()
+        for r in chunk_rows
+    ), "every session chunk must carry the server hostname"
 
 
 @pytest.mark.asyncio
@@ -193,3 +231,34 @@ async def test_empty_client_hostname_resolves_server(server, monkeypatch):
     stored = await _fetch_latest(server.storage, content)
     assert (stored.metadata or {}).get("hostname") == socket.gethostname()
 
+
+
+@pytest.mark.asyncio
+async def test_fastmcp_store_memory_stamps_host(server, monkeypatch):
+    """R1 (FastMCP tool): the Streamable HTTP store_memory entrypoint stamps host.
+
+    mcp_server.store_memory calls MemoryService.store_memory directly, routed
+    through _resolve_hostname. Covers the separately registered tool (Greptile
+    r4195956576) so a regression in its forwarding is caught.
+    """
+    import socket
+    from types import SimpleNamespace
+    from mcp_memory_service import mcp_server
+    monkeypatch.setattr(
+        "mcp_memory_service.server.handlers.memory.INCLUDE_HOSTNAME", True, raising=False
+    )
+    # FastMCP wraps the function; .fn exposes the original coroutine.
+    fn = getattr(mcp_server.store_memory, "fn", mcp_server.store_memory)
+    # Minimal ctx: ctx.request_context.lifespan_context.memory_service
+    ctx = SimpleNamespace(
+        request_context=SimpleNamespace(
+            lifespan_context=SimpleNamespace(memory_service=server.memory_service)
+        )
+    )
+    content = "fastmcp host stamping test"
+    await fn(content=content, ctx=ctx)
+    stored = await _fetch_latest(server.storage, content)
+    assert stored is not None
+    assert (stored.metadata or {}).get("hostname") == socket.gethostname(), (
+        f"FastMCP store_memory must stamp the server host, got {stored.metadata}"
+    )
