@@ -1,20 +1,20 @@
 # ESTADO — mcp-memory-service (Claudio)
 
 > Para você abrir e entender onde estamos sem reconstruir contexto.
-> Árvore primeiro (visão), notas depois (detalhe). Atualizado: 2026-10-06 (PR #1471 Fase 2 aberto).
+> Árvore primeiro (visão), notas depois (detalhe). Atualizado: 2026-10-07 (noite sirdata — #1304 FECHADO 4 fases + PR #1480 CF-guard + hybrid-online LIGADO).
 
 ```
 mcp-memory-service (fork = linha viva · 0 atrás do upstream · 3/out noite · fork limpo: 3 branches)
 │  Legenda: ✅ MERGED/feito · 🟢 feito fork-only · 🟡 parcial/design · 🔴 a fazer
 │
-├─ ⭐ #1304 HYBRID SELF-HOSTED SECONDARY (http) ........ 🎯 CENTRO DO RADAR · issue OPEN, atribuída a nós · RAIZ que destrava delta-sync (#1345, Harbor404/ducanhnguyen223)
-│   │   SPEC: ✅ rfc-hybrid-http-secondary (EARS R1-R16, Fases 1-4). Problema: hybrid.py secondary HARDWIRED em Cloudflare (135 menções CF). Topologia validada em prod (3 clientes + hub VPS) por sidecar.
-│   ├─ Fase 1 (R1-R5) list_content_hashes + bulk endpoint ... ✅ MERGED PR #1470 (6/out, Greptile 4 fix)
-│   ├─ Fase 2 (R6-R9+R9b) RemoteHTTPStorage + auth + pull real . 🟢 PR #1471 ABERTO (6/out) — push+pull completo, G5 tuvok APPROVED, E2E real vs hub v11.15
-│   │     fix pull no-op (3ad0a4f2/main 9532dbf4): capability-guard usa list_content_hashes+get_by_hash p/ secundário HTTP; path CF byte-idêntico. Teste integração httpx.MockTransport prova pull real. Aguarda Henry.
-│   ├─ Fase 3 (R10-R13): desacoplar hybrid.py do CF (capability-gating: Vectorize/normalização/10KB) .. 🔴 (o maior, 135 menções)
-│   ├─ Fase 4 (R14-R16): model-match STARTUP CHECK (recusa iniciar se modelo hub ≠ local) + campo modelo em status .. 🔴 (nasceu da evidência: ~10d recall degradado silencioso)
-│   └─ terminal-only (sem two-hop) — decidido c/ Henry. Estratégia: desenvolve na main (linha viva), recorta commit atômico p/ PR conforme Henry absorve.
+├─ ⭐ #1304 HYBRID SELF-HOSTED SECONDARY (http) ........ ✅ FECHADO (4 fases MERGED) · issue closed · raiz que destravou delta-sync (#1345)
+│   │   SPEC: ✅ rfc-hybrid-http-secondary (EARS R1-R16, Fases 1-4). Topologia validada em PROD: sirdata em hybrid-online com hub VPS (07/out).
+│   ├─ Fase 1 (R1-R5) list_content_hashes + bulk endpoint ... ✅ MERGED PR #1470
+│   ├─ Fase 2 (R6-R9+R9b) RemoteHTTPStorage + auth + pull real . ✅ MERGED PR #1471
+│   ├─ Fase 3 (R10-R13) desacoplar hybrid.py do CF (capability-gating) . ✅ MERGED PR #1474
+│   ├─ Fase 4 (R14-R16) model-match startup check (fail-closed modelo hub≠local) . ✅ MERGED PR #1476
+│   ├─ fix: hybrid+http não exige creds Cloudflare (storage.py:164 guard) ... 🟢 PR #1480 ABERTO (CI verde, Greptile P2 resolvido, aguarda Henry)
+│   └─ 🟢 hybrid-online LIGADO no sirdata: BACKEND=hybrid, secondary=hub VPS (cfnarede.dev/memory, x-api-key+basic zero). Push E2E provado. Crons de sync de memória desligados (teste do nativo). Pull bidirecional pendente (ligar DTP).
 │
 ├─ ✅ ARCO RATING / QUALITY ............................. FECHADO
 │   ├─ quality-model (computed vs user_rating) ......... ✅ MERGED PR #1349
