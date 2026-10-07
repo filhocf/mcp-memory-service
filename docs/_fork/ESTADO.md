@@ -1,7 +1,7 @@
 # ESTADO — mcp-memory-service (Claudio)
 
 > Para você abrir e entender onde estamos sem reconstruir contexto.
-> Árvore primeiro (visão), notas depois (detalhe). Atualizado: 2026-10-06.
+> Árvore primeiro (visão), notas depois (detalhe). Atualizado: 2026-10-06 (PR #1471 Fase 2 aberto).
 
 ```
 mcp-memory-service (fork = linha viva · 0 atrás do upstream · 3/out noite · fork limpo: 3 branches)
@@ -10,9 +10,8 @@ mcp-memory-service (fork = linha viva · 0 atrás do upstream · 3/out noite · 
 ├─ ⭐ #1304 HYBRID SELF-HOSTED SECONDARY (http) ........ 🎯 CENTRO DO RADAR · issue OPEN, atribuída a nós · RAIZ que destrava delta-sync (#1345, Harbor404/ducanhnguyen223)
 │   │   SPEC: ✅ rfc-hybrid-http-secondary (EARS R1-R16, Fases 1-4). Problema: hybrid.py secondary HARDWIRED em Cloudflare (135 menções CF). Topologia validada em prod (3 clientes + hub VPS) por sidecar.
 │   ├─ Fase 1 (R1-R5) list_content_hashes + bulk endpoint ... ✅ MERGED PR #1470 (6/out, Greptile 4 fix)
-│   ├─ Fase 2 (R6-R9) RemoteHTTPStorage secondary ........... 🟢 IMPL-FORK main 358b9489 (G0-G5 APPROVED) — PRÓXIMO PR (fila feat LIVRE)
-│   ├─ Fase 2 R9b auth style configurável (bearer|x-api-key + basic) 🟢 IMPL-FORK main eb526499 (G0-G5) — fecha wiring morto hybrid.__init__; vai no MESMO PR da Fase 2
-│   │     ⚠️ PENDENTE p/ virar PR: E2E REAL contra VPS cfnarede.dev/memory/ (nginx basic + X-API-Key); VPS precisa chegar a versão c/ /hashes. Hoje só E2E quente local (4 modos auth provados).
+│   ├─ Fase 2 (R6-R9+R9b) RemoteHTTPStorage + auth + pull real . 🟢 PR #1471 ABERTO (6/out) — push+pull completo, G5 tuvok APPROVED, E2E real vs hub v11.15
+│   │     fix pull no-op (3ad0a4f2/main 9532dbf4): capability-guard usa list_content_hashes+get_by_hash p/ secundário HTTP; path CF byte-idêntico. Teste integração httpx.MockTransport prova pull real. Aguarda Henry.
 │   ├─ Fase 3 (R10-R13): desacoplar hybrid.py do CF (capability-gating: Vectorize/normalização/10KB) .. 🔴 (o maior, 135 menções)
 │   ├─ Fase 4 (R14-R16): model-match STARTUP CHECK (recusa iniciar se modelo hub ≠ local) + campo modelo em status .. 🔴 (nasceu da evidência: ~10d recall degradado silencioso)
 │   └─ terminal-only (sem two-hop) — decidido c/ Henry. Estratégia: desenvolve na main (linha viva), recorta commit atômico p/ PR conforme Henry absorve.
