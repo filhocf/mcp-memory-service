@@ -1,5 +1,10 @@
 # Atualização do serviço memory-service por máquina + Estado da VPS (hub)
 
+## REGRA (07/out): feature comprovada local → replica no VPS
+Sempre que uma feature/fix for feita e COMPROVADA localmente (gate completo + E2E), **replicar para o VPS** (hub `cfnarede.dev`) no mesmo fluxo — o hub fica na linha viva, não arrasta atrás. Hub desatualizado impede E2E completo (store→pull cliente↔hub). É ação esperada (autonomia, decisão Claudio), só avisar. Backup do banco SEMPRE antes (sistema compartilhado Scotty/T'Pol). Procedimento abaixo.
+
+---
+
 **Criado:** 2026-09-21 · **Autor:** Claudio + Zero (DNBSCDC289)
 **Contexto:** consolidação da memória multi-agente num hub central na VPS. F1 (agent_id) já mergeada no upstream (nosso PR #1278, 19/set). Precisa chegar às 3 máquinas do Zero + VPS.
 
