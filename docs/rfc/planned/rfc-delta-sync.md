@@ -2,13 +2,14 @@
 
 **Data:** 2026-09-13 (rev. 2026-09-27)
 **Autor:** Claudio + Zero (Kiro CLI)
+**Co-autor:** @ducanhnguyen223 (§8 invariantes de correção + §9 alternativas/bootstrap/escopo)
 **Branch de código:** `feat/delta-sync` (a partir de `upstream/main`)
 **Base:** `upstream/main` v11.14.0+ (agent_id #1100 fases 1+2 JÁ MERGEADAS)
-**Versão:** 0.2 (draft — pronto para abrir como issue, a pedido do Henry no #1304)
+**Versão:** 0.4 (draft — §9 do @ducanhnguyen223 reconciliada; uso confirmado MULTI-WRITER)
 **Inspiração:** Mnemosyne `sync.py` / `sync_server.py` (delta event-log + cripto client-side)
 **Reintegra:** dor de sync via Insync (tasks internas 5d41dda2 stale-reads, corrupção SQLite+WAL)
 **Relacionado:** #1304 (hybrid remote secondary — o caminho *hybrid-nativo* do mesmo destino; ver §7), #1100 (agent_id, base de R6), #57 upstream (federated retrieval, fora de escopo)
-**Status:** DRAFT v0.2 — a abrir como issue própria no GitHub (Henry pediu "file it as its own issue" no #1304).
+**Status:** DRAFT v0.4 — issue guarda-chuva aberta; implementação FORK-FIRST (o #1304 já está integrado e estável no fork; não espera merge upstream). Multi-writer confirmado (Zero×3 + T'Pol + Scotty escrevem com autoria).
 
 ---
 
@@ -219,3 +220,54 @@ observação entre hosts é responsabilidade do cursor por-peer, não do `data_v
 > EARS (R3'): WHEN divergent events are reconciled, THE resolver SHALL order them by
 > a logical/HLC clock with a stable tie-breaker, using importance only to break a
 > logical-order tie, deterministically and reproducibly.
+
+---
+
+## 9. Alternativas, bootstrap e limite do primeiro PR (v0.4)
+
+### 9.1 Quando o event-log é necessário
+
+O event-log não é requisito para todo cenário de sincronização. Para um cliente local com um único escritor e um hub terminal, #1304 (`remote_http` + reconciliação por `content_hash`) é a opção preferida: tem menos estados e não introduz resolução de conflitos entre escritores. Esta RFC só se justifica quando há múltiplos agentes que escrevem, é preciso preservar autoria/escopo e os peers precisam reconciliar mutações concorrentes e exclusões de modo repetível.
+
+### 9.2 Alternativas consideradas
+
+| Alternativa | Onde é suficiente | Por que não cobre, sozinha, o escopo multi-writer desta RFC |
+| --- | --- | --- |
+| #1304: `remote_http` + `list_content_hashes()` | Hub-and-spoke com um escritor por cliente; detectar drift e transferir memórias ausentes | Hashes mostram diferença de estado, mas não preservam a sequência/autoria das operações nem definem conflitos concorrentes, tombstones duráveis ou cursor de eventos. Se esse escopo bastar, usar #1304 e não implementar esta RFC. |
+| CRDT SQLite existente, por exemplo [cr-sqlite](https://github.com/vlcn-io/cr-sqlite) | Quando a semântica de merge por coluna/tabela é aceitável e a extensão pode ser carregada/testada em todos os ambientes-alvo | CRDT resolve merges de estado segundo tipos de coluna; isso não equivale automaticamente às regras de autoria, política `shareable` e aceitação de eventos de §8. O README do projeto descreve a abordagem atual como history-free e marca o causal event log como trabalho futuro; não tratá-lo como uma implementação pronta para este contrato. |
+| [Litestream](https://litestream.io/how-it-works/) | Backup contínuo e recuperação/replicação de SQLite, incluindo réplicas de leitura | É uma estratégia de réplica/recuperação do banco, não um protocolo de eventos multi-writer com identidade de agente, autorização de compartilhamento e resolução determinística entre peers. |
+| Continuar sincronizando o arquivo completo, usando snapshot/backup SQLite consistente | Migração temporária ou recuperação de um único estado | Snapshot correto reduz risco de copiar arquivo ativo/WAL incorretamente, mas ainda transfere estado completo e não fornece autoria, tombstones/eventos nem confirmação por-peer. |
+
+**Decisão:** para a topologia hub-and-spoke, implementar apenas #1304. Manter esta RFC em fase de desenho enquanto #1304 define a interface híbrida. Se a necessidade real não exigir escritores concorrentes e autoria, fechar ou reduzir esta RFC em vez de manter dois mecanismos.
+
+### 9.3 Bootstrap, migração e compatibilidade de eventos
+
+1. **Snapshot inicial:** criar um snapshot SQLite consistente e identificá-lo com um `snapshot_id`/watermark durável. O corte entre snapshot e log precisa ser atômico ou coberto por replay idempotente, para nenhuma mutação concorrente ficar fora de ambos.
+2. **Estado legado:** inicializar a partir do estado atual, não fingir que existe histórico anterior ao bootstrap. Gerar eventos de baseline com IDs determinísticos a partir do snapshot e do ID/versão da memória; repetir o mesmo bootstrap deve produzir o mesmo conjunto lógico.
+3. **Autoria e privacidade:** preservar `metadata.agent_id` quando presente, mas marcar como `legacy/unattributed` qualquer registro sem autoria verificável — nunca inventar um agente. Itens legados permanecem locais/privados por padrão; só entram no baseline compartilhado quando a política `shareable` vigente os autoriza.
+4. **Deletes existentes:** converter `deleted_at` em tombstone de baseline preservando o momento de deleção disponível. Não remover fisicamente o tombstone até que a regra de retenção/compactação de §8.1 prove que todos os peers conhecidos o observaram.
+5. **Peer novo:** instalar snapshot e seu watermark como uma unidade; depois consumir eventos a partir desse watermark. A instalação repetida deve ser idempotente. Não assumir que `content_hash` sozinho é suficiente para representar delete ou mudança de política.
+6. **Versão incompatível:** cada envelope de evento deve declarar sua versão. Se um peer não entender um tipo/versão, deve rejeitar ou colocar o evento em quarentena, informar a incompatibilidade e **não avançar a confirmação/cursor além dele**. Não ignorar silenciosamente um evento desconhecido. Compatibilidade e negociação de versão devem ser definidas antes de existir transporte.
+7. **Migração reversa:** restaurar hot-backup permanece o caminho de rollback. Depois que novos eventos forem emitidos, downgrade que não entende o log não pode continuar escrevendo como se o cursor estivesse sincronizado; exigir modo de manutenção/exportação ou migração explícita.
+
+Esses passos são requisitos de desenho; volume, duração e limites práticos de bootstrap precisam de medição com a base real antes de alegar escala para 20.000+ memórias.
+
+### 9.4 Escopo de backend
+
+- **Fase inicial: `sqlite_vec` somente.** A primeira implementação deve gravar a mutação de memória e o evento na mesma transação SQLite, condição necessária para não criar memória sem evento nem evento sem memória. O inventário de mutações define explicitamente quais operações entram no primeiro slice; as demais não podem ser apresentadas aos peers como estado sincronizado.
+- **`hybrid`: fora da fase inicial.** Esperar #1304. Antes de habilitá-lo, declarar qual storage é dono do log canônico e provar que sync local/secondary não gera evento duplicado nem reatribui a autoria. Até lá, uma instância `hybrid` não participa do event-log.
+- **Cloudflare e Milvus: fora da fase inicial.** Não presumir atomicidade entre seus writes e uma tabela SQLite local; cada backend exige contrato de outbox/transaction, retries e tombstone próprio mais os fixtures de §8. Não alegar suporte por compartilhar a interface `MemoryStorage`.
+- Expandir o escopo só com um backend nomeado, um caminho de mutação end-to-end e testes de falha/rollback para o backend correspondente. Backends não listados permanecem sem suporte explícito.
+
+### 9.5 Primeiro PR proposto (depois da estabilização de #1304)
+
+Um PR pequeno, sem transporte:
+
+1. adicionar schema versionado do event-log no SQLite-vec e migração reversível;
+2. após inventariar os pontos de escrita, anexar evento na mesma transação para cada mutação anunciada como suportada; deixar fora da primeira etapa e documentar qualquer operação que ainda não possa ser registrada atomicamente;
+3. implementar os casos de teste de §8.1 para unicidade, repetição/replay e tombstone, incluindo rollback/crash na fronteira da transação;
+4. não incluir endpoint de rede, sync bidirecional, resolução HLC, criptografia, backend hybrid/Cloudflare/Milvus ou remoção do hot-backup.
+
+**Gate:** só abrir esse PR depois que #1304 tiver sido integrado e os contratos de storage/secondary estiverem estáveis; confirmar primeiro que o event-log local ainda agrega valor acima de #1304. Cada etapa posterior terá PR e casos de teste próprios. Este RFC não autoriza iniciar implementação antes desse gate.
+
+> **Nota de reconciliação (mantenedor do fork, 2026-10-07):** o gate acima é TÉCNICO — exige que o #1304 esteja integrado e estável. **No fork, está:** Fases 1-4 no `main`, suíte verde, E2E provado em produção, contratos (`remote_http`, `list_content_hashes`, model-match) estáveis. Portanto a implementação segue FORK-FIRST, no compasso do mantenedor; o merge upstream do #1304 é o tempo do Henry e **não** bloqueia estas fases. Uso confirmado **multi-writer** (Zero×3 + T'Pol + Scotty com autoria), então o event-log agrega valor acima do #1304 — a confirmação que o gate pedia está dada.
