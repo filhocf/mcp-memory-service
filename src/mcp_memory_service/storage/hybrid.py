@@ -42,12 +42,6 @@ try:
 except ImportError:
     CloudflareStorage = None
 
-# Import RemoteHTTPStorage for HTTP secondary backend (tests need to patch it)
-try:
-    from .remote_http import RemoteHTTPStorage
-except ImportError:
-    RemoteHTTPStorage = None
-
 # Import SSE for real-time progress updates
 try:
     from ..web.sse import sse_manager, create_sync_progress_event, create_sync_completed_event
@@ -777,6 +771,9 @@ class BackgroundSyncService:
                     raise Exception(f"Update operation failed: {message}")
 
             elif operation.operation == 'delete_by_timeframe':
+                if not getattr(self.secondary, 'supports_delete_operations', False):
+                    logger.warning("Secondary %s does not support date-range deletes; skipping remote delete_by_timeframe (local delete already applied)", type(self.secondary).__name__)
+                    return
                 # Delete memories by timeframe in secondary storage
                 if operation.start_date and operation.end_date:
                     success, message = await self.secondary.delete_by_timeframe(
@@ -792,6 +789,9 @@ class BackgroundSyncService:
                     raise ValueError("delete_by_timeframe operation missing start_date or end_date")
 
             elif operation.operation == 'delete_before_date':
+                if not getattr(self.secondary, 'supports_delete_operations', False):
+                    logger.warning("Secondary %s does not support date-range deletes; skipping remote delete_before_date (local delete already applied)", type(self.secondary).__name__)
+                    return
                 # Delete memories before date in secondary storage
                 if operation.before_date:
                     success, message = await self.secondary.delete_before_date(
@@ -893,6 +893,18 @@ class BackgroundSyncService:
             - failed: Number of sync failures
         """
         if not self.drift_check_enabled:
+            return {'checked': 0, 'drift_detected': 0, 'synced': 0, 'failed': 0}
+
+        # Drift reconciliation needs the secondary to expose a bulk updated-memory
+        # listing. An HTTP secondary inherits supports_delete_operations=False and
+        # has no such listing (the base get_all_memories returns empty), so running
+        # the scan would silently advance the last-check clock without reconciling
+        # anything. Skip explicitly instead (greptile P1, PR #1474).
+        if not getattr(self.secondary, 'supports_delete_operations', False):
+            logger.debug(
+                "Secondary %s does not support bulk drift listing; skipping drift scan",
+                type(self.secondary).__name__,
+            )
             return {'checked': 0, 'drift_detected': 0, 'synced': 0, 'failed': 0}
 
         logger.info("Starting drift detection scan (dry_run=%s)...", dry_run)
@@ -1063,7 +1075,6 @@ class HybridMemoryStorage(MemoryStorage):
             secondary_basic_user: Optional basic auth username for HTTP backend
             secondary_basic_pass: Optional basic auth password for HTTP backend
         """
-        self.embedding_model = embedding_model  # Store for model validation
         self.primary = SqliteVecMemoryStorage(
             db_path=sqlite_db_path,
             embedding_model=embedding_model
@@ -1089,6 +1100,8 @@ class HybridMemoryStorage(MemoryStorage):
 
         if backend_type == 'http' and url:
             # HTTP backend
+            from .remote_http import RemoteHTTPStorage  # Lazy import to avoid cycles
+            
             # Resolve auth parameters (kwargs take precedence over config)
             auth_style = secondary_auth_style or MCP_HYBRID_SECONDARY_AUTH_STYLE
             basic_user = secondary_basic_user or MCP_HYBRID_SECONDARY_BASIC_USER
@@ -1102,8 +1115,7 @@ class HybridMemoryStorage(MemoryStorage):
             http_kwargs = {
                 'base_url': url,
                 'api_key': api_key,
-                'auth_style': auth_style,
-                'expected_embedding_model': self.embedding_model  # Pass expected model for validation
+                'auth_style': auth_style
             }
             
             if basic_user:
@@ -1166,14 +1178,6 @@ class HybridMemoryStorage(MemoryStorage):
                     logger.info("Initial sync scheduled to run after server startup")
 
             except Exception as e:
-                # Import EmbeddingModelMismatchError to check for it
-                from .base import EmbeddingModelMismatchError
-                
-                # Re-raise EmbeddingModelMismatchError - service should refuse to start on model mismatch
-                if isinstance(e, EmbeddingModelMismatchError):
-                    raise
-                
-                # For all other exceptions, log and set secondary to None (graceful degradation)
                 logger.warning("Failed to initialize secondary storage: %s", _sanitize_log_value(e))
                 self.secondary = None
 
