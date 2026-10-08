@@ -323,9 +323,16 @@ class RetrieveMixin:
         tags: List[str],
         operation: str = "AND",
         time_start: Optional[float] = None,
-        time_end: Optional[float] = None
+        time_end: Optional[float] = None,
+        include_pending: bool = False,
     ) -> List[Memory]:
-        """Search memories by tags with AND/OR operation and optional time filtering."""
+        """Search memories by tags with AND/OR operation and optional time filtering.
+
+        include_pending=True keeps embedding_pending rows — used by hybrid DELETE paths that
+        collect hashes to queue for the secondary backend (a pending row deleted on the primary
+        must still be queued for deletion remotely, or other devices keep the copy — Greptile P1).
+        Default False excludes pending (this is a SEARCH surface for users).
+        """
         try:
             if not self.conn:
                 logger.error("Database not initialized")
@@ -345,7 +352,8 @@ class RetrieveMixin:
             tag_params = [f"%,{_escape_like(tag)},%" for tag in stripped_tags]
 
             where_conditions = [f"({tag_conditions})"] if tag_conditions else []
-            where_conditions.append("deleted_at IS NULL AND (embedding_pending IS NULL OR embedding_pending = 0)")
+            pending_pred = "" if include_pending else " AND (embedding_pending IS NULL OR embedding_pending = 0)"
+            where_conditions.append(f"deleted_at IS NULL{pending_pred}")
             if time_start is not None:
                 where_conditions.append("created_at >= ?")
                 tag_params.append(time_start)
@@ -483,10 +491,15 @@ class RetrieveMixin:
                 return None
 
             def _get_by_hash():
+                # Direct lookup by exact hash is NOT a discovery/search surface, so it does
+                # NOT apply the embedding_pending guardrail (§8.3 excludes pending from
+                # SEARCH, not from a caller that already knows the hash). Internal sync/
+                # metadata-repair paths rely on this seeing pending rows; filtering here made
+                # them treat a pending memory as missing and skip the repair (Greptile P1).
                 sql = '''
                     SELECT content_hash, content, tags, memory_type, metadata,
                            created_at, updated_at, created_at_iso, updated_at_iso
-                    FROM memories WHERE content_hash = ? AND deleted_at IS NULL AND (embedding_pending IS NULL OR embedding_pending = 0)
+                    FROM memories WHERE content_hash = ? AND deleted_at IS NULL
                 '''
                 lookup_params = [content_hash]
                 if store is not None:

@@ -427,16 +427,16 @@ SOLUTIONS:
 
     def _append_sync_event(self, conn, op: str, content_hash: str, payload: dict) -> None:
         """Append sync event to event log within same transaction as the hosting mutation.
-        
+
         This helper is SYNCHRONOUS and performs NO commit internally (ADR-0008).
         The atomicity comes from the commit of the hosting mutation.
-        
+
         Args:
             conn: Database connection (must be in an active transaction)
             op: Operation type ('create', 'delete', 'update_metadata')
             content_hash: Hash of the memory being mutated
             payload: JSON-serializable payload for the event
-        
+
         Raises:
             Exception: If MCP_SYNC_EVENTLOG is enabled and the append fails,
                       the exception propagates to abort the hosting mutation.
@@ -447,7 +447,7 @@ SOLUTIONS:
 
         # Generate event identity (UUIDv4, coordination-free)
         event_id = str(uuid.uuid4())
-        
+
         # Get agent_id from environment or memory metadata. SQLite treats NULL as distinct
         # in a UNIQUE(agent_id, event_id), so a NULL agent would let the same event_id be
         # inserted twice, breaking replay idempotency (greptile P1). Use a non-null sentinel
@@ -457,11 +457,11 @@ SOLUTIONS:
             agent_id = payload['metadata'].get('agent_id')
         if not agent_id:
             agent_id = 'unknown'  # non-null sentinel: keeps UNIQUE(agent_id, event_id) effective
-        
+
         # Current timestamp
         created_at = time.time()
         created_at_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(created_at))
-        
+
         # Schema version for envelope (ADR-0007)
         schema_version = 1
 
@@ -472,7 +472,7 @@ SOLUTIONS:
         # that scan held the write lock and grew with history (store_batch repeated it per item).
         cursor = conn.execute("SELECT key, value FROM metadata WHERE key IN ('sync_hlc_physical', 'sync_hlc_logical')")
         hlc_metadata = dict(cursor.fetchall())
-        
+
         last_physical = int(hlc_metadata.get('sync_hlc_physical', '0'))
         last_logical = int(hlc_metadata.get('sync_hlc_logical', '0'))
 
@@ -486,12 +486,18 @@ SOLUTIONS:
             # Physical time same or went backwards, increment logical
             hlc_physical = last_physical
             hlc_logical = last_logical + 1
-        
         # Record embedding version metadata for create operations (ADR-0014)
         embedding_model = None
         embedding_dim = None
         if op == 'create' and hasattr(self, 'embedding_model_name') and hasattr(self, 'embedding_dimension'):
-            embedding_model = self.embedding_model_name
+            # When the hash fallback is active the vectors are NOT from the configured model;
+            # stamp a distinct identity so a peer can tell these pseudo-vectors apart from real
+            # model output (ADR-0014; Greptile P1). Otherwise events would claim the configured
+            # model name for hash-based vectors.
+            if getattr(self, 'embedding_backend_degraded', False):
+                embedding_model = f"__hash_fallback__::{self.embedding_dimension}"
+            else:
+                embedding_model = self.embedding_model_name
             embedding_dim = self.embedding_dimension
         
         # INSERT event with HLC values and embedding metadata
@@ -507,7 +513,7 @@ SOLUTIONS:
             json.dumps(payload), created_at, created_at_iso, hlc_physical, hlc_logical,
             embedding_model, embedding_dim
         ))
-        
+
         # Update last_hlc in metadata (ADR-0011) - same transaction
         # Use INSERT OR REPLACE to upsert the metadata values
         conn.execute("INSERT OR REPLACE INTO metadata (key, value) VALUES ('sync_hlc_physical', ?)", (str(hlc_physical),))
@@ -534,7 +540,7 @@ SOLUTIONS:
         try:
             cursor = conn.execute("PRAGMA table_info(sync_events)")
             columns = [row[1] for row in cursor.fetchall()]
-            
+
             if 'hlc_physical' not in columns or 'hlc_logical' not in columns:
                 # Migration 016 hasn't run yet or table doesn't exist, nothing to do
                 return

@@ -8,9 +8,9 @@ ALTER TABLE sync_events ADD COLUMN hlc_logical INTEGER;
 
 -- Backfill existing Phase 1 events with deterministic HLC values
 -- This includes any events inserted without HLC values
-UPDATE sync_events 
-SET hlc_physical = CAST(created_at * 1000 AS INTEGER), 
-    hlc_logical = seq 
+UPDATE sync_events
+SET hlc_physical = CAST(created_at * 1000 AS INTEGER),
+    hlc_logical = seq
 WHERE hlc_physical IS NULL OR hlc_logical IS NULL;
 
 -- Index for efficient HLC-based ordering and queries
