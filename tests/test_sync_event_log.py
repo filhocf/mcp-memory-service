@@ -751,3 +751,348 @@ class TestGreptilePhase1Fixes:
             skip_semantic_dedup=True,
         )
         assert ok, f"connection must be usable after the lock-retry batch (store reason: {reason})"
+
+class TestDeltaSyncHLC:
+    """Test suite for Phase 2 HLC (Hybrid Logical Clock) functionality with DB."""
+    
+    @pytest_asyncio.fixture
+    async def storage(self):
+        """Create a test storage instance with initialized database."""
+        temp_dir = tempfile.mkdtemp()
+        db_path = os.path.join(temp_dir, "test_hlc_sync.db")
+        
+        storage = SqliteVecMemoryStorage(db_path)
+        await storage.initialize()
+        
+        yield storage
+        
+        # Cleanup
+        if storage.conn:
+            storage.conn.close()
+        shutil.rmtree(temp_dir, ignore_errors=True)
+    
+    @pytest.fixture
+    def sample_memory(self):
+        """Create a sample memory for HLC testing."""
+        content = "Test memory for HLC sync"
+        return Memory(
+            content=content,
+            content_hash=generate_content_hash(content),
+            tags=["hlc", "test"],
+            memory_type="note",
+            metadata={"agent_id": "test-hlc-agent", "test": True}
+        )
+
+    # CA5 (F1/F2 HLC monotonic): HLC columns exist and grow monotonically
+    @pytest.mark.asyncio
+    async def test_hlc_columns_exist_in_sync_events(self, storage):
+        """
+        CA5: sync_events table should have hlc_physical and hlc_logical INTEGER columns.
+        Expected to FAIL: migration 016 not implemented, columns don't exist.
+        """
+        # Check hlc_physical column exists
+        cursor = storage.conn.execute("PRAGMA table_info(sync_events)")
+        columns = {col[1]: col[2] for col in cursor.fetchall()}
+        
+        assert 'hlc_physical' in columns, "sync_events should have hlc_physical column"
+        assert 'hlc_logical' in columns, "sync_events should have hlc_logical column"
+        assert columns['hlc_physical'] == 'INTEGER', "hlc_physical should be INTEGER type"
+        assert columns['hlc_logical'] == 'INTEGER', "hlc_logical should be INTEGER type"
+
+    @pytest.mark.asyncio 
+    async def test_hlc_index_exists(self, storage):
+        """
+        Check that HLC index (hlc_physical,hlc_logical,agent_id,event_id) exists.
+        Expected to FAIL: migration 016 not implemented, index doesn't exist.
+        """
+        cursor = storage.conn.execute("""
+            SELECT name FROM sqlite_master 
+            WHERE type='index' AND tbl_name='sync_events' AND sql LIKE '%hlc_physical%'
+        """)
+        hlc_indexes = cursor.fetchall()
+        
+        assert len(hlc_indexes) >= 1, "Should have at least one index on hlc_physical"
+
+    @pytest.mark.asyncio
+    async def test_store_generates_hlc_when_enabled(self, storage, sample_memory):
+        """
+        CA5 (F1): With MCP_SYNC_EVENTLOG=on, store() should generate HLC values.
+        Expected to FAIL: _append_sync_event not calculating/storing HLC.
+        """
+        with patch.dict(os.environ, {"MCP_SYNC_EVENTLOG": "on"}):
+            success, message = await storage.store(sample_memory)
+            assert success, f"Store failed: {message}"
+            
+            # Should have HLC values in sync_events
+            cursor = storage.conn.execute("""
+                SELECT hlc_physical, hlc_logical, created_at 
+                FROM sync_events WHERE content_hash = ?
+            """, (sample_memory.content_hash,))
+            row = cursor.fetchone()
+            
+            assert row is not None, "Should have sync event"
+            hlc_physical, hlc_logical, created_at = row
+            
+            assert hlc_physical is not None, "hlc_physical must not be NULL"
+            assert hlc_logical is not None, "hlc_logical must not be NULL"  
+            assert isinstance(hlc_physical, int), "hlc_physical must be INTEGER"
+            assert isinstance(hlc_logical, int), "hlc_logical must be INTEGER"
+            assert hlc_physical > 0, "hlc_physical should be epoch milliseconds > 0"
+            assert hlc_logical >= 0, "hlc_logical should be >= 0"
+
+    @pytest.mark.asyncio
+    async def test_hlc_monotonic_across_events(self, storage):
+        """
+        CA5 (F2): Multiple stores should generate monotonically increasing HLC.
+        Expected to FAIL: HLC calculation not implemented in _append_sync_event.
+        """
+        with patch.dict(os.environ, {"MCP_SYNC_EVENTLOG": "on"}):
+            memories = []
+            for i in range(3):
+                content = f"HLC monotonic test {i}"
+                memory = Memory(
+                    content=content,
+                    content_hash=generate_content_hash(content),
+                    tags=["monotonic"], 
+                    memory_type="note"
+                )
+                memories.append(memory)
+                
+                await storage.store(memory)
+                # Small delay to ensure different physical time if HLC uses wall clock
+                time.sleep(0.001)
+            
+            # Get all HLC values in order
+            cursor = storage.conn.execute("""
+                SELECT hlc_physical, hlc_logical, content_hash
+                FROM sync_events 
+                WHERE content_hash IN (?, ?, ?)
+                ORDER BY seq
+            """, tuple(m.content_hash for m in memories))
+            
+            hlc_values = cursor.fetchall()
+            assert len(hlc_values) == 3, "Should have 3 events"
+            
+            # Check monotonic property: (physical, logical) should increase
+            for i in range(1, 3):
+                prev_physical, prev_logical, _ = hlc_values[i-1]
+                curr_physical, curr_logical, _ = hlc_values[i]
+                
+                # Either physical increased, or physical same and logical increased
+                hlc_increased = (
+                    curr_physical > prev_physical or
+                    (curr_physical == prev_physical and curr_logical > prev_logical)
+                )
+                
+                assert hlc_increased, f"HLC must be monotonic: event {i-1} ({prev_physical},{prev_logical}) -> event {i} ({curr_physical},{curr_logical})"
+
+    @pytest.mark.asyncio
+    async def test_hlc_logical_increments_within_same_physical_ms(self, storage):
+        """
+        CA5 (F1): when two events land in the SAME physical millisecond, the logical
+        counter MUST increment (kills the `last_logical+1`→`last_logical` mutant; tuvok P2).
+        Freeze wall-clock so physical is identical across both stores.
+        """
+        with patch.dict(os.environ, {"MCP_SYNC_EVENTLOG": "on"}):
+            frozen_ms = 1_700_000_000.0  # fixed epoch seconds → identical physical ms
+            with patch("time.time", return_value=frozen_ms):
+                hashes = []
+                for i in range(3):
+                    c = f"same-ms event {i}"
+                    h = generate_content_hash(c)
+                    hashes.append(h)
+                    await storage.store(Memory(content=c, content_hash=h,
+                                               tags=["same-ms"], memory_type="note"))
+            cursor = storage.conn.execute(
+                "SELECT hlc_physical, hlc_logical FROM sync_events WHERE content_hash IN (?,?,?) ORDER BY seq",
+                tuple(hashes),
+            )
+            rows = cursor.fetchall()
+            assert len(rows) == 3
+            # All same physical; logical must strictly increase 0,1,2...
+            physicals = {r[0] for r in rows}
+            assert len(physicals) == 1, "physical must be identical (frozen clock)"
+            logicals = [r[1] for r in rows]
+            assert logicals == sorted(logicals) and len(set(logicals)) == 3, \
+                f"logical must strictly increment within the same physical ms, got {logicals}"
+
+    @pytest.mark.asyncio
+    async def test_last_hlc_persisted_in_metadata(self, storage, sample_memory):
+        """
+        CA5 (F2): last_hlc should be persisted in metadata table.
+        Expected to FAIL: last_hlc persistence not implemented.
+        """
+        with patch.dict(os.environ, {"MCP_SYNC_EVENTLOG": "on"}):
+            await storage.store(sample_memory)
+            
+            # Check last_hlc in metadata
+            cursor = storage.conn.execute("""
+                SELECT key, value FROM metadata 
+                WHERE key IN ('sync_hlc_physical', 'sync_hlc_logical')
+                ORDER BY key
+            """)
+            metadata_hlc = cursor.fetchall()
+            
+            assert len(metadata_hlc) == 2, "Should have both sync_hlc_physical and sync_hlc_logical"
+            
+            logical_entry = next((entry for entry in metadata_hlc if entry[0] == 'sync_hlc_logical'), None)
+            physical_entry = next((entry for entry in metadata_hlc if entry[0] == 'sync_hlc_physical'), None)
+            
+            assert physical_entry is not None, "sync_hlc_physical should exist in metadata"
+            assert logical_entry is not None, "sync_hlc_logical should exist in metadata"
+            
+            # Values should be integers stored as strings
+            physical_val = int(physical_entry[1])
+            logical_val = int(logical_entry[1])
+            
+            assert physical_val > 0, "sync_hlc_physical should be > 0"
+            assert logical_val >= 0, "sync_hlc_logical should be >= 0"
+
+    @pytest.mark.asyncio
+    async def test_hlc_no_regression_after_restart(self, storage):
+        """
+        CA5 (F2): Reopening storage should not regress HLC (monotonic across restarts).
+        Expected to FAIL: last_hlc not loaded from metadata on initialization.
+        """
+        with patch.dict(os.environ, {"MCP_SYNC_EVENTLOG": "on"}):
+            # Store first memory
+            content1 = "Before restart"
+            memory1 = Memory(
+                content=content1,
+                content_hash=generate_content_hash(content1),
+                tags=["restart"], 
+                memory_type="note"
+            )
+            await storage.store(memory1)
+            
+            # Get the HLC value
+            cursor = storage.conn.execute("""
+                SELECT hlc_physical, hlc_logical FROM sync_events 
+                WHERE content_hash = ?
+            """, (memory1.content_hash,))
+            first_physical, first_logical = cursor.fetchone()
+            
+            # Close and reopen storage (simulate restart)
+            db_path = storage.db_path
+            storage.conn.close()
+            
+            new_storage = SqliteVecMemoryStorage(db_path)
+            await new_storage.initialize()
+            
+            # Store another memory - HLC should not regress
+            content2 = "After restart"
+            memory2 = Memory(
+                content=content2,
+                content_hash=generate_content_hash(content2),
+                tags=["restart"], 
+                memory_type="note"
+            )
+            await new_storage.store(memory2)
+            
+            # Get the new HLC value
+            cursor = new_storage.conn.execute("""
+                SELECT hlc_physical, hlc_logical FROM sync_events 
+                WHERE content_hash = ?
+            """, (memory2.content_hash,))
+            second_physical, second_logical = cursor.fetchone()
+            
+            # HLC should not regress
+            hlc_increased = (
+                second_physical > first_physical or
+                (second_physical == first_physical and second_logical > first_logical)
+            )
+            
+            assert hlc_increased, f"HLC must not regress after restart: ({first_physical},{first_logical}) -> ({second_physical},{second_logical})"
+            
+            # Cleanup
+            new_storage.conn.close()
+
+    @pytest.mark.asyncio
+    async def test_ca6_backfill_phase1_events(self, storage):
+        """
+        CA6 (NF1 backfill): Events without HLC should get backfilled values.
+        Expected to FAIL: migration 016 backfill logic not implemented.
+        """
+        # Simulate a Phase 1 event (without HLC) by direct SQL insertion
+        # This bypasses the HLC generation to simulate pre-migration data
+        import json as _json
+        
+        content_hash = "phase1-backfill-test"
+        event_id = str(uuid.uuid4())
+        created_at = time.time()
+        
+        # Insert event WITHOUT hlc_physical/hlc_logical (they would be NULL)
+        storage.conn.execute("""
+            INSERT INTO sync_events 
+            (schema_version, agent_id, event_id, op, content_hash, payload, created_at, seq)
+            VALUES (1, ?, ?, 'create', ?, ?, ?, ?)
+        """, (
+            "backfill-agent", event_id, content_hash, 
+            _json.dumps({"content_hash": content_hash, "op": "create"}),
+            created_at, None  # seq will be auto-generated
+        ))
+        storage.conn.commit()
+        
+        # Get the seq value that was generated
+        cursor = storage.conn.execute("""
+            SELECT seq, hlc_physical, hlc_logical FROM sync_events 
+            WHERE content_hash = ?
+        """, (content_hash,))
+        seq, hlc_physical, hlc_logical = cursor.fetchone()
+        
+        # Verify HLC is initially NULL
+        assert hlc_physical is None, "HLC should be NULL before backfill"
+        assert hlc_logical is None, "HLC should be NULL before backfill"
+        
+        # Trigger backfill by performing a sync event operation
+        # This should invoke the lazy backfill logic in _append_sync_event
+        with patch.dict(os.environ, {"MCP_SYNC_EVENTLOG": "on"}):
+            trigger_memory = Memory(
+                content="Trigger backfill",
+                content_hash=generate_content_hash("Trigger backfill"),
+                tags=["trigger"],
+                memory_type="note"
+            )
+            await storage.store(trigger_memory)
+        
+        # Now check if the backfill happened
+        cursor = storage.conn.execute("""
+            SELECT seq, hlc_physical, hlc_logical FROM sync_events 
+            WHERE content_hash = ?
+        """, (content_hash,))
+        seq, hlc_physical, hlc_logical = cursor.fetchone()
+        
+        # For this test, we expect backfill to have happened during the store operation
+        # If lazy backfill is implemented correctly
+        expected_physical = int(created_at * 1000)
+        expected_logical = seq
+        
+        assert hlc_physical == expected_physical, f"Backfilled hlc_physical should be {expected_physical}, got {hlc_physical}"
+        assert hlc_logical == expected_logical, f"Backfilled hlc_logical should be {expected_logical}, got {hlc_logical}"
+
+    @pytest.mark.asyncio
+    async def test_ca7_tombstone_no_resurrect(self, storage):
+        """
+        CA7 (§8.1c): a delete beats a *replayed old create* (one whose HLC is LOWER
+        than the delete). This is a resolver/apply invariant for events arriving out of
+        order (Phase 4 transport), NOT a block on legitimately re-creating a memory
+        locally — a new local create has a HIGHER HLC and must win (ADR-0012). We assert
+        the invariant at the resolver level, which is where Phase 2 owns it.
+        """
+        from mcp_memory_service.storage.sync.resolver import resolve, EventView
+
+        content_hash = "ca7-hash"
+        # A delete at HLC (100,0) and an OLD create replayed at HLC (50,0) — create is older.
+        delete_evt = EventView(hlc_physical=100, hlc_logical=0, agent_id="A",
+                               event_id="evt-delete", op="delete", content_hash=content_hash)
+        old_create = EventView(hlc_physical=50, hlc_logical=0, agent_id="A",
+                               event_id="evt-create-old", op="create", content_hash=content_hash)
+        # The replayed old create must NOT win over the later delete (no resurrection).
+        assert resolve(delete_evt, old_create) is delete_evt
+        assert resolve(old_create, delete_evt) is delete_evt  # commutative
+
+        # Conversely, a NEWER create (legitimate re-creation, higher HLC) DOES win —
+        # this is the behavior §8.1c must NOT block (ADR-0012).
+        new_create = EventView(hlc_physical=150, hlc_logical=0, agent_id="A",
+                               event_id="evt-create-new", op="create", content_hash=content_hash)
+        assert resolve(delete_evt, new_create) is new_create

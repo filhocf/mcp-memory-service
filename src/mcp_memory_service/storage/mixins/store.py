@@ -119,6 +119,7 @@ class StoreMixin:
             metadata_str = json.dumps(memory.metadata) if memory.metadata else "{}"
 
             _sp_name = f"store_{os.urandom(4).hex()}"
+
             def insert_memory_and_embedding():
                 self.conn.execute(f'SAVEPOINT {_sp_name}')
                 try:
