@@ -34,7 +34,7 @@ class TestDeltaSyncResolver:
             op="create",
             content_hash="hash-abc",
         )
-        
+
         assert event.hlc_physical == 100
         assert event.hlc_logical == 0
         assert event.agent_id == "agent-001"
@@ -57,20 +57,20 @@ class TestDeltaSyncResolver:
             op="update",
             content_hash="same-hash",
         )
-        
+
         event_b = EventView(
             hlc_physical=100,
             hlc_logical=8,  # Later logical time, should win
-            agent_id="agent-002", 
+            agent_id="agent-002",
             event_id="event-b",
             op="update",
             content_hash="same-hash",
         )
-        
+
         # Order [a,b] vs [b,a] should give same result
         winner_ab = reduce_events([event_a, event_b])
         winner_ba = reduce_events([event_b, event_a])
-        
+
         assert winner_ab == winner_ba, "reduce_events must be order-independent"
         assert winner_ab == event_b, "event_b should win (higher logical clock)"
 
@@ -116,7 +116,7 @@ class TestDeltaSyncResolver:
             op="update",
             content_hash="same-hash",
         )
-        
+
         event_z = EventView(
             hlc_physical=100,
             hlc_logical=0,  # Same HLC
@@ -125,7 +125,7 @@ class TestDeltaSyncResolver:
             op="update",
             content_hash="same-hash",
         )
-        
+
         winner = resolve(event_a, event_z)
         assert winner == event_a, "Smaller event_id should win on total tie"
 
@@ -142,7 +142,7 @@ class TestDeltaSyncResolver:
             op="delete",
             content_hash="same-hash",
         )
-        
+
         update_event = EventView(
             hlc_physical=100,
             hlc_logical=0,  # Same HLC
@@ -151,7 +151,7 @@ class TestDeltaSyncResolver:
             op="update",
             content_hash="same-hash",
         )
-        
+
         winner = resolve(delete_event, update_event)
         assert winner == delete_event, "Delete should win over update with same HLC"
 
@@ -168,7 +168,7 @@ class TestDeltaSyncResolver:
             op="delete",
             content_hash="same-hash",
         )
-        
+
         update_event = EventView(
             hlc_physical=101,  # Later physical time
             hlc_logical=0,
@@ -177,7 +177,7 @@ class TestDeltaSyncResolver:
             op="update",
             content_hash="same-hash",
         )
-        
+
         winner = resolve(update_event, delete_event)
         assert winner == update_event, "Later HLC should win over delete-vs-update rule"
 
@@ -195,7 +195,7 @@ class TestDeltaSyncResolver:
             op="update",
             content_hash="same-hash",
         )
-        
+
         later_event = EventView(
             hlc_physical=100,
             hlc_logical=0,
@@ -204,7 +204,7 @@ class TestDeltaSyncResolver:
             op="update",
             content_hash="same-hash",
         )
-        
+
         winner = resolve(early_event, later_event)
         assert winner == later_event, "Later HLC should always win (late event rule)"
 
@@ -221,7 +221,7 @@ class TestDeltaSyncResolver:
             op="create",
             content_hash="hash-1",
         )
-        
+
         event_b = EventView(
             hlc_physical=101,
             hlc_logical=0,
@@ -230,10 +230,10 @@ class TestDeltaSyncResolver:
             op="update",
             content_hash="hash-1",
         )
-        
+
         # This should not raise TypeError for wrong number of args
         result = resolve(event_a, event_b)
-        
+
         # Result should be one of the input events
         assert result in [event_a, event_b], "resolve should return one of the input events"
 
@@ -250,7 +250,7 @@ class TestDeltaSyncResolver:
         except (ValueError, TypeError):
             # Acceptable to raise an error for empty list
             pass
-        
+
         # Single event should return itself
         single_event = EventView(
             hlc_physical=100,
@@ -260,7 +260,7 @@ class TestDeltaSyncResolver:
             op="create",
             content_hash="hash-single",
         )
-        
+
         result = reduce_events([single_event])
         assert result == single_event, "reduce_events([event]) should return the event"
 
@@ -277,7 +277,7 @@ class TestDeltaSyncResolver:
             ),
             EventView(
                 hlc_physical=105, hlc_logical=0,  # Latest
-                agent_id="agent-002", event_id="event-2", 
+                agent_id="agent-002", event_id="event-2",
                 op="update", content_hash="hash-multi"
             ),
             EventView(
@@ -286,7 +286,7 @@ class TestDeltaSyncResolver:
                 op="update", content_hash="hash-multi"
             )
         ]
-        
+
         winner = reduce_events(events)
         # Event-2 should win (hlc_physical=105 is highest)
         assert winner.event_id == "event-2", "Event with highest HLC should win"
@@ -303,13 +303,13 @@ class TestDeltaSyncResolver:
             agent_id="agent-001", event_id="old-high-quality",
             op="update", content_hash="same-hash"
         )
-        
+
         low_quality_new = EventView(
             hlc_physical=101, hlc_logical=0,  # Later physical time
-            agent_id="agent-002", event_id="new-low-quality", 
+            agent_id="agent-002", event_id="new-low-quality",
             op="update", content_hash="same-hash"
         )
-        
+
         winner = resolve(high_quality_old, low_quality_new)
         assert winner == low_quality_new, "HLC ordering must take precedence over quality"
 
@@ -319,13 +319,13 @@ class TestDeltaSyncResolver:
             agent_id="agent-001", event_id="low-logical",
             op="update", content_hash="same-hash"
         )
-        
+
         same_physical_high_logical = EventView(
             hlc_physical=200, hlc_logical=7,  # Higher logical within same physical
             agent_id="agent-002", event_id="high-logical",
             op="update", content_hash="same-hash"
         )
-        
+
         winner = resolve(same_physical_low_logical, same_physical_high_logical)
         assert winner == same_physical_high_logical, "Higher logical clock should win within same physical time"
 
@@ -408,4 +408,3 @@ class TestResolverAssociativity:
                 f"reduce_events not permutation-invariant for triple:\n"
                 f"  {triple}\n  winners={resolved}"
             )
-
