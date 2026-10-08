@@ -92,7 +92,6 @@ def apply_remote_event(storage: MemoryStorage, event: Dict[str, Any]) -> ApplyRe
                 event_id=event_id,
                 op=op,
                 content_hash=content_hash,
-                quality_score=0.5  # Default quality score
             )
             
             # Get all competing events for this content_hash from local sync_events
@@ -112,7 +111,6 @@ def apply_remote_event(storage: MemoryStorage, event: Dict[str, Any]) -> ApplyRe
                     event_id=row[3],
                     op=row[4],
                     content_hash=row[5],
-                    quality_score=0.5  # Default quality score
                 ))
             
             # If no competing events, remote wins by default
