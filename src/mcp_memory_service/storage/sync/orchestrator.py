@@ -162,3 +162,136 @@ async def sync_from_peer(
         final_cursor=final_cursor,
         events_failed=events_failed
     )
+
+
+# --- Phase 4c: outbound push (spoke → hub), ADR-0027 ---
+
+import time
+import json
+
+
+@dataclass
+class PushResult:
+    """Result of push_to_peer operation."""
+    events_pushed: int
+    events_failed: int
+    final_seq: int
+
+
+class PushPeerAdapter(Protocol):
+    """Protocol for push targets (RemoteHTTPStorage or test adapter)."""
+
+    async def push_events(self, events: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """POST events to the peer; returns {results, applied, skipped, failed}."""
+        ...
+
+
+def get_push_cursor(storage: MemoryStorage, peer_id: str) -> int:
+    """Read last_seq_pushed for a peer (0 if none). Dedicated push_cursor table (ADR-0027)."""
+    row = storage.conn.execute(
+        "SELECT last_seq_pushed FROM push_cursor WHERE peer_id = ?", (peer_id,)
+    ).fetchone()
+    return row[0] if row else 0
+
+
+def advance_push_cursor(storage: MemoryStorage, peer_id: str, last_seq: int) -> None:
+    """Advance push_cursor.last_seq_pushed for a peer, committing the batch (ADR-0027)."""
+    try:
+        storage.conn.execute(
+            """
+            INSERT OR REPLACE INTO push_cursor (peer_id, last_seq_pushed, updated_at)
+            VALUES (?, ?, ?)
+            """,
+            (peer_id, last_seq, time.time()),
+        )
+        storage.conn.commit()
+        logger.debug(f"Advanced push cursor for peer {peer_id} to seq {last_seq}")
+    except Exception as e:
+        logger.error(f"Error advancing push cursor: {e}")
+
+
+def _read_local_events_since(storage: MemoryStorage, since_seq: int, limit: int) -> List[Dict[str, Any]]:
+    """Read local sync_events with seq > since_seq, enriching create events with content (R8)."""
+    cur = storage.conn.execute(
+        """
+        SELECT seq, event_id, op, content_hash, agent_id, hlc_physical, hlc_logical,
+               embedding_model, embedding_dim, payload
+        FROM sync_events
+        WHERE seq > ?
+        ORDER BY seq
+        LIMIT ?
+        """,
+        (since_seq, limit),
+    )
+    events = []
+    for row in cur.fetchall():
+        seq, event_id, op, content_hash, agent_id, hlc_p, hlc_l, emb_model, emb_dim, payload = row
+        payload_dict = json.loads(payload) if payload else {}
+        if op == "create":
+            mrow = storage.conn.execute(
+                "SELECT content FROM memories WHERE content_hash = ? AND deleted_at IS NULL",
+                (content_hash,),
+            ).fetchone()
+            if mrow:
+                payload_dict["content"] = mrow[0]
+        events.append({
+            "seq": seq, "event_id": event_id, "op": op, "content_hash": content_hash,
+            "agent_id": agent_id, "hlc_physical": hlc_p, "hlc_logical": hlc_l,
+            "embedding_model": emb_model, "embedding_dim": emb_dim, "payload": payload_dict,
+        })
+    return events
+
+
+async def push_to_peer(
+    local_storage: MemoryStorage,
+    peer: PushPeerAdapter,
+    peer_id: str,
+    limit: int = 100,
+) -> PushResult:
+    """
+    Push local events to a peer (delta-sync Phase 4c, ADR-0027).
+
+    Reads local sync_events with seq > push_cursor, posts them in seq order (paginated),
+    and advances push_cursor ONLY after the peer acks a batch (R6, resumable). Stops at the
+    first batch that reports failures without advancing past the last fully-acked seq.
+    """
+    logger.info(f"Starting push to peer {peer_id}")
+    initial = get_push_cursor(local_storage, peer_id)
+    cursor = initial
+    pushed = failed = 0
+
+    while True:
+        events = _read_local_events_since(local_storage, cursor, limit)
+        if not events:
+            break
+        resp = await peer.push_events(events)
+        batch_failed = resp.get("failed", 0)
+        if batch_failed:
+            logger.warning(f"Push to {peer_id} stopped: {batch_failed} failed in batch")
+            # R6 (resumable): advance only to the last seq that succeeded CONTIGUOUSLY
+            # before the FIRST failure. Events after the first failure must be re-pushed
+            # (the hub applies in order; we cannot skip a failed event).
+            status_by_id = {r["event_id"]: r.get("status") for r in resp.get("results", [])}
+            last_ok_seq = cursor  # nothing new acked yet
+            ok_count = 0
+            for e in events:  # events are in seq order
+                st = status_by_id.get(e["event_id"], "failed")
+                if st == "failed":
+                    break
+                last_ok_seq = e["seq"]
+                ok_count += 1
+            failed += batch_failed
+            if last_ok_seq > cursor:
+                cursor = last_ok_seq
+                advance_push_cursor(local_storage, peer_id, cursor)
+                pushed += ok_count
+            break
+        # whole batch acked (applied or skipped_duplicate)
+        cursor = events[-1]["seq"]
+        advance_push_cursor(local_storage, peer_id, cursor)
+        pushed += len(events)
+        if len(events) < limit:
+            break
+
+    logger.info(f"Completed push to {peer_id}: {pushed} pushed, {failed} failed, cursor {initial} → {cursor}")
+    return PushResult(events_pushed=pushed, events_failed=failed, final_seq=cursor)

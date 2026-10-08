@@ -7,13 +7,14 @@ Implements ADR-0020 (pagination by seq) and ADR-0021 (enriched create events).
 
 import json
 import logging
+import os
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Query, Depends, HTTPException
 from pydantic import BaseModel
 
 from ...storage.base import MemoryStorage
 from ..dependencies import get_storage
-from ..oauth.middleware import require_read_access
+from ..oauth.middleware import require_read_access, require_write_access
 
 logger = logging.getLogger(__name__)
 
@@ -136,3 +137,98 @@ async def get_sync_events(
     except Exception as e:
         logger.error(f"Error retrieving sync events: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# --- Phase 4c: outbound push ingestion (ADR-0027) ---
+
+class IngestEventsRequest(BaseModel):
+    """Request body for POST /api/sync/events (push ingestion)."""
+    events: List[Dict[str, Any]]
+
+
+class IngestEventResult(BaseModel):
+    """Per-event ingestion result."""
+    event_id: str
+    status: str  # applied | skipped_duplicate | failed
+
+
+class IngestEventsResponse(BaseModel):
+    """Response for POST /api/sync/events."""
+    results: List[IngestEventResult]
+    applied: int
+    skipped: int
+    failed: int
+
+
+def _push_allowed_agents() -> Optional[set]:
+    """Allow-list from MCP_SYNC_PUSH_ALLOWED_AGENTS (comma-separated). None = accept any (R4)."""
+    raw = os.getenv("MCP_SYNC_PUSH_ALLOWED_AGENTS", "").strip()
+    if not raw:
+        return None
+    return {a.strip() for a in raw.split(",") if a.strip()}
+
+
+@router.post("/sync/events", response_model=IngestEventsResponse)
+async def ingest_sync_events(
+    body: IngestEventsRequest,
+    _auth: bool = Depends(require_write_access),
+    storage: MemoryStorage = Depends(get_storage),
+) -> IngestEventsResponse:
+    """
+    Ingest pushed sync events from a spoke (delta-sync Phase 4c, ADR-0027).
+
+    Applies each event via apply_remote_event (idempotent, preserves authorship).
+    Authorship guard (R4): if MCP_SYNC_PUSH_ALLOWED_AGENTS is set, a batch containing an
+    event whose agent_id is not in the allow-list is rejected whole (403) and NOTHING is
+    applied. If unset, any non-empty agent_id is accepted.
+    """
+    from ...storage.sync.apply import apply_remote_event
+
+    allowed = _push_allowed_agents()
+
+    # R4: validate authorship for the WHOLE batch before applying anything.
+    for ev in body.events:
+        agent_id = (ev.get("agent_id") or "").strip()
+        if not agent_id:
+            raise HTTPException(status_code=403, detail="event missing agent_id")
+        if allowed is not None and agent_id not in allowed:
+            raise HTTPException(
+                status_code=403,
+                detail=f"agent_id not allowed to push: {agent_id}",
+            )
+
+    results: List[IngestEventResult] = []
+    applied = skipped = failed = 0
+    stop = False
+    for ev in body.events:
+        eid = ev.get("event_id", "")
+        if stop:
+            # Applied in order; after the first failure the remaining events are NOT
+            # applied (the spoke re-pushes from the last acked seq, R6).
+            results.append(IngestEventResult(event_id=eid, status="failed"))
+            failed += 1
+            continue
+        try:
+            res = apply_remote_event(storage, ev)
+            # Classify by the real ApplyResult contract (apply.py uses INSERT OR IGNORE,
+            # so a duplicate does not fail — it returns applied=True, materialized=False).
+            if res.applied and res.materialized:
+                status = "applied"
+                applied += 1
+            elif res.applied and not res.materialized:
+                # event recorded but not materialized: duplicate or lost conflict resolution
+                # — for push semantics the hub already has it / local winner kept.
+                status = "skipped_duplicate"
+                skipped += 1
+            else:
+                status = "failed"
+                failed += 1
+                stop = True
+        except Exception as e:
+            logger.error("ingest apply failed for %s: %s", eid, e)
+            status = "failed"
+            failed += 1
+            stop = True
+        results.append(IngestEventResult(event_id=eid, status=status))
+
+    return IngestEventsResponse(results=results, applied=applied, skipped=skipped, failed=failed)

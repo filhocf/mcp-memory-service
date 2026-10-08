@@ -500,6 +500,41 @@ class RemoteHTTPStorage(MemoryStorage):
             logger.error(f"Error getting sync events: {_sanitize_log_value(str(e))}")
             return [], cursor, False
 
+    async def push_events(self, events: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Push local sync events to the remote peer (delta-sync Phase 4c, ADR-0027).
+
+        POSTs events to the peer's POST /api/sync/events ingestion endpoint. The peer
+        applies each via apply_remote_event and returns per-event results.
+
+        Args:
+            events: list of event dicts (create events enriched with content, ADR-0021/R8)
+
+        Returns:
+            dict {results: [{event_id, status}], applied, skipped, failed};
+            on transport failure returns {results: [], applied: 0, skipped: 0,
+            failed: len(events), error: <msg>} so the caller does NOT advance the cursor.
+        """
+        try:
+            response = await self._request(
+                "POST", "/api/sync/events", json={"events": events}
+            )
+            if response.status_code == 200:
+                return response.json()
+            logger.warning(
+                "Unexpected status code for push events: %s", response.status_code
+            )
+            return {
+                "results": [], "applied": 0, "skipped": 0,
+                "failed": len(events), "error": f"status {response.status_code}",
+            }
+        except Exception as e:
+            logger.error("Error pushing sync events: %s", _sanitize_log_value(str(e)))
+            return {
+                "results": [], "applied": 0, "skipped": 0,
+                "failed": len(events), "error": str(e),
+            }
+
     # Non-serviceable methods (raise NotImplementedError)
 
     async def retrieve(self, query: str, n_results: int = 5, tags: Optional[List[str]] = None, min_confidence: float = 0.0, include_superseded: bool = False, start_time: Optional[float] = None, end_time: Optional[float] = None, store: Optional[str] = None) -> List[MemoryQueryResult]:
