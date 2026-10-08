@@ -859,7 +859,7 @@ class TestDeltaSyncHLC:
                 )
                 memories.append(memory)
                 
-                await storage.store(memory)
+                await storage.store(memory, skip_semantic_dedup=True)
                 # Small delay to ensure different physical time if HLC uses wall clock
                 time.sleep(0.001)
             
@@ -903,7 +903,8 @@ class TestDeltaSyncHLC:
                     h = generate_content_hash(c)
                     hashes.append(h)
                     await storage.store(Memory(content=c, content_hash=h,
-                                               tags=["same-ms"], memory_type="note"))
+                                               tags=["same-ms"], memory_type="note"),
+                                        skip_semantic_dedup=True)
             cursor = storage.conn.execute(
                 "SELECT hlc_physical, hlc_logical FROM sync_events WHERE content_hash IN (?,?,?) ORDER BY seq",
                 tuple(hashes),
@@ -964,7 +965,7 @@ class TestDeltaSyncHLC:
                 tags=["restart"], 
                 memory_type="note"
             )
-            await storage.store(memory1)
+            await storage.store(memory1, skip_semantic_dedup=True)
             
             # Get the HLC value
             cursor = storage.conn.execute("""
@@ -988,7 +989,7 @@ class TestDeltaSyncHLC:
                 tags=["restart"], 
                 memory_type="note"
             )
-            await new_storage.store(memory2)
+            await new_storage.store(memory2, skip_semantic_dedup=True)
             
             # Get the new HLC value
             cursor = new_storage.conn.execute("""
