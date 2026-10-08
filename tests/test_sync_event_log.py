@@ -752,6 +752,7 @@ class TestGreptilePhase1Fixes:
         )
         assert ok, f"connection must be usable after the lock-retry batch (store reason: {reason})"
 
+
 class TestDeltaSyncHLC:
     """Test suite for Phase 2 HLC (Hybrid Logical Clock) functionality with DB."""
     
