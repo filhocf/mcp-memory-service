@@ -14,7 +14,7 @@ mcp-memory-service (fork = linha viva · 0 atrás do upstream · 3/out noite · 
 │   ├─ Fase 3 (R10-R13) desacoplar hybrid.py do CF (capability-gating) . ✅ MERGED PR #1474
 │   ├─ Fase 4 (R14-R16) model-match startup check (fail-closed modelo hub≠local) . ✅ MERGED PR #1476
 │   ├─ fix: hybrid+http não exige creds Cloudflare (storage.py:164 guard) ... 🟢 PR #1480 ABERTO (CI verde, Greptile P2 resolvido, aguarda Henry)
-│   └─ 🟢 hybrid-online LIGADO no sirdata: BACKEND=hybrid, secondary=hub VPS (cfnarede.dev/memory, x-api-key+basic zero). Push E2E provado. Crons de sync de memória desligados (teste do nativo). Pull bidirecional pendente (ligar DTP).
+│   └─ 🧪 hybrid-online TESTADO no sirdata (07/out) e REVERTIDO p/ sqlite_vec. Provou conexão REST+push ao hub VPS; achou o bug CF-guard (#1480). Decisão 4/out: sync que aposenta Insync = DELTA-SYNC (#1345), não hybrid (hub=hub-and-spoke, tentativa anterior). remote_http do #1304 será o transporte da Fase 4 do delta-sync. Crons religados.
 │
 ├─ ✅ ARCO RATING / QUALITY ............................. FECHADO
 │   ├─ quality-model (computed vs user_rating) ......... ✅ MERGED PR #1349
