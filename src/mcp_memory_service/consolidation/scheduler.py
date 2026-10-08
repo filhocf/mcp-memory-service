@@ -360,7 +360,11 @@ class ConsolidationScheduler:
         if not raw:
             return []
         from ..storage.remote_http import RemoteHTTPStorage
-        api_key = os.getenv("MCP_API_KEY") or os.getenv("MCP_MEMORY_API_KEY")
+        # Dedicated var for the PEER's API key — NOT MCP_API_KEY. MCP_API_KEY on this
+        # process ALSO turns on auth enforcement for THIS server's own /mcp endpoint
+        # (middleware: `if not API_KEY: allow`), which would break every local MCP client.
+        # Keep the sync client's hub credential separate from the server's own auth gate.
+        api_key = os.getenv("MCP_SYNC_PEER_API_KEY") or None
         basic_user = os.getenv("MCP_SYNC_BASIC_USER") or None
         basic_pass = os.getenv("MCP_SYNC_BASIC_PASS") or None
         base_url = os.getenv("MCP_SYNC_PEER_URL", "").strip()

@@ -159,8 +159,18 @@ async def lifespan(app: FastAPI):
                 # Set global consolidator for API access
                 set_consolidator(consolidator)
 
-                # Initialize scheduler if any schedules are enabled
-                if any(schedule != 'disabled' for schedule in CONSOLIDATION_SCHEDULE.values()):
+                # Initialize scheduler if any schedule is enabled — consolidation cadences
+                # OR any opt-in interval job (harvest, quality recompute, delta-sync Phase 4d).
+                # Without this, a host that only enables MCP_SYNC_SCHEDULE (and leaves
+                # consolidation disabled) would never get a scheduler and the sync job would
+                # silently never run.
+                import os as _os
+                _consolidation_on = any(schedule != 'disabled' for schedule in CONSOLIDATION_SCHEDULE.values())
+                _optin_jobs_on = any(
+                    (_os.getenv(v, '').strip().lower() not in ('', 'disabled'))
+                    for v in ('MCP_HARVEST_SCHEDULE', 'MCP_QUALITY_RECOMPUTE_SCHEDULE', 'MCP_SYNC_SCHEDULE')
+                )
+                if _consolidation_on or _optin_jobs_on:
                     consolidation_scheduler = ConsolidationScheduler(
                         consolidator,
                         CONSOLIDATION_SCHEDULE,
