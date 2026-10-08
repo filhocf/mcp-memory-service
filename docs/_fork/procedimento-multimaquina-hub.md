@@ -37,9 +37,13 @@ Config por host: `~/dtp/ai-configs/services/env/memory-service.{HOST}.env` + `me
    ```
 3. **Merge upstream (NÃO rebase — main é linha viva):**
    ```bash
-   git fetch upstream --tags
-   git merge upstream/main --no-edit
+   git fetch --all --prune --tags   # OBRIGATÓRIO --all: pega github + upstream de uma vez (lição 08/out)
+   # ANTES de mergear, confirmar a posição vs o NOSSO remoto (fonte de verdade entre máquinas):
+   git rev-list --left-right --count main...github/main   # atrás do github/main? → ff primeiro
+   git merge --ff-only github/main 2>/dev/null || true    # pega trabalho de outras máquinas (sirdata/DNBSCDC289)
+   git merge upstream/main --no-edit                       # só reconcilia o que github/main ainda não tem
    ```
+   - **Lição 08/out (Claudio):** `fetch upstream` sozinho mascara o estado — outra máquina avança `github/main` e esta não vê. Comparar com `github/main` PRIMEIRO, FF, e só então upstream. Nunca basear estado em memória.
    - Conflitos esperados em arquivos fork-only (harvest/scheduler/server_impl/docs). Em 21/set todos eram
      NOSSA feature em versão refinada no upstream → resolver com `git checkout --theirs <arquivo>` para
      CÓDIGO e TESTES (versão final), e fusão manual em docs (conteúdo complementar, não escolher lado).
