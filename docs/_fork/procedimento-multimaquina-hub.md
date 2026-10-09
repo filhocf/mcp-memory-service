@@ -94,7 +94,7 @@ cd ~/git/mcp-memory-service && git reset --hard <ROLLBACK_HEAD> && systemctl --u
 
 ## Chegada numa máquina (startup — fazer SEMPRE ao trabalhar numa máquina nova/de casa)
 
-Rotina para garantir que a máquina está na linha viva e o delta-sync funciona ANTES de confiar na memória sincronizada. Protege contra trabalhar com banco dessincronizado ou código sem a F5.
+Rotina para garantir que a máquina está na linha viva e o delta-sync + learning-loop funcionam ANTES de confiar na memória sincronizada. Protege contra trabalhar com banco dessincronizado ou código atrás do HEAD.
 
 ```bash
 cd ~/git/mcp-memory-service
@@ -102,17 +102,42 @@ cd ~/git/mcp-memory-service
 git fetch --all --prune
 git rev-list --left-right --count main...github/main   # left=à frente, right=atrás
 git merge --ff-only github/main                          # pega trabalho das outras máquinas
-# 2. Confirmar que a F5 (bootstrap) está presente no código
+
+# 2. Confirmar features presentes no código (F5 delta-sync + learning-loop)
 .venv/bin/python -c "from mcp_memory_service.storage.sync import bootstrap; print('F5 OK')"
-#    Se der ImportError → a máquina está ATRÁS: refazer o update de serviço (passos 1-7 acima: ff + reinstalar venv + restart)
-# 3. Confirmar que o serviço roda o código novo (restart se o pid for anterior ao ff)
-systemctl --user restart memory-service.service   # NOME REAL do serviço (não "mcp-memory")
-# 4. Confirmar sync configurado + rodando (cursores avançam contra o hub)
+.venv/bin/python -c "from mcp_memory_service.extraction import facts; print('fact-extraction OK')"
+.venv/bin/python -c "from mcp_memory_service.server.handlers import gaps; print('gap-detection OK')"
+#    ImportError em qualquer → a máquina estava atrás; o ff do passo 1 trouxe o código, siga para o passo 3.
+
+# 3. REINSTALAR o venv editable (OBRIGATÓRIO após ff que mudou deps/código novo).
+#    NUNCA 'uv sync --frozen' (remove ML). Reinstalar editable sem deps:
+VIRTUAL_ENV=.venv uv pip install -e . --no-deps -q
+
+# 4. Restart do serviço (o processo vivo tem o código ANTIGO em memória até reiniciar)
+systemctl --user restart memory-service.service   # NOME REAL (não "mcp-memory")
+sleep 20 && curl -s --max-time 5 http://localhost:3202/health   # {"status":"ok"} após ONNX subir
+
+# 5. Confirmar delta-sync rodando (cursores avançam contra o hub; schedule 1m)
 sqlite3 ~/local-data/mcp/sqlite_vec.db "SELECT peer_id,last_seq_seen FROM sync_cursor; SELECT peer_id,last_seq_pushed FROM push_cursor;"
-#    Esperar ~2min (schedule 1m) e reconferir: os last_seq devem avançar se há tráfego.
+#    Esperar ~2min e reconferir: os last_seq devem avançar se há tráfego.
 ```
 
-**Pitfall (lição 09/out):** o serviço systemd chama-se `memory-service.service`, NÃO `mcp-memory`. Consultar `systemctl --user show mcp-memory ...` dá VAZIO e induz a concluir "env não setado/serviço desligado" (dois diagnósticos errados num dia). Use `systemctl --user list-units | grep memory` para achar o nome real ANTES de inspecionar.
+### Camada learning-loop — envs opt-in (fork-only, default OFF, ligar por máquina quando quiser)
+Essas features vêm no código via o ff acima, mas são **opt-in** — só agem se a env estiver no `memory-service.env` (`~/dtp/ai-configs/services/env/memory-service.env`, sincronizado via Insync → já chega nas 3 máquinas). Estado em DNBSCDC289 (09/out):
+
+| Env | O quê | Estado |
+|-----|-------|--------|
+| `MCP_QUALITY_RECOMPUTE_SCHEDULE=6h` | L4: job recalcula quality (clampado [0,1]) a partir dos sinais | ON |
+| `MCP_QUALITY_RECOMPUTE_DRY_RUN=false` | persiste o quality (não só calcula) | false (persiste) |
+| `MCP_SEARCH_INJECT_CONTEXT=on` | L3 push: memory_search anexa contexto destilado (gera volume p/ o sinal) | ON |
+| `MCP_FACT_EXTRACT_SCHEDULE` | L2: job destila fatos S→P→O (precisa LLM: HARVEST_LLM_PROVIDERS/GROQ_API_KEY) | unset (off) |
+| `MCP_GAP_THRESHOLD=0.3` | gap-detection: registra busca com top_score abaixo do limiar | default |
+
+- A env é **versionada/sincronizada** (Insync) → setar numa máquina propaga. Mas o serviço só pega no **restart** (passo 4).
+- NÃO ligar `MCP_FACT_EXTRACT_SCHEDULE` sem provider LLM configurado (job vira no-op gracioso, mas sem efeito).
+- O ganho EMPÍRICO do learning-loop (MRR vs baseline LoCoMo 0.4140) depende de VOLUME acumular com as flags ON — medir com `scripts/benchmarks/benchmark_locomo.py --mode ablation` após 1-2 semanas.
+
+**Pitfall (lição 09/out):** o serviço systemd chama-se `memory-service.service`, NÃO `mcp-memory`. `systemctl --user show mcp-memory ...` dá VAZIO e induz a concluir "env não setado/serviço desligado". Use `systemctl --user list-units | grep memory` para o nome real ANTES de inspecionar; ou leia o env do processo vivo via `/proc/$(pgrep -f memory-server)/environ`.
 
 ---
 
