@@ -500,27 +500,33 @@ Documentação necessária para um Kiro iniciado do zero aprender a usar o memor
 ---
 
 
-## 12. Acompanhamento Upstream (Codeberg doobidoo/mcp-memory-service)
+## 12. Acompanhamento Upstream (GitHub doobidoo/mcp-memory-service)
 
-**Atualizado:** 03/set/2026 | **Upstream:** v11.10.0 (CB líder + GH espelho/Discussions/Security) | Ver reconciliação completa: `RECONCILIACAO-v11.10.0.md`
+**Atualizado:** 09/out/2026 | **Upstream:** v11.15.0 (GitHub líder — dev, CI, issues, PRs, releases) | **Codeberg: MORTO** (aposentado; não é mais remote nem espelho). Reconciliações históricas: `reconciliacao-v11.10.0.md` (snapshot de set, Codeberg-era — NÃO é estado atual).
 
-### ⚡ Reconciliação v11.10.0 (03/set/2026)
+### ⚡ Reconciliação v11.15.0 (09/out/2026)
 
-Após ~2 meses de afastamento (hackathon). Merge-base do fork = #54 (`8e69f4fc`, 26/jul) → **#54/#107/#62 já no upstream**. Estado das nossas features:
+**Hospedagem (fonte de verdade — `git remote -v`):** `upstream` = GitHub `doobidoo/mcp-memory-service` (fetch-only, push DISABLED); `github` = fork `filhocf/mcp-memory-service` (push). GitLab é push-mirror de `main` (nunca tagueia). **Codeberg morreu** — qualquer doc que o cite como líder/espelho/remote ativo está obsoleta.
 
-| Feature | Estado v11.10.0 | Evidência / Ação |
-|---------|-----------------|------------------|
-| Multi-store #62 (partição) | ✅ PRESENTE (partição real: coluna + vec0 partition key) | migrations.py:288-291,329 |
-| NER plugável #107 (DomainExtractor) | ✅ PRESENTE | entities.py:22-30,110-166 |
-| NER/NLI locale YAML #54 | ✅ PRESENTE (é o merge-base) | ner_patterns/*.yaml |
-| **store → entity-extraction** | 🔴 **AUSENTE** (gap central) | extract_entities sem store; StoreTermsExtractor + store via metadata |
-| NLI LLM cascade | 🔴 AUSENTE-TRANSPORTÁVEL | `ff28cac4` → candidato #116 (melhor aceite) |
-| Trilogia RFC-MM (feedback/fact/gap) | 🔴 AUSENTE-TRANSPORTÁVEL | `2e1978d5` + testes → OK Henry (#67) |
-| Harvest rewrite_batch + tracker | 🔴 AUSENTE-TRANSPORTÁVEL | `ad17ff34`,`53584bf6` → #104 |
-| Kiro IDE session parser | 🔴 AUSENTE-TRANSPORTÁVEL | `d017a1d4` |
-| Fixes pequenos | 🔴 AUSENTE-TRANSPORTÁVEL | `bde5bf43`,`cd86a4cb`,`7d4c8dec` |
+**Arco delta-sync (#1345) — multi-writer memory mesh:**
 
-Backup dos 29 commits do fork: branch `backup/main-fork-2026-09-02`. Classificação: 13 FORK-ONLY, 13 AUSENTE-TRANSPORTÁVEL, 3 JÁ-NO-UPSTREAM (confirmar dup #23/#26). Remotes: upstream=CB, upstream-gh=GH, codeberg/github=fork.
+| Fase | PR | Estado |
+|------|----|----|
+| F1 — local sync event-log | #1478 | ✅ merged 08/out |
+| F2 — deterministic ordering (HLC + resolver) | #1485 | ✅ merged 08/out |
+| F3 — embedding consistency guardrail | #1487 | ✅ merged 08/out |
+| F4 — pull + push transport + orchestration | #1489 | ✅ merged 09/out |
+| F5 — bootstrap + event version negotiation | #1494 | 🟡 OPEN, CI verde + Greptile 5/5, `Closes #1345` armado — aguardando merge do Henry (REVIEW_REQUIRED) |
+
+Ao mergear o #1494, o RFC #1345 fecha automático. Deferidos RFC §5 (fora do arco): identidade cripto por spoke + privacidade shareable.
+
+**Arco #1304 (desacoplar hybrid de Cloudflare) — CONCLUÍDO:** #1469 (host stamping) #1470 (F1 list_content_hashes) #1471 (F2 HTTP secondary) #1474 (F3 capability gating) #1476 (F4 model-match) #1480 (fix CF creds). Todos merged 06-08/out.
+
+**Arco learning-loop (#1345-família NÃO — ver RFC-MM):** L4 wiring (job recálculo quality + tool get_assertiveness_metrics + clamp) feito no FORK 05/out, em janela de medição N1. PRs ao Henry só após a janela provar valor (ADR-0005). Trilogia fact/gap/feedback resgatada, fork-only, pendente spec para virar 3 PRs (#1286).
+
+**Backups de reconciliação (hoje):** branches `backup/fork-main-pre-reconcile-20261009`, `backup/fork-main-pre-rebase-20261008`.
+
+
 
 ### Snapshot histórico (20/jul/2026 — pré-hackathon)
 
@@ -603,8 +609,8 @@ Issue #67 está **open**. Henry NÃO fechou. Itens parked:
 
 ### Regra de Contribuição
 
-- Remotes: `codeberg` (fork) + `codeberg-upstream` (doobidoo). GitHub aposentado.
-- PRs SEMPRE baseados em `codeberg-upstream/main` (não no nosso `main`)
+- Remotes: `github` (fork filhocf) + `upstream` (GitHub doobidoo, fetch-only). Codeberg MORTO.
+- PRs SEMPRE baseados em `upstream/main` (GitHub, não no nosso `main`)
 - 1 feature = 1 PR (nunca scope inflado)
 - Testar CI localmente antes de abrir (`pytest -x -q`)
 - Henry aceita rápido quando PR está limpa (padrão: <24h)
