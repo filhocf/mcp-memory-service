@@ -251,6 +251,47 @@ class TestUsageTelemetry:
         await storage._execute_with_retry(check_feedback_event)
 
     @pytest.mark.asyncio
+    async def test_injected_then_used_cross_agent_isolation(self, storage):
+        """LOW 1: injection by agent 'A' + retrieval by agent 'B' → injected_then_used should be 0 (cross-agent guard)."""
+        from mcp_memory_service.storage.usage_telemetry import derive_signals, log_usage_event
+        
+        # Create a test hash for injection/retrieval
+        test_hash = "abc123def456"
+        
+        # Agent 'A' injects the hash
+        await log_usage_event(
+            storage,
+            "injection",
+            agent_id="agent_A",
+            metadata=json.dumps({"belief_hashes": [test_hash]}),
+            timestamp=datetime.now(timezone.utc).isoformat()
+        )
+        
+        # Wait a moment to ensure timestamp ordering
+        import time
+        time.sleep(0.01)
+        
+        # Agent 'B' retrieves the hash (different agent!)
+        await log_usage_event(
+            storage,
+            "retrieval", 
+            agent_id="agent_B",
+            metadata=json.dumps({"returned_hashes": [test_hash]}),
+            timestamp=datetime.now(timezone.utc).isoformat()
+        )
+        
+        # Derive signals
+        signals = await derive_signals(storage)
+        
+        # The cross-agent isolation should prevent any injected_then_used signal
+        # for this hash, even though it was injected by A and retrieved by B
+        injected_then_used_count = signals.get(test_hash, {}).get("injected_then_used", 0)
+        assert injected_then_used_count == 0, (
+            f"Expected 0 injected_then_used signal for cross-agent case, got {injected_then_used_count}. "
+            f"This proves the agent_id guard is working."
+        )
+
+    @pytest.mark.asyncio
     async def test_usage_events_table_schema(self, storage):
         """Verify usage_events table has the correct schema."""
         # This will fail because table doesn't exist yet
@@ -402,3 +443,160 @@ class TestUsageTelemetry:
         
         # Normal case should produce reasonable values
         assert 0.0 <= scores['hash_normal'] <= 1.0
+
+    @pytest.mark.asyncio
+    async def test_derive_signals_injection_then_used_basic(self, storage):
+        """derive_signals returns injected_then_used >= 1 when hash is injected then retrieved later."""
+        from mcp_memory_service.storage.usage_telemetry import derive_signals, log_usage_event
+        
+        # Set up test data: inject hashA at T, then retrieve it at T+1
+        hashA = "test_hash_a"
+        agent_id = "test_agent"
+        
+        # Event 1: Injection at T=1000
+        await log_usage_event(
+            storage, 
+            "injection",
+            agent_id=agent_id,
+            timestamp="2024-10-09T10:00:00Z",
+            metadata=json.dumps({"belief_hashes": [hashA], "count": 1})
+        )
+        
+        # Event 2: Retrieval at T=2000 that returns hashA
+        await log_usage_event(
+            storage,
+            "retrieval", 
+            agent_id=agent_id,
+            timestamp="2024-10-09T10:01:00Z",
+            returned_hashes=[hashA]
+        )
+        
+        # Derive signals
+        signals = await derive_signals(storage)
+        
+        # Should have injected_then_used >= 1 for hashA
+        assert hashA in signals, f"hashA should be in signals, got: {signals}"
+        assert 'injected_then_used' in signals[hashA], f"injected_then_used should be in signals for hashA, got: {signals[hashA]}"
+        assert signals[hashA]['injected_then_used'] >= 1, f"injected_then_used should be >= 1 for hashA, got: {signals[hashA]['injected_then_used']}"
+
+    @pytest.mark.asyncio
+    async def test_derive_signals_injection_then_used_temporal_ordering(self, storage):
+        """injected_then_used only counts when retrieval timestamp > injection timestamp."""
+        from mcp_memory_service.storage.usage_telemetry import derive_signals, log_usage_event
+        
+        hashB = "test_hash_b"
+        agent_id = "test_agent"
+        
+        # Event 1: Retrieval BEFORE injection (should not count)
+        await log_usage_event(
+            storage,
+            "retrieval",
+            agent_id=agent_id,
+            timestamp="2024-10-09T09:59:00Z",  # Earlier timestamp
+            returned_hashes=[hashB]
+        )
+        
+        # Event 2: Injection AFTER retrieval
+        await log_usage_event(
+            storage,
+            "injection",
+            agent_id=agent_id, 
+            timestamp="2024-10-09T10:00:00Z",  # Later timestamp
+            metadata=json.dumps({"belief_hashes": [hashB], "count": 1})
+        )
+        
+        signals = await derive_signals(storage)
+        
+        # Should NOT have injected_then_used for hashB (wrong order)
+        if hashB in signals:
+            assert signals[hashB].get('injected_then_used', 0) == 0, f"injected_then_used should be 0 for wrong temporal order, got: {signals[hashB]}"
+
+    @pytest.mark.asyncio
+    async def test_recompute_quality_scores_with_injected_then_used_weight(self, storage):
+        """Quality scores with injected_then_used should be higher than reaccess-only due to W_INJ weight."""
+        from mcp_memory_service.storage.usage_telemetry import recompute_quality_scores
+        
+        # Compare two hashes: one with injected_then_used, one with only reaccess
+        signals_override = {
+            # Hash with injection utilization (W_INJ=2.0 weight)
+            'hash_injected': {'reaccess': 1, 'retry_failed': 0, 'injected_then_used': 1},
+            # Hash with equal reaccess but no injection utilization  
+            'hash_reaccess_only': {'reaccess': 1, 'retry_failed': 0, 'injected_then_used': 0},
+        }
+        
+        scores = await recompute_quality_scores(
+            storage,
+            base=0.5,
+            signals_override=signals_override
+        )
+        
+        # injected_then_used should result in higher score due to W_INJ weight (2.0)
+        injected_score = scores['hash_injected']
+        reaccess_score = scores['hash_reaccess_only']
+        
+        assert injected_score > reaccess_score, f"Injected+used hash should have higher score than reaccess-only. Got injected={injected_score}, reaccess={reaccess_score}"
+        assert injected_score > 0.5, f"Injected+used hash should be above base (0.5), got {injected_score}"
+
+    @pytest.mark.asyncio
+    async def test_w_inj_weight_isolation(self, storage):
+        """LOW 2: Compare {injected_then_used:1, reaccess:0} vs {injected_then_used:0, reaccess:1} - first should be HIGHER (W_INJ=2.0 > 1)."""
+        from mcp_memory_service.storage.usage_telemetry import recompute_quality_scores
+        
+        # Use signals_override to test the weighting directly without complex event setup
+        signals_override = {
+            "hash_injected_only": {
+                "injected_then_used": 1,
+                "reaccess": 0,
+                "retry_failed": 0,
+                "age_days": 0
+            },
+            "hash_reaccess_only": {
+                "injected_then_used": 0,
+                "reaccess": 1,
+                "retry_failed": 0,
+                "age_days": 0
+            }
+        }
+        
+        scores = await recompute_quality_scores(storage, base=0.5, signals_override=signals_override)
+        
+        # With W_INJ=2.0, injected_then_used:1 should score higher than reaccess:1
+        # Formula: base + sigmoid(W_INJ * injected_then_used + reaccess - NEG_WEIGHT * retry_failed) * decay
+        # hash_injected_only: 0.5 + sigmoid(2.0*1 + 0 - 0) = 0.5 + sigmoid(2.0)
+        # hash_reaccess_only: 0.5 + sigmoid(0 + 1 - 0) = 0.5 + sigmoid(1.0)
+        # Since sigmoid(2.0) > sigmoid(1.0), injected should be higher
+        
+        injected_score = scores['hash_injected_only']
+        reaccess_score = scores['hash_reaccess_only']
+        
+        assert injected_score > reaccess_score, (
+            f"Hash with injected_then_used:1 should score higher than reaccess:1 due to W_INJ=2.0 weight. "
+            f"Got injected={injected_score:.4f}, reaccess={reaccess_score:.4f}"
+        )
+        
+        # Verify both are above base (both should be positive signals)
+        assert injected_score > 0.5, f"Injected signal should raise score above base 0.5, got {injected_score:.4f}"
+        assert reaccess_score > 0.5, f"Reaccess signal should raise score above base 0.5, got {reaccess_score:.4f}"
+
+    @pytest.mark.asyncio
+    async def test_derive_signals_no_injection_events_fallback(self, storage):
+        """When no injection events exist, injected_then_used should be 0 for all hashes (graceful degradation)."""
+        from mcp_memory_service.storage.usage_telemetry import derive_signals, log_usage_event
+        
+        # Only create retrieval events, no injection events
+        hashC = "test_hash_c"
+        agent_id = "test_agent"
+        
+        await log_usage_event(
+            storage,
+            "retrieval",
+            agent_id=agent_id,
+            timestamp="2024-10-09T10:00:00Z",
+            returned_hashes=[hashC]
+        )
+        
+        signals = await derive_signals(storage)
+        
+        # All hashes should have injected_then_used=0 when no injection events
+        for hash_id, signal_dict in signals.items():
+            assert signal_dict.get('injected_then_used', 0) == 0, f"injected_then_used should be 0 when no injection events, got {signal_dict} for {hash_id}"
