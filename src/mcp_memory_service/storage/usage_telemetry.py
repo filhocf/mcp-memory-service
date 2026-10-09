@@ -662,6 +662,11 @@ def _decay(age_days: float, half_life_days: float = REACCESS_WINDOW_DAYS) -> flo
     return 0.5 ** (age_days / half_life_days)
 
 
+def _clamp01(x: float) -> float:
+    """Clamp value to [0.0, 1.0] range."""
+    return max(0.0, min(1.0, x))
+
+
 async def recompute_quality_scores(
     storage,
     base: float = 0.5,
@@ -691,7 +696,7 @@ async def recompute_quality_scores(
                 pos = float(sig.get("reaccess", 0)) + float(sig.get("referenced", 0)) + float(sig.get("drilldown", 0))
                 neg = float(sig.get("retry_failed", 0)) + float(sig.get("always_ignored", 0))
                 age = float(sig.get("age_days", 0))
-                scores[h] = base + _sigmoid(pos - NEG_WEIGHT * neg) * _decay(age)
+                scores[h] = _clamp01(base + _sigmoid(pos - NEG_WEIGHT * neg) * _decay(age))
             return scores
 
         signals = await derive_signals(storage)
@@ -701,7 +706,7 @@ async def recompute_quality_scores(
             neg = float(sig.get("retry_failed", 0))
             # Derived signals are treated as fresh (age 0) unless a caller
             # supplies ages; batch recompute over the live window keeps decay=1.
-            scores[h] = base + _sigmoid(pos - NEG_WEIGHT * neg) * _decay(0)
+            scores[h] = _clamp01(base + _sigmoid(pos - NEG_WEIGHT * neg) * _decay(0))
         return scores
     except Exception as e:  # noqa: BLE001 - best-effort recompute
         logger.warning("recompute_quality_scores failed (non-fatal): %s", e)

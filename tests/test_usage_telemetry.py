@@ -365,3 +365,40 @@ class TestUsageTelemetry:
             assert len(set(hashes)) == 1, f"Same query should produce same hash, got: {hashes}"
         
         await storage._execute_with_retry(check_hash_consistency)
+
+    @pytest.mark.asyncio
+    async def test_recompute_quality_scores_clamp_range(self, storage_with_memories):
+        """Quality scores must be clamped to [0,1] range even with extreme signal values."""
+        from mcp_memory_service.storage.usage_telemetry import recompute_quality_scores
+        
+        storage = storage_with_memories
+        
+        # Test extreme values that would normally result in scores outside [0,1]
+        extreme_signals = {
+            # High positive signals (should clamp to ≤1.0)
+            'hash_high': {'reaccess': 1000, 'retry_failed': 0, 'age_days': 0},
+            # High negative signals (should clamp to ≥0.0)
+            'hash_low': {'reaccess': 0, 'retry_failed': 1000, 'age_days': 0},
+            # Very old positive signals with high decay (should still be clamped)
+            'hash_old_high': {'reaccess': 1000, 'retry_failed': 0, 'age_days': 100},
+            # Normal case (should remain unchanged)
+            'hash_normal': {'reaccess': 1, 'retry_failed': 1, 'age_days': 0},
+        }
+        
+        scores = await recompute_quality_scores(
+            storage,
+            base=0.5,
+            signals_override=extreme_signals
+        )
+        
+        # All scores must be within [0.0, 1.0] range
+        for content_hash, score in scores.items():
+            assert 0.0 <= score <= 1.0, f"Score for {content_hash} is {score}, outside [0,1] range"
+            
+        # Verify specific expectations for extreme cases
+        assert scores['hash_high'] <= 1.0, f"High positive signals resulted in score {scores['hash_high']} > 1.0"
+        assert scores['hash_low'] >= 0.0, f"High negative signals resulted in score {scores['hash_low']} < 0.0"
+        assert scores['hash_old_high'] <= 1.0, f"Old high signals resulted in score {scores['hash_old_high']} > 1.0"
+        
+        # Normal case should produce reasonable values
+        assert 0.0 <= scores['hash_normal'] <= 1.0
