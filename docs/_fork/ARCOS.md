@@ -1,24 +1,22 @@
 # ARCOS — mapa de trabalho (agente)
 
 > Doc DENSO para carga rápida do agente. Onde estamos, por arco, cruzando RFC ↔ estado ↔ próximo passo.
-> Regra: mudou → atualiza AQUI (e no ESTADO.md a árvore). Atualizado: 2026-10-01.
+> Regra: mudou → atualiza AQUI (e no ESTADO.md a árvore). Atualizado: 2026-10-09.
 > Fonte de verdade dos arcos. RFCs em `docs/rfc/{planned,implemented}/`. Estado operacional em `pilha-prs-runbook.md`.
 
 ## Snapshot
-- **main fork:** sincronizada com upstream (0 atrás, 126+ à frente) via merge 2/out (4eb2d4e2). **2 fixes locais na main NÃO pushados** (10071cb1 rewriter, f83c6bf4 flag triagem).
-- **Mergeados pelo upstream:** #1404/#1352 (supersession orphan, NOSSO — fecha arco rating), #1405 (versioned-update fields), #1406/#1146 (log-sanit base mixin), #1396 (yearless dates), #1391 (decay flag), #1395 (scope by store).
-- **PR nosso ABERTO: #1418** (rewriter TYPE: leak, issue #1417). CI tests-prove-fix PASS + changelog PASS. BLOCKED/REVIEW_REQUIRED — aguarda Henry. NÃO self-merge. Branch filhocf:pr/rewriter-type-leak (recorte de upstream/main limpo).
-- **2 BUGS achados nesta sessão (2/out), corrigidos por GATE (reg G2/G3 + tuvok G5):**
-  - rewriter TYPE: leak → PR #1418 (acima).
-  - triagem flag não propagada (fork-only: triage.py não existe no upstream) → NÃO vira PR de bug; entra no PR de FEAT.
-- **11 OURO gravadas** no banco vivo (memory_consolidate action=harvest, in-process, triagem ON).
-- **Regra PR atualizada (Claudio 2/out):** FEAT 1-PR-por-vez; BUG abre conforme encontra. Skill memory-service-maintainer atualizado.
-- **Foco:** arco ingestão multi-agente. Henry respondeu o arco via #1346 (29/set), NÃO via #1393. Pedido dele = PR do coverage visível (ponto 1) + update RFC (pontos 2/3). Bola do nosso lado — entregar antes de pingar #1393.
+- **main fork:** 0 atrás do upstream, 246 à frente (09/out). Reconciliada pós-#1489 + L4 quality-recompute preservado.
+- **ARCO DELTA-SYNC (#1345): 4/5 fases MERGED** — #1478 (F1 event-log), #1485 (F2 HLC+resolver), #1487 (F3 embedding consistency), #1489 (F4 pull+push+scheduler). **Fase 5 (per-spoke identity + bootstrap) é o próximo e FECHA o arco.**
+- **ARCO #1304 (hybrid HTTP secondary): FECHADO** — 4 fases MERGED (#1470/#1471/#1474/#1476). Raiz que destravou o delta-sync. PR #1480 (CF-guard) pode estar pendente.
+- **ARCO rating/quality: FECHADO** (#1349/#1368/#1391/#1404).
+- **ARCO learning-loop:** L1/L2/L4 fork-only; L4 quality-recompute DORMENTE (dry-run, bloqueado por agent_id no retrieve). Trilogia em branch viva.
+- **Foco atual (09/out):** Fase 5 do delta-sync — fechar o arco completo.
 
 ## Arcos
 
 | Arco | Estado | RFCs (docs/rfc/) | Próximo passo |
 |------|--------|------------------|---------------|
+| **Delta-sync (#1345)** | ✅ 4/5 fases MERGED | planned/rfc-delta-sync (v0.4) + spec-fase1..4d | **Fase 5: per-spoke identity (§8.4) + bootstrap (§9.3)** — fecha o arco; depois op (schedule regime, 3 máquinas, aposentar Insync) |
 | **Ingestão multi-agente** (NOVO guarda-chuva) | 🟡 design + Henry respondeu via #1346 | planned/rfc-ingestao-multi-agente v0.3 — discussion #1393 (só nosso comentário) | PR ponto-1 de #1346: coverage_report() visível no resultado+log do harvest; depois update RFC (compat #2, kill-switch #3, legacy ToolResult #4) e comentar #1393 linkando |
 | ├ Camada 1: registro/descoberta de fontes N | 🔴 design | implemented/rfc-harvest-source-identity (ABSORVIDA) | declarativo + auto-descoberta assistida |
 | ├ Camada 2: perfil de parsing por agente (YAML) | 🔴 design | implemented/rfc-harvest-kiro-sessions (ABSORVIDA) | spec-fase0 escrita; triage.py consolidado (193 testes); aguarda aval #1393 |

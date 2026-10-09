@@ -113,6 +113,7 @@ backup_scheduler: Optional["BackupScheduler"] = None
 # shared literal (keeps feature PRs orthogonal).
 _OPTIN_SCHEDULE_ENV_VARS = (
     "MCP_HARVEST_SCHEDULE",
+    "MCP_QUALITY_RECOMPUTE_SCHEDULE",  # learning-loop L4 (fork-only, dormant)
     "MCP_SYNC_SCHEDULE",  # delta-sync Phase 4d
 )
 
@@ -401,11 +402,13 @@ def create_app() -> FastAPI:
 
     # Include session harvest router (Issue #630)
     app.include_router(harvest_router, tags=["harvest"])
-    logger.info("✓ Included harvest router with %s routes", _sanitize_log_value(len(harvest_router.routes)))
 
     # Include delta-sync event feed router (#1345 Phase 4 — pull/push transport)
     app.include_router(sync_events_router, prefix="/api", tags=["sync"])
     logger.info("✓ Included sync_events router with %s routes", _sanitize_log_value(len(sync_events_router.routes)))
+    logger.info("✓ Included harvest router with %s routes", _sanitize_log_value(len(harvest_router.routes)))
+
+    # Include delta-sync event feed router (#1345 Phase 4 — pull/push transport)
 
     # Include MCP protocol router
     app.include_router(mcp_router, tags=["mcp-protocol"])

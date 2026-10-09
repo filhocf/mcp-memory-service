@@ -445,7 +445,7 @@ class HarvestRewriter:
             return None
         return self._stamp(RewriteResult(content=content, memory_type=mem_type), provider, model)
 
-    async def _call_llm(self, prompt: str, timeout: float) -> tuple[str, Optional[str], Optional[str]]:
+    async def _call_llm(self, prompt: str, timeout: float, max_tokens: int = 200) -> tuple[str, Optional[str], Optional[str]]:
         """Call LLM with provider fallback chain.
 
         Returns ``(response, provider_name, model)`` so provenance travels with
@@ -460,7 +460,7 @@ class HarvestRewriter:
             for provider in self._providers:
                 try:
                     result = await self._call_openai_compatible(
-                        provider.base_url, provider.model, provider.api_key, prompt, timeout
+                        provider.base_url, provider.model, provider.api_key, prompt, timeout, max_tokens
                     )
                     # Provenance travels with the result of this call.
                     return result, provider.name, provider.model
@@ -478,11 +478,11 @@ class HarvestRewriter:
             raise RuntimeError("All LLM providers exhausted")
         # Legacy single-provider
         if self._provider == "groq":
-            result = await self._call_groq(prompt, timeout)
+            result = await self._call_groq(prompt, timeout, max_tokens)
             return result, "groq", self._model
         raise ValueError(f"Unknown LLM provider: {self._provider}")
 
-    async def _call_openai_compatible(self, base_url: str, model: str, api_key: str, prompt: str, timeout: float) -> str:
+    async def _call_openai_compatible(self, base_url: str, model: str, api_key: str, prompt: str, timeout: float, max_tokens: int = 200) -> str:
         """Call any OpenAI-compatible API (Groq, DeepSeek, Ollama, etc.)."""
         # httpx costs ~36ms to import and nothing else on this path pulls it in.
         # classifier.py imports this module at top level and harvest/__init__.py
@@ -502,7 +502,7 @@ class HarvestRewriter:
                     "model": model,
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.3,
-                    "max_tokens": 200,
+                    "max_tokens": max_tokens,
                 },
             )
             if resp.status_code == 429:
@@ -510,7 +510,7 @@ class HarvestRewriter:
             resp.raise_for_status()
             return resp.json()["choices"][0]["message"]["content"] or ""
 
-    async def _call_groq(self, prompt: str, timeout: float) -> str:
+    async def _call_groq(self, prompt: str, timeout: float, max_tokens: int = 200) -> str:
         """Call Groq API."""
         try:
             from groq import AsyncGroq
@@ -522,6 +522,6 @@ class HarvestRewriter:
             model=self._model,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
-            max_tokens=200,
+            max_tokens=max_tokens,
         )
         return response.choices[0].message.content or ""

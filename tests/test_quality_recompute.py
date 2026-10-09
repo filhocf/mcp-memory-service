@@ -255,6 +255,50 @@ class TestPersistQualityScores:
         
         asyncio.run(_test())
 
+    def test_persist_quality_scores_with_injected_then_used_signal(self):
+        """A7. persist_quality_scores with injected_then_used signal produces higher scores due to W_INJ weight."""
+        async def _test():
+            from mcp_memory_service.storage.usage_telemetry import persist_quality_scores
+            
+            mock_storage = AsyncMock()
+            mock_storage.get_by_hash.return_value = None  # No existing metadata
+            
+            # Test signals: injection utilization should produce higher scores than reaccess alone
+            signals_override = {
+                # Hash with injection utilization (should score higher due to W_INJ=2.0 weight)
+                "hash_injected": {"reaccess": 1, "retry_failed": 0, "injected_then_used": 1},
+                # Hash with equal reaccess but no injection utilization
+                "hash_reaccess": {"reaccess": 1, "retry_failed": 0, "injected_then_used": 0},
+            }
+            
+            result = await persist_quality_scores(
+                mock_storage,
+                base=0.5,
+                dry_run=False, 
+                signals_override=signals_override
+            )
+            
+            # Should have updated both hashes
+            assert mock_storage.update_memory_metadata.call_count == 2
+            
+            # Get the computed quality scores from the calls
+            calls = mock_storage.update_memory_metadata.call_args_list
+            injected_call = next(call for call in calls if call[0][0] == "hash_injected")
+            reaccess_call = next(call for call in calls if call[0][0] == "hash_reaccess")
+            
+            injected_quality = injected_call[0][1]["computed_quality"]
+            reaccess_quality = reaccess_call[0][1]["computed_quality"]
+            
+            # Injected+used should have higher score due to W_INJ weight (2.0)
+            assert injected_quality > reaccess_quality, f"Injected hash should score higher. injected={injected_quality}, reaccess={reaccess_quality}"
+            assert injected_quality > 0.5, f"Injected hash should be above base, got {injected_quality}"
+            
+            # Both should be clamped to [0,1]
+            assert 0.0 <= injected_quality <= 1.0
+            assert 0.0 <= reaccess_quality <= 1.0
+        
+        asyncio.run(_test())
+
 
 class TestQualityRecomputeScheduling:
     """Tests for quality recomputation scheduling in ConsolidationScheduler."""

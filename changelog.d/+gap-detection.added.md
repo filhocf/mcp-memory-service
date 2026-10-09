@@ -1,0 +1,1 @@
+Gap detection: `memory_search` records a knowledge gap when the top result's similarity falls below `MCP_GAP_THRESHOLD` (default 0.3). New `memory_gaps` tool (list/resolve/stats) surfaces recurring unmet queries. Best-effort, never breaks search.

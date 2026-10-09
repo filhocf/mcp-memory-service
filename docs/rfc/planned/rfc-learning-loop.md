@@ -1,4 +1,4 @@
-> 🟡 PARTIALLY IMPLEMENTED (L3 injeção + L4 telemetria no código; L2 destilação já no belief store). Guarda-chuva. Ver ADR-0003/0004/0005.
+> 🟢 LOOP CLOSED IN CODE (09/out/2026): L1 memória · L2 destilação (belief store) · L3 injeção pull (memory_context) + push server-side (INC-2, memory_search anexa contexto) · L4 feedback (telemetria + quality recompute clampado + sinal injected_then_used que distingue utilidade de popularidade). Falta o fechamento EMPÍRICO: MRR subir vs baseline LoCoMo 0.4140 — depende de VOLUME acumular (2ª fatia). Guarda-chuva. Ver ADR-0003/0004/0005 + docs/_fork/benchmarks/baseline-locomo-20261009.md.
 
 # RFC: Learning Loop — do colhedor ao aprendiz (closed-loop agent learning)
 
@@ -23,7 +23,7 @@ comportamento por mérito.
 | L1 Memória | fatos brutos recuperáveis (eventos, episódico) | ✅ (23.6k mems) |
 | L2 Destilação | episódico → semântico (regra/crença: "quando X, causa costuma ser W") | 🟡 parcial, **ruidoso** (beliefs 107 active, conf máx 0.64) |
 | L3 Conhecimento ativo | o destilado entra no contexto certo, no momento certo, **sem pull manual** | 🟡 só pull (startup/mistake_search manual) |
-| L4 Feedback | a regra sobrevive por **mérito** (ajudou→sobe, atrapalhou→morre) | 🔴 inexistente |
+| L4 Feedback | a regra sobrevive por **mérito** (ajudou→sobe, atrapalhou→morre) | 🟢 no código (telemetria usage_events + recompute quality clampado [0,1] + sinal injected_then_used peso 2× reaccess). Medição com volume pendente. |
 
 **Não-objetivo (honestidade intelectual):** não mudamos os pesos do modelo
 (fine-tuning). O "aprendizado" vive no **harness/serviço**, não no agente. O efeito
@@ -112,14 +112,11 @@ motor de aprendizado (genuinamente novo).
 
 ## 7. Gap: de onde estamos -> onde queremos
 
-L1 feito. L2 infra existe mas ruidosa. L3 so pull manual. L4 zero. Caminho mínimo em §9.
+**ATUALIZADO 09/out:** L1 feito. L2 destilação funciona (beliefs destiladas, não ruidosas após noise filter). L3 injeção pull (memory_context) + **push server-side** (INC-2: memory_search anexa contexto destilado, opt-in). L4 **fechado no código**: telemetria + recompute quality clampado + sinal **injected_then_used** (injetado e depois usado = utilidade qualificada, distingue de popularidade/reaccess). O ciclo colher→destilar→injetar→usar→recalibrar está COMPLETO mecanicamente. Falta o fechamento EMPÍRICO (MRR sobe vs 0.4140), que depende de volume de injeção+uso acumular — a flag INC-2 ligada agora gera esse volume. Caminho e medição em §9 + baseline em docs/_fork/benchmarks/.
 
 ## 8. Decisões abertas
-- Injeção proativa: via tool `memory_context(task, budget)` evoluída (pull "gordo")
-  ou via hook server-side (push)? Kiro não tem canal de pré-tool-context nativo
-  confiável — talvez o máximo viável seja pull barato e automático por tema, não push real.
-- Sinal de "uso": como o serviço sabe que uma injeção FOI usada? (rating implícito,
-  eco no texto da sessão, harvest reverso). Elo mais incerto do R3.
+- ~~Injeção proativa: via tool memory_context (pull) ou hook server-side (push)?~~ **RESOLVIDO (ver §3): server-side, não depende da disciplina do agente.** Como o Kiro não tem canal de pré-tool-context nativo, o push server-side se dá **anexando o contexto destilado relevante à resposta de uma operação que o agente JÁ faz** (ex: `retrieve`/`memory_search` devolvem, junto do resultado, o conhecimento destilado do tema). O agente não chama nada novo — busca como sempre e a injeção vem junto. Isso é server-side (§3), gera volume de injeção automático, e alimenta o sinal de uso do L4. O que NÃO é aceitável: depender de o agente lembrar de chamar `memory_context` (= rating manual que já falha). A tool `memory_context` continua existindo para pull explícito, mas NÃO é o mecanismo do push.
+- Sinal de "uso": como o serviço sabe que uma injeção FOI usada? (rating implícito, eco no texto da sessão, harvest reverso). Elo mais incerto do R3 — mas o sinal NEGATIVO (contradição/retry) é barato e já prioritário (§11).
 
 ## 9. Caminho mínimo (incremental, não big-bang)
 1. Limpar beliefs ruidosas (R2, task dc1c7756) — pré-requisito; destilar sobre ruído = mais ruído.

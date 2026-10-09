@@ -1313,6 +1313,26 @@ Examples:
         annotations={"readOnlyHint": True},
     ),
     ToolDef(
+        name="memory_facts",
+        description="""Manage fact extraction pipeline: extract atomic facts from memory chunks and store as typed graph edges.""",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "default": "status",
+                    "description": "Action to perform: 'status' (show pipeline stats) or 'run' (trigger extraction)",
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 200,
+                    "description": "Maximum chunks to process when action=run",
+                },
+            },
+        },
+        annotations={"readOnlyHint": False},
+    ),
+    ToolDef(
         name="get_onboarding_guide",
         description="""Get integration guide for a specific client type. """,
         input_schema={
@@ -1496,5 +1516,34 @@ Examples:
             "required": ["entity_id"],
         },
         annotations={"readOnlyHint": True},
+    ),
+    ToolDef(
+        name="memory_gaps",
+        description="""Manage detected knowledge gaps from low-score searches (RFC-MM-03).""",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["list", "resolve", "stats"],
+                    "default": "list",
+                    "description": "Action to perform: list unresolved gaps, resolve specific gaps, or get statistics",
+                },
+                "gap_id": {
+                    "type": "integer",
+                    "description": "Specific gap ID to resolve (for resolve action)",
+                },
+                "normalized_query": {
+                    "type": "string",
+                    "description": "Normalized query to resolve all matching gaps (for resolve action)",
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 20,
+                    "description": "Maximum number of gaps to return (for list action)",
+                },
+            },
+        },
+        annotations={"readOnlyHint": False},
     ),
 ]

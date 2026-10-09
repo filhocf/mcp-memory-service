@@ -1,0 +1,1 @@
+Fact extraction (L2 distillation): an opt-in scheduler job (`MCP_FACT_EXTRACT_SCHEDULE`) distils memories into atomic subject→predicate→object facts via the LLM provider chain, stored as typed edges in memory_graph with provenance. Incremental (never reprocesses), dedup by memory pair, graceful on LLM failure. New `memory_facts` tool inspects extraction status.

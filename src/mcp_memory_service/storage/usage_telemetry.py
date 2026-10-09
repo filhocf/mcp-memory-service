@@ -389,6 +389,62 @@ def _retrieval_tuples(rows) -> List[Dict[str, Any]]:
     return out
 
 
+async def _derive_injected_then_used(
+    by_agent: Dict[Any, List[Dict[str, Any]]], 
+    storage, 
+    _bump
+) -> None:
+    """Extract injected_then_used signal derivation.
+    
+    Load injection events and find belief_hashes that later appear in retrieval events
+    from the same agent. Only count when retrieval timestamp > injection timestamp.
+    """
+    try:
+        injection_rows = await _load_events_async(storage, "injection")
+        injection_events: Dict[Any, List[Dict[str, Any]]] = {}  # by agent_id
+        
+        for row in injection_rows:
+            agent_id = row["agent_id"]
+            ts = _parse_iso(row["timestamp"])
+            belief_hashes = _event_belief_hashes(row["metadata"])
+            
+            if belief_hashes and ts:  # Skip if no hashes or invalid timestamp
+                injection_events.setdefault(agent_id, []).append({
+                    "ts": ts,
+                    "belief_hashes": belief_hashes
+                })
+        
+        # For each agent, check if injected belief_hashes later appear in retrieval events
+        for agent_id, agent_events in by_agent.items():
+            if agent_id not in injection_events:
+                continue  # No injection events for this agent
+            
+            agent_injections = injection_events[agent_id]
+            
+            # Check each injection
+            for injection in agent_injections:
+                injection_ts = injection["ts"]
+                
+                # Check each belief hash from the injection
+                for belief_hash in injection["belief_hashes"]:
+                    # Count how many times this hash appears in later retrievals
+                    later_uses = 0
+                    
+                    for retrieval_event in agent_events:
+                        retrieval_ts = retrieval_event["ts"]
+                        if (retrieval_ts and 
+                            retrieval_ts > injection_ts and  # Must be AFTER injection
+                            belief_hash in retrieval_event["returned_hashes"]):
+                            later_uses += 1
+                    
+                    # Add signal for this hash if it was used later
+                    if later_uses > 0:
+                        _bump(belief_hash, "injected_then_used", later_uses)
+                        
+    except Exception as e:  # Best effort - don't break if injection events fail
+        logger.warning("injected_then_used signal derivation failed (non-fatal): %s", e)
+
+
 async def derive_signals(storage) -> Dict[str, Dict[str, int]]:
     """Derive per-content_hash reaccess / retry_failed signals (REQ-2/3).
 
@@ -413,7 +469,7 @@ async def derive_signals(storage) -> Dict[str, Dict[str, int]]:
         signals: Dict[str, Dict[str, int]] = {}
 
         def _bump(h: str, key: str, amount: int = 1) -> None:
-            slot = signals.setdefault(h, {"reaccess": 0, "retry_failed": 0})
+            slot = signals.setdefault(h, {"reaccess": 0, "retry_failed": 0, "injected_then_used": 0})
             slot[key] = slot.get(key, 0) + amount
 
         # Group by agent for both signals. agent_id may be None (the real
@@ -480,6 +536,9 @@ async def derive_signals(storage) -> Dict[str, Dict[str, int]]:
                             in_burst = True
                     else:
                         in_burst = False
+
+        # --- injected_then_used: inject proactively and later use (utilidade qualificada). ---
+        await _derive_injected_then_used(by_agent, storage, _bump)
 
         return signals
     except Exception as e:  # noqa: BLE001 - best-effort derivation
@@ -662,6 +721,11 @@ def _decay(age_days: float, half_life_days: float = REACCESS_WINDOW_DAYS) -> flo
     return 0.5 ** (age_days / half_life_days)
 
 
+def _clamp01(x: float) -> float:
+    """Clamp value to [0.0, 1.0] range."""
+    return max(0.0, min(1.0, x))
+
+
 async def recompute_quality_scores(
     storage,
     base: float = 0.5,
@@ -671,37 +735,45 @@ async def recompute_quality_scores(
 
         quality = base + sigmoid(sum(pos) - NEG_WEIGHT*sum(neg)) * decay(age, half_life=14d)
 
-    where pos = reaccess (and other positive signals) and neg = retry_failed.
+    where pos = reaccess + W_INJ*injected_then_used (and other positive signals) and neg = retry_failed.
     'sigmoid' here is the SIGNED logistic in (-1, 1) so a negative net pushes
     quality below base and a positive net above it (a plain (0,1) sigmoid could
     never drop below base). NEG_WEIGHT (2.5) is the "retry costs more than a
     reaccess rewards" asymmetry from RFC-MM-01: a hash reaccessed N times but
     caught in one tight re-query burst should still net positive, while a hash
     whose only history is short re-query bursts nets negative.
+    
+    W_INJ (2.0) is the injection utilization weight: a hash that was injected
+    proactively and later used is more valuable than one that was only reaccessed,
+    as it demonstrates the system's ability to predict useful information.
 
     signals_override lets a caller inject synthetic signals for testing/what-if:
-      {hash: {"reaccess": N, "retry_failed": M, "age_days": D}}
+      {hash: {"reaccess": N, "retry_failed": M, "injected_then_used": K, "age_days": D}}
     When provided, derivation is skipped and these signals are used verbatim.
     """
     NEG_WEIGHT = 2.5
+    W_INJ = 2.0  # Injection utilization weight - injected+used is more valuable than reaccess alone
     try:
         if signals_override is not None:
             scores: Dict[str, float] = {}
             for h, sig in signals_override.items():
-                pos = float(sig.get("reaccess", 0)) + float(sig.get("referenced", 0)) + float(sig.get("drilldown", 0))
+                pos = (float(sig.get("reaccess", 0)) + 
+                       W_INJ * float(sig.get("injected_then_used", 0)) +
+                       float(sig.get("referenced", 0)) + 
+                       float(sig.get("drilldown", 0)))
                 neg = float(sig.get("retry_failed", 0)) + float(sig.get("always_ignored", 0))
                 age = float(sig.get("age_days", 0))
-                scores[h] = base + _sigmoid(pos - NEG_WEIGHT * neg) * _decay(age)
+                scores[h] = _clamp01(base + _sigmoid(pos - NEG_WEIGHT * neg) * _decay(age))
             return scores
 
         signals = await derive_signals(storage)
         scores = {}
         for h, sig in signals.items():
-            pos = float(sig.get("reaccess", 0))
+            pos = float(sig.get("reaccess", 0)) + W_INJ * float(sig.get("injected_then_used", 0))
             neg = float(sig.get("retry_failed", 0))
             # Derived signals are treated as fresh (age 0) unless a caller
             # supplies ages; batch recompute over the live window keeps decay=1.
-            scores[h] = base + _sigmoid(pos - NEG_WEIGHT * neg) * _decay(0)
+            scores[h] = _clamp01(base + _sigmoid(pos - NEG_WEIGHT * neg) * _decay(0))
         return scores
     except Exception as e:  # noqa: BLE001 - best-effort recompute
         logger.warning("recompute_quality_scores failed (non-fatal): %s", e)

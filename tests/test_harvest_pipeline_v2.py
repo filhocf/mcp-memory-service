@@ -168,7 +168,7 @@ class TestMultiProvider:
         # Mock: first provider raises rate limit, second succeeds
         call_log = []
 
-        async def mock_call(base_url, model, api_key, prompt, timeout):
+        async def mock_call(base_url, model, api_key, prompt, timeout, max_tokens=200):
             call_log.append(base_url)
             if "groq" in base_url:
                 raise Exception("Rate limit exceeded 429")

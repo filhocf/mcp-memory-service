@@ -1,13 +1,25 @@
 # ESTADO — mcp-memory-service (Claudio)
 
 > Para você abrir e entender onde estamos sem reconstruir contexto.
-> Árvore primeiro (visão), notas depois (detalhe). Atualizado: 2026-10-07 (noite sirdata — #1304 FECHADO 4 fases + PR #1480 CF-guard + hybrid-online LIGADO).
+> Árvore primeiro (visão), notas depois (detalhe). Atualizado: 2026-10-09 (manhã DTP — delta-sync Fase 4 MERGED #1489; arco delta-sync 4/5 fases no upstream; Fase 5 é o próximo e FECHA o arco).
 
 ```
-mcp-memory-service (fork = linha viva · 0 atrás do upstream · 3/out noite · fork limpo: 3 branches)
+mcp-memory-service (fork = linha viva · 0 atrás do upstream · 246 à frente · 09/out)
 │  Legenda: ✅ MERGED/feito · 🟢 feito fork-only · 🟡 parcial/design · 🔴 a fazer
 │
-├─ ⭐ #1304 HYBRID SELF-HOSTED SECONDARY (http) ........ ✅ FECHADO (4 fases MERGED) · issue closed · raiz que destravou delta-sync (#1345)
+├─ ⭐ ARCO DELTA-SYNC (#1345) ..... sync nativo máquina↔hub que APOSENTA o Insync · 4/5 fases MERGED
+│   │   RFC: rfc-delta-sync (v0.4 colab ducanhnguyen223). Multi-writer mesh (vs #1304 hub-and-spoke).
+│   ├─ Fase 1 event-log local (mesma tx) ............... ✅ MERGED #1478 · ADR-0007/8/9
+│   ├─ Fase 2 HLC + resolver determinístico ............ ✅ MERGED #1485 · ADR-0010..0013
+│   ├─ Fase 3 embedding consistency guardrail .......... ✅ MERGED #1487 · ADR-0014..0017
+│   ├─ Fase 4 pull+push transport+orchestration+sched .. ✅ MERGED #1489 · ADR-0018..0028 · PULL+PUSH provados a quente
+│   │     └─ loop review 3 rodadas (Greptile 9 P1 materialização + CodeQL + follow-up Henry metadata convergence)
+│   └─ Fase 5 per-spoke identity + bootstrap ........... 🔴 PRÓXIMO — FECHA O ARCO
+│         (a) autoria forte por spoke (substitui allow-list pragmática da 4c, §8.4 anti-impersonação)
+│         (b) bootstrap de spoke novo na malha (§9.3 v0.4, 7 regras) · pré-req p/ desligar Insync com segurança
+│   └─ operacional pós-Fase 5: schedule de regime (15m), ligar nas 3 máquinas, aposentar crons Insync
+│
+├─ ⭐ #1304 HYBRID SELF-HOSTED SECONDARY (http) ........ ✅ FECHADO (4 fases MERGED) · raiz que destravou o delta-sync
 │   │   SPEC: ✅ rfc-hybrid-http-secondary (EARS R1-R16, Fases 1-4). Topologia validada em PROD: sirdata em hybrid-online com hub VPS (07/out).
 │   ├─ Fase 1 (R1-R5) list_content_hashes + bulk endpoint ... ✅ MERGED PR #1470
 │   ├─ Fase 2 (R6-R9+R9b) RemoteHTTPStorage + auth + pull real . ✅ MERGED PR #1471
@@ -85,10 +97,10 @@ mcp-memory-service (fork = linha viva · 0 atrás do upstream · 3/out noite · 
 │   ├─ "bring your memory": conversor mem0 .............. 🟡 PR #1401 (Harbor404, fecha nosso #1390)
 │   └─ "use in any agent" ............................... → é o arco ingestão multi-agente (acima)
 │
-└─ 🟡 ARCO HUB MULTI-AGENTE ............ agent_id feito; falta a malha
+└─ 🟡 ARCO HUB MULTI-AGENTE ............ agent_id feito; delta-sync 4/5 fases mergeadas
     ├─ agent_id F1/F2 (autoria no store) .............. ✅ MERGED PR #1278/#1297
     ├─ SPEC-hub F0-F8 ................................. 🟡 spec pronta
-    ├─ delta-sync (#1345) ............................. 🟡 RFC v0.3 (colab ducanhnguyen223 na v0.4)
+    ├─ delta-sync (#1345) ............................. ✅ 4/5 MERGED (ver arco DELTA-SYNC no topo) · Fase 5 fecha
     └─ F3-F8: estrela, consolidação nas pontas, NLI cross-agent  🔴 a fazer
 ```
 

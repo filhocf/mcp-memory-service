@@ -101,6 +101,7 @@ class MigrationRunner:
         delta_probes = {
             15: "SELECT 1 FROM sqlite_master WHERE type='table' AND name='sync_events'",
             16: "SELECT 1 FROM pragma_table_info('sync_events') WHERE name='hlc_physical'",
+            20: "SELECT 1 FROM pragma_table_info('memories') WHERE name='facts_extracted_at'",
         }
         recovered = self._stamp_probes(
             conn, {v: sql for v, sql in delta_probes.items() if v not in applied}

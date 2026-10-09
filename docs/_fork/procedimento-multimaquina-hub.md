@@ -81,18 +81,63 @@ cd ~/git/mcp-memory-service && git reset --hard <ROLLBACK_HEAD> && systemctl --u
 ---
 
 ## Estado por máquina (checklist)
+| Máquina | Versão serviço | delta-sync F5 | papel sync | Status (09/out) |
+|---------|---------------|---------------|-----------|-----------------|
+| DNBSCDC289 | v11.15.0 (HEAD 9355b6cd) | ✅ bootstrap presente | spoke (MCP_SYNC_SCHEDULE=1m → hub) | ✅ OPERACIONAL 09/out: sync bidirecional provado E2E (pull 194→197, push 386→390, hash propagou ao hub). Clamp quality aplicado. |
+| VPS (hub) | v11.15.0 (HEAD 9355b6cd) | ✅ bootstrap presente | hub (pivot passivo, sem peers) | ✅ OPERACIONAL 09/out: replicado da F4d→HEAD, 20659 mems preservadas, MCP_SYNC_EVENTLOG=on, serve feed/baseline |
+| sirdata | **VERIFICAR ao chegar** | **?** | spoke (quando ligado) | ⚠️ provável ATRÁS do HEAD (última ação 25/set, v11.14.0). PRECISA alinhar git antes de confiar no sync (ver "Chegada numa máquina" abaixo) |
+| socrates | **VERIFICAR ao chegar** | **?** | spoke (quando ligado) | ⚠️ provável ATRÁS do HEAD. Idem sirdata |
 
-| Máquina | Versão serviço | F1 agent_id | MCP_AGENT_ID | ONNX-only | Status |
-|---------|---------------|-------------|--------------|-----------|--------|
-| DNBSCDC289 | v11.14.0 | ✅ F1+F2 | ✅ zero | ✅ | FEITO 28/set: rebase main→github/main (v11.13→11.14, era behind 75); venv recriado `[sqlite,nli]` ONNX-only (⚠️ NÃO usar `uv sync --frozen`: remove ML; reinstall = `VIRTUAL_ENV=.venv uv pip install -e . --no-deps`); serviço reiniciado, health `/health` 200; banco 22.325 mems (limpeza 147 frags harvest). Health mudou `/api/health`→`/health` na 11.14 |
-| sirdata | v11.14.0 (código) | ✅ F1+F2 | ✅ zero | ✅ (GTX1050Ti ONNX) | main mergeada 25/set; ⚠️ serviço systemd NÃO reiniciado pós-merge (produção, aguarda OK) |
-| socrates | verificar | ? | ❌ ADICIONAR zero | ✅ (CUDA abandonado 21/set) | PENDENTE: **só update LOCAL** (passos 1-7 abaixo) + restore banco (task f5f2a801). **NÃO virar ponta-estrela ainda** (ver nota) |
-| VPS (hub) | v11.14.0 | ✅ | tpol/scotty | ✅ | ✅ FEITO 25/set (hub A0-A3): banco autoritativo corrigido (sqlite_vec.db 19.585), consolidação só no hub, sync 401 corrigido |
+> **⚠️ delta-sync (#1345) está OPERACIONAL entre DNBSCDC289↔VPS (09/out).** As máquinas de casa (socrates/sirdata) foram tocadas por último em set (v11.14.0) → NÃO têm a Fase 5 (bootstrap). Antes de confiar no sync nelas, rodar a "Chegada numa máquina" abaixo.
 
-> **⚠️ ESCOPO PARA AS PONTAS (socrates/sirdata/DNBSCDC289) — leia antes de mexer:**
-> Este procedimento cobre o **update LOCAL** do serviço (subir v11.14.0 + F1/F2 + `MCP_AGENT_ID=zero` + restaurar banco via `restore-db-from-sync.sh`/task f5f2a801). Isso deixa o MCP **funcionando localmente** — é o que o socrates precisa AGORA.
-> **NÃO conectar a ponta ao hub-estrela ainda.** O passo 7 ("apontar para cfnarede.dev/memory/") e a topologia estrela (SPEC-hub §F3/F4: desligar consolidação nas pontas + reapontar sync) são **trabalho futuro NÃO executado** — o hub existe mas as pontas ainda não foram religadas a ele. Enquanto F4 não roda, cada máquina segue no modelo local (banco local + hot.db via OneDrive). A deriva atual (hosts pararam de subir hot.db ~10 dias) é justamente o que F4 vai eliminar; não é bug do update local.
-> **Resumo socrates:** faça passos 1-7 (update local) + restore banco. Pare aí. Ponta-estrela = depois, com OK do Claudio.
+---
+
+## Chegada numa máquina (startup — fazer SEMPRE ao trabalhar numa máquina nova/de casa)
+
+Rotina para garantir que a máquina está na linha viva e o delta-sync + learning-loop funcionam ANTES de confiar na memória sincronizada. Protege contra trabalhar com banco dessincronizado ou código atrás do HEAD.
+
+```bash
+cd ~/git/mcp-memory-service
+# 1. Alinhar git (github-first — ver skill memory-service-maintainer §sync multi-máquina)
+git fetch --all --prune
+git rev-list --left-right --count main...github/main   # left=à frente, right=atrás
+git merge --ff-only github/main                          # pega trabalho das outras máquinas
+
+# 2. Confirmar features presentes no código (F5 delta-sync + learning-loop)
+.venv/bin/python -c "from mcp_memory_service.storage.sync import bootstrap; print('F5 OK')"
+.venv/bin/python -c "from mcp_memory_service.extraction import facts; print('fact-extraction OK')"
+.venv/bin/python -c "from mcp_memory_service.server.handlers import gaps; print('gap-detection OK')"
+#    ImportError em qualquer → a máquina estava atrás; o ff do passo 1 trouxe o código, siga para o passo 3.
+
+# 3. REINSTALAR o venv editable (OBRIGATÓRIO após ff que mudou deps/código novo).
+#    NUNCA 'uv sync --frozen' (remove ML). Reinstalar editable sem deps:
+VIRTUAL_ENV=.venv uv pip install -e . --no-deps -q
+
+# 4. Restart do serviço (o processo vivo tem o código ANTIGO em memória até reiniciar)
+systemctl --user restart memory-service.service   # NOME REAL (não "mcp-memory")
+sleep 20 && curl -s --max-time 5 http://localhost:3202/health   # {"status":"ok"} após ONNX subir
+
+# 5. Confirmar delta-sync rodando (cursores avançam contra o hub; schedule 1m)
+sqlite3 ~/local-data/mcp/sqlite_vec.db "SELECT peer_id,last_seq_seen FROM sync_cursor; SELECT peer_id,last_seq_pushed FROM push_cursor;"
+#    Esperar ~2min e reconferir: os last_seq devem avançar se há tráfego.
+```
+
+### Camada learning-loop — envs opt-in (fork-only, default OFF, ligar por máquina quando quiser)
+Essas features vêm no código via o ff acima, mas são **opt-in** — só agem se a env estiver no `memory-service.env` (`~/dtp/ai-configs/services/env/memory-service.env`, sincronizado via Insync → já chega nas 3 máquinas). Estado em DNBSCDC289 (09/out):
+
+| Env | O quê | Estado |
+|-----|-------|--------|
+| `MCP_QUALITY_RECOMPUTE_SCHEDULE=6h` | L4: job recalcula quality (clampado [0,1]) a partir dos sinais | ON |
+| `MCP_QUALITY_RECOMPUTE_DRY_RUN=false` | persiste o quality (não só calcula) | false (persiste) |
+| `MCP_SEARCH_INJECT_CONTEXT=on` | L3 push: memory_search anexa contexto destilado (gera volume p/ o sinal) | ON |
+| `MCP_FACT_EXTRACT_SCHEDULE` | L2: job destila fatos S→P→O (precisa LLM: HARVEST_LLM_PROVIDERS/GROQ_API_KEY) | unset (off) |
+| `MCP_GAP_THRESHOLD=0.3` | gap-detection: registra busca com top_score abaixo do limiar | default |
+
+- A env é **versionada/sincronizada** (Insync) → setar numa máquina propaga. Mas o serviço só pega no **restart** (passo 4).
+- NÃO ligar `MCP_FACT_EXTRACT_SCHEDULE` sem provider LLM configurado (job vira no-op gracioso, mas sem efeito).
+- O ganho EMPÍRICO do learning-loop (MRR vs baseline LoCoMo 0.4140) depende de VOLUME acumular com as flags ON — medir com `scripts/benchmarks/benchmark_locomo.py --mode ablation` após 1-2 semanas.
+
+**Pitfall (lição 09/out):** o serviço systemd chama-se `memory-service.service`, NÃO `mcp-memory`. `systemctl --user show mcp-memory ...` dá VAZIO e induz a concluir "env não setado/serviço desligado". Use `systemctl --user list-units | grep memory` para o nome real ANTES de inspecionar; ou leia o env do processo vivo via `/proc/$(pgrep -f memory-server)/environ`.
 
 ---
 

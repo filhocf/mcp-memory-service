@@ -1,0 +1,1 @@
+Learning-loop feedback signal `injected_then_used`: a belief proactively injected and later retrieved by the same agent counts as qualified utility (weight 2x reaccess), so quality scores can distinguish genuinely useful memories from merely popular ones instead of saturating at the ceiling.

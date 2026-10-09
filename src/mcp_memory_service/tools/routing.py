@@ -46,9 +46,11 @@ _PRIMARY: dict[str, tuple[str, str]] = {
     "commit_session_legacy": ("__self__", "handle_commit_session_legacy"),
     "get_bootstrap_profile": ("__self__", "handle_get_bootstrap_profile"),
     "memory_context": ("__self__", "handle_memory_context"),
+    "memory_facts": ("__self__", "handle_memory_facts"),
     "get_onboarding_guide": ("__self__", "handle_get_onboarding_guide"),
     "get_assertiveness_metrics": ("__self__", "handle_get_assertiveness_metrics"),
     "memory_distill": ("__self__", "handle_memory_distill"),
+    "memory_gaps": ("__self__", "handle_memory_gaps"),
 }
 
 # Active, non-advertised handlers. These are NOT deprecated aliases and stay
