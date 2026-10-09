@@ -42,9 +42,17 @@ the post-watermark events, never neither.
 **R4 — Authorship/privacy on baseline (RFC §9.3 rule 3).**
 WHEN generating baseline events, THE bootstrap SHALL preserve `metadata.agent_id` where
 present. WHERE a memory has no verifiable authorship, THE baseline SHALL mark it
-`legacy/unattributed` and SHALL NOT invent an agent. Unattributed/legacy items SHALL remain
-local-private and SHALL NOT enter a shared baseline unless the prevailing `shareable` policy
-authorizes them.
+`unattributed` and SHALL NOT invent an agent. (Implementation note: a single clean token
+`unattributed` is used instead of the RFC's prose `legacy/unattributed`, so the value stays
+a valid `agent_id` for downstream agent filters — no slash.)
+
+> **DEFERRED to future (decision 09/out):** the privacy half of RFC §9.3 rule 3 — "unattributed/legacy
+> items stay local-private and do NOT enter a shared baseline unless the prevailing `shareable`
+> policy authorizes them" — is NOT implemented in this phase. The service has no `shareable`
+> policy mechanism yet (it is RFC design, R6, not code anywhere), so gating the baseline on a
+> non-existent policy would ship half a feature. The baseline currently includes all memories.
+> Revisit together with the `shareable` policy when it is actually built. (Same spirit as the
+> deferred per-spoke crypto identity, RFC §5.)
 
 **R5 — Deletes become baseline tombstones (RFC §9.3 rule 4).**
 WHEN a soft-deleted memory (`deleted_at` set) is bootstrapped, THE baseline SHALL emit a
@@ -84,7 +92,8 @@ startup. WHERE bootstrap is never invoked, THE service SHALL behave exactly as P
 - **CA2 (R3):** a memory stored during bootstrap appears in the baseline or in post-watermark
   events (prove via a seam test: store between snapshot and watermark read).
 - **CA3 (R4):** a memory with `metadata.agent_id` keeps it in the baseline; a memory with no
-  authorship is marked `legacy/unattributed` and is NOT in the shared baseline by default.
+  authorship is marked `unattributed` (not an invented agent). Privacy gating (excluding
+  unattributed from a shared baseline) is DEFERRED — see R4 note.
 - **CA4 (R5):** a soft-deleted memory bootstraps as a tombstone (apply on peer → row is
   tombstoned, not resurrected).
 - **CA5 (R6):** install baseline on fresh peer → corpus materialized + cursor at watermark;

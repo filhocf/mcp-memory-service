@@ -128,6 +128,7 @@ Substituir o file-sync por um **sync delta baseado em event-log**, bidirecional,
 - Remoção imediata do Insync (coexistência na transição).
 - Criptografia obrigatória (opcional; rede LAN + OneDrive já é privada para nós).
 - **Identidade criptográfica forte por spoke (agent_id derivado de transporte autenticado) — FUTURO.** Decisão 09/out (Fase 5): a allow-list de autoria da Fase 4c (`MCP_SYNC_PUSH_ALLOWED_AGENTS`, §8.4/R4) cobre o cenário real (hub confiável + spokes conhecidos em rede confiável). Identidade criptográfica por spoke só se justifica com um spoke NÃO-confiável na malha — reavaliar quando/se isso ocorrer. A §8.4 "autoria derivada do transporte" fica como requisito de desenho, não implementada nesta fase.
+- **Privacidade do baseline (gating por `shareable`) — FUTURO.** Decisão 09/out (Fase 5): a regra 3 de §9.3 ("itens unattributed/legacy ficam privados e não entram no baseline compartilhado sem a política `shareable` vigente autorizar") NÃO é implementada agora — o serviço não tem o mecanismo `shareable` em lugar nenhum (é design, não código). Gatear o baseline numa política inexistente seria meia-feature. O bootstrap da Fase 5 inclui todas as memórias; revisar junto quando a política `shareable` for construída.
 
 ---
 
