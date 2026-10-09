@@ -81,18 +81,38 @@ cd ~/git/mcp-memory-service && git reset --hard <ROLLBACK_HEAD> && systemctl --u
 ---
 
 ## Estado por máquina (checklist)
+| Máquina | Versão serviço | delta-sync F5 | papel sync | Status (09/out) |
+|---------|---------------|---------------|-----------|-----------------|
+| DNBSCDC289 | v11.15.0 (HEAD 9355b6cd) | ✅ bootstrap presente | spoke (MCP_SYNC_SCHEDULE=1m → hub) | ✅ OPERACIONAL 09/out: sync bidirecional provado E2E (pull 194→197, push 386→390, hash propagou ao hub). Clamp quality aplicado. |
+| VPS (hub) | v11.15.0 (HEAD 9355b6cd) | ✅ bootstrap presente | hub (pivot passivo, sem peers) | ✅ OPERACIONAL 09/out: replicado da F4d→HEAD, 20659 mems preservadas, MCP_SYNC_EVENTLOG=on, serve feed/baseline |
+| sirdata | **VERIFICAR ao chegar** | **?** | spoke (quando ligado) | ⚠️ provável ATRÁS do HEAD (última ação 25/set, v11.14.0). PRECISA alinhar git antes de confiar no sync (ver "Chegada numa máquina" abaixo) |
+| socrates | **VERIFICAR ao chegar** | **?** | spoke (quando ligado) | ⚠️ provável ATRÁS do HEAD. Idem sirdata |
 
-| Máquina | Versão serviço | F1 agent_id | MCP_AGENT_ID | ONNX-only | Status |
-|---------|---------------|-------------|--------------|-----------|--------|
-| DNBSCDC289 | v11.14.0 | ✅ F1+F2 | ✅ zero | ✅ | FEITO 28/set: rebase main→github/main (v11.13→11.14, era behind 75); venv recriado `[sqlite,nli]` ONNX-only (⚠️ NÃO usar `uv sync --frozen`: remove ML; reinstall = `VIRTUAL_ENV=.venv uv pip install -e . --no-deps`); serviço reiniciado, health `/health` 200; banco 22.325 mems (limpeza 147 frags harvest). Health mudou `/api/health`→`/health` na 11.14 |
-| sirdata | v11.14.0 (código) | ✅ F1+F2 | ✅ zero | ✅ (GTX1050Ti ONNX) | main mergeada 25/set; ⚠️ serviço systemd NÃO reiniciado pós-merge (produção, aguarda OK) |
-| socrates | verificar | ? | ❌ ADICIONAR zero | ✅ (CUDA abandonado 21/set) | PENDENTE: **só update LOCAL** (passos 1-7 abaixo) + restore banco (task f5f2a801). **NÃO virar ponta-estrela ainda** (ver nota) |
-| VPS (hub) | v11.14.0 | ✅ | tpol/scotty | ✅ | ✅ FEITO 25/set (hub A0-A3): banco autoritativo corrigido (sqlite_vec.db 19.585), consolidação só no hub, sync 401 corrigido |
+> **⚠️ delta-sync (#1345) está OPERACIONAL entre DNBSCDC289↔VPS (09/out).** As máquinas de casa (socrates/sirdata) foram tocadas por último em set (v11.14.0) → NÃO têm a Fase 5 (bootstrap). Antes de confiar no sync nelas, rodar a "Chegada numa máquina" abaixo.
 
-> **⚠️ ESCOPO PARA AS PONTAS (socrates/sirdata/DNBSCDC289) — leia antes de mexer:**
-> Este procedimento cobre o **update LOCAL** do serviço (subir v11.14.0 + F1/F2 + `MCP_AGENT_ID=zero` + restaurar banco via `restore-db-from-sync.sh`/task f5f2a801). Isso deixa o MCP **funcionando localmente** — é o que o socrates precisa AGORA.
-> **NÃO conectar a ponta ao hub-estrela ainda.** O passo 7 ("apontar para cfnarede.dev/memory/") e a topologia estrela (SPEC-hub §F3/F4: desligar consolidação nas pontas + reapontar sync) são **trabalho futuro NÃO executado** — o hub existe mas as pontas ainda não foram religadas a ele. Enquanto F4 não roda, cada máquina segue no modelo local (banco local + hot.db via OneDrive). A deriva atual (hosts pararam de subir hot.db ~10 dias) é justamente o que F4 vai eliminar; não é bug do update local.
-> **Resumo socrates:** faça passos 1-7 (update local) + restore banco. Pare aí. Ponta-estrela = depois, com OK do Claudio.
+---
+
+## Chegada numa máquina (startup — fazer SEMPRE ao trabalhar numa máquina nova/de casa)
+
+Rotina para garantir que a máquina está na linha viva e o delta-sync funciona ANTES de confiar na memória sincronizada. Protege contra trabalhar com banco dessincronizado ou código sem a F5.
+
+```bash
+cd ~/git/mcp-memory-service
+# 1. Alinhar git (github-first — ver skill memory-service-maintainer §sync multi-máquina)
+git fetch --all --prune
+git rev-list --left-right --count main...github/main   # left=à frente, right=atrás
+git merge --ff-only github/main                          # pega trabalho das outras máquinas
+# 2. Confirmar que a F5 (bootstrap) está presente no código
+.venv/bin/python -c "from mcp_memory_service.storage.sync import bootstrap; print('F5 OK')"
+#    Se der ImportError → a máquina está ATRÁS: refazer o update de serviço (passos 1-7 acima: ff + reinstalar venv + restart)
+# 3. Confirmar que o serviço roda o código novo (restart se o pid for anterior ao ff)
+systemctl --user restart memory-service.service   # NOME REAL do serviço (não "mcp-memory")
+# 4. Confirmar sync configurado + rodando (cursores avançam contra o hub)
+sqlite3 ~/local-data/mcp/sqlite_vec.db "SELECT peer_id,last_seq_seen FROM sync_cursor; SELECT peer_id,last_seq_pushed FROM push_cursor;"
+#    Esperar ~2min (schedule 1m) e reconferir: os last_seq devem avançar se há tráfego.
+```
+
+**Pitfall (lição 09/out):** o serviço systemd chama-se `memory-service.service`, NÃO `mcp-memory`. Consultar `systemctl --user show mcp-memory ...` dá VAZIO e induz a concluir "env não setado/serviço desligado" (dois diagnósticos errados num dia). Use `systemctl --user list-units | grep memory` para achar o nome real ANTES de inspecionar.
 
 ---
 
