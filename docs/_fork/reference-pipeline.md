@@ -516,7 +516,9 @@ Documentação necessária para um Kiro iniciado do zero aprender a usar o memor
 | F2 — deterministic ordering (HLC + resolver) | #1485 | ✅ merged 08/out |
 | F3 — embedding consistency guardrail | #1487 | ✅ merged 08/out |
 | F4 — pull + push transport + orchestration | #1489 | ✅ merged 09/out |
-| F5 — bootstrap + event version negotiation | #1494 | 🟡 OPEN, CI verde + Greptile 5/5, `Closes #1345` armado — aguardando merge do Henry (REVIEW_REQUIRED) |
+| F5 — bootstrap + event version negotiation | #1494 | ✅ merged 09/out (commit e9c9ffc6) — **fechou o RFC #1345** (CLOSED 09/out via Closes) |
+
+**🏁 Arco delta-sync (#1345) COMPLETO** — 5/5 fases merged no upstream. RFC fechado. Deferidos RFC §5 (fora do arco): identidade cripto por spoke + privacidade shareable.
 
 Ao mergear o #1494, o RFC #1345 fecha automático. Deferidos RFC §5 (fora do arco): identidade cripto por spoke + privacidade shareable.
 
