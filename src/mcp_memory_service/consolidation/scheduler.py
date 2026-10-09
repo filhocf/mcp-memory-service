@@ -132,6 +132,9 @@ class ConsolidationScheduler:
             # Add scheduled delta-sync cycle job (opt-in via MCP_SYNC_SCHEDULE) — Phase 4d, ADR-0028
             self._schedule_sync_job()
 
+            # Add scheduled fact extraction job (opt-in via MCP_FACT_EXTRACT_SCHEDULE)
+            self._schedule_fact_extraction_job()
+
             # Start the scheduler
             self.scheduler.start()
             self.logger.info("Consolidation scheduler started successfully")
@@ -316,6 +319,43 @@ class ConsolidationScheduler:
             self.execution_stats['failed_jobs'] += 1
             self.logger.error("Quality recompute failed: %s", e)
 
+    async def _run_fact_extraction(self):
+        """Execute fact extraction pipeline on pending memory chunks.
+
+        Best-effort execution (M2.6): errors are logged but never re-raised to
+        avoid tearing down the shared scheduler. Processes up to 200 chunks per run.
+        """
+        storage = getattr(self.consolidator, "storage", None)
+        if storage is None:
+            self.logger.warning("Fact extraction skipped: consolidator has no storage")
+            return
+
+        try:
+            from ..extraction.facts import run_extraction
+
+            job_start = datetime.now()
+            self.logger.info("Starting fact extraction")
+
+            # Execute fact extraction pipeline  
+            result = await run_extraction(storage.conn, limit=200)
+
+            # Update execution stats
+            self.execution_stats['successful_jobs'] += 1
+            self.last_execution_times['fact_extraction'] = job_start
+            duration = (datetime.now() - job_start).total_seconds()
+
+            # Log the result report
+            self.logger.info(
+                "Completed fact extraction in %.2fs: processed=%d, facts_stored=%d",
+                duration, result.get("processed", 0), result.get("facts_stored", 0)
+            )
+
+        except Exception as e:
+            # Never re-raise: a failing fact extraction must not tear down the scheduler
+            # or the consolidation jobs sharing it. (M2.6)
+            self.execution_stats['failed_jobs'] += 1
+            self.logger.error("Fact extraction failed: %s", e)
+
     def _schedule_sync_job(self):
         """Schedule the delta-sync cycle job (opt-in via MCP_SYNC_SCHEDULE). Phase 4d, ADR-0028.
 
@@ -352,6 +392,47 @@ class ConsolidationScheduler:
             self.logger.info("Scheduled delta-sync every %ss (MCP_SYNC_SCHEDULE=%s)", seconds, schedule_spec)
         except Exception as e:
             self.logger.error(f"Error scheduling delta-sync: {e}")
+
+    def _schedule_fact_extraction_job(self):
+        """Schedule fact extraction job (opt-in via MCP_FACT_EXTRACT_SCHEDULE).
+
+        Extracts atomic facts from unprocessed memory chunks and stores them as
+        typed edges in memory_graph for multi-hop navigation. Mirrors
+        _schedule_quality_recompute_job: it runs in-process on the server host and
+        piggybacks on the consolidation cadence rather than as an external cron.
+
+        MCP_FACT_EXTRACT_SCHEDULE accepts an interval like "6h", "30m", "90s", or a
+        plain number of hours ("6"). Unset/blank/"disabled" → no job (default,
+        zero regression).
+        """
+        if not self.scheduler:
+            self.logger.debug("Fact extraction scheduling skipped - scheduler not available")
+            return
+
+        schedule_spec = os.getenv("MCP_FACT_EXTRACT_SCHEDULE", "").strip()
+        if not schedule_spec or schedule_spec.lower() == "disabled":
+            self.logger.debug("Fact extraction scheduling disabled (MCP_FACT_EXTRACT_SCHEDULE unset)")
+            return
+
+        seconds = self._parse_interval_seconds(schedule_spec)
+        if not seconds or seconds <= 0:
+            self.logger.error(
+                "Invalid MCP_FACT_EXTRACT_SCHEDULE=%r — expected e.g. '6h', '30m', '90s' or hours; skipping",
+                schedule_spec,
+            )
+            return
+
+        try:
+            self.scheduler.add_job(
+                func=self._run_fact_extraction,
+                trigger=IntervalTrigger(seconds=seconds),
+                id="fact_extraction",
+                name="Fact Extraction",
+                replace_existing=True,
+            )
+            self.logger.info("Scheduled fact extraction every %ss (MCP_FACT_EXTRACT_SCHEDULE=%s)", seconds, schedule_spec)
+        except Exception as e:
+            self.logger.error("Error scheduling fact extraction: %s", e)
 
     def _resolve_sync_peers(self):
         """Build (peer_id, RemoteHTTPStorage) list from MCP_SYNC_PEERS. Option 1 (single hub):

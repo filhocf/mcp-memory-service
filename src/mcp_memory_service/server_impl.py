@@ -2591,6 +2591,16 @@ class MemoryServer:
             logger.error("Error in memory_context: %s", _sanitize_log_value(e))
             return [types.TextContent(type="text", text=json.dumps({"error": str(e)}, indent=2))]
 
+    async def handle_memory_facts(self, arguments: dict) -> List[types.TextContent]:
+        """Handle memory_facts tool calls for fact extraction pipeline."""
+        await self._ensure_storage_initialized()
+        try:
+            from mcp_memory_service.server.handlers.facts import handle_memory_facts
+            return await handle_memory_facts(self, arguments)
+        except Exception as e:
+            logger.error("Error in memory_facts: %s", _sanitize_log_value(e))
+            return [types.TextContent(type="text", text=json.dumps({"error": str(e)}, indent=2))]
+
     async def handle_get_assertiveness_metrics(self, arguments: dict) -> List[types.TextContent]:
         """Report assertiveness telemetry (re_query_rate / injection_coverage / lost_context_rate)."""
         await self._ensure_storage_initialized()
