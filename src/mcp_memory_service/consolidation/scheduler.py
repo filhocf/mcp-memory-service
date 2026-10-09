@@ -319,7 +319,7 @@ class ConsolidationScheduler:
     def _schedule_sync_job(self):
         """Schedule the delta-sync cycle job (opt-in via MCP_SYNC_SCHEDULE). Phase 4d, ADR-0028.
 
-        Mirrors _schedule_harvest_job / _schedule_quality_recompute_job: in-process interval
+        Mirrors _schedule_harvest_job: in-process interval
         job on the consolidation scheduler, off by default (unset/blank/"disabled" → no job).
         Runs pull + push against each peer in MCP_SYNC_PEERS. Only spokes set peers; the hub
         sets none and thus schedules an effectively empty cycle (passive pivot, ADR-0027).
@@ -409,11 +409,13 @@ class ConsolidationScheduler:
                 )
             except Exception as e:
                 self.execution_stats['failed_jobs'] += 1
-                self.logger.error("Delta-sync cycle failed for peer %s: %s", _sanitize_log_value(peer_id), e)
+                self.logger.error("Delta-sync cycle failed for peer %s: %s", _sanitize_log_value(peer_id), _sanitize_log_value(e))
             finally:
                 try:
                     await peer.close()
                 except Exception:
+                    # Best-effort cleanup: a failing close() must not mask the cycle result
+                    # or abort the remaining peers. Nothing actionable to recover here.
                     pass
 
     @staticmethod
@@ -456,6 +458,7 @@ class ConsolidationScheduler:
         job_start = datetime.now()
         self.logger.info("Starting scheduled session harvest from %s", session_dir)
         try:
+            from ..harvest.models import HarvestConfig
             page_size = int(os.getenv("MCP_HARVEST_SCHEDULE_SESSIONS", "50"))
             use_llm = os.getenv("MCP_HARVEST_SCHEDULE_USE_LLM", "true").lower() in ("true", "1", "yes")
             # harvest_and_store stores via MemoryService.store_memory — pass the
@@ -467,7 +470,7 @@ class ConsolidationScheduler:
             # sessions, mirroring the memory_harvest handler so scheduled runs
             # don't re-process (and duplicate) sessions every cycle.
             already = await self._read_harvest_tracker(memory_service)
-            all_config = harvest_config_from_env(sessions=9999, project_path=session_dir)
+            all_config = HarvestConfig(sessions=9999, project_path=session_dir)
             all_sessions = harvester._resolve_sessions(all_config)
             pending = [s for s in all_sessions if harvester._session_id(s) not in already]
             if not pending:
