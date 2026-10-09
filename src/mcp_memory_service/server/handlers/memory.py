@@ -91,6 +91,21 @@ def _get_max_response_chars(arguments: dict) -> int:
     return 0  # Unlimited
 
 
+def _search_inject_enabled() -> bool:
+    """Return whether search-side context injection is enabled.
+    
+    Default OFF (unlike context_injection's default ON). Only enabled when 
+    MCP_SEARCH_INJECT_CONTEXT is explicitly set to a non-empty, non-disabled value.
+    """
+    raw = os.environ.get("MCP_SEARCH_INJECT_CONTEXT")
+    if raw is None:
+        return False
+    
+    # Values that disable injection (case-insensitive, trimmed)
+    disabled_values = {"", "false", "0", "off", "no", "disabled"}
+    return raw.strip().lower() not in disabled_values
+
+
 def _memories_to_dicts(memories: list, score_key: str = 'similarity_score') -> list:
     """
     Convert a list of memory objects/dicts to standardized dict format for truncation.
@@ -1049,6 +1064,45 @@ async def _format_beliefs_section(arguments: dict, storage) -> str:
         return ""
 
 
+async def _format_context_injection_section(storage, query: str) -> str:
+    """Generate context injection section for memory search response.
+    
+    Returns context injection block if enabled and beliefs are found,
+    empty string otherwise. Non-fatal - errors are logged but don't break the search.
+    """
+    if not _search_inject_enabled():
+        return ""
+    
+    # P2 #2: Early return for empty/whitespace query to avoid unrelated context
+    if not query or not query.strip():
+        return ""
+    
+    try:
+        from ...storage.context_injection import memory_context
+        
+        context_result = await memory_context(storage, query, budget_tokens=500)
+        
+        if context_result.get("count", 0) == 0:
+            return ""
+        
+        items = context_result.get("items", [])
+        if not items:
+            return ""
+        
+        lines = ["\n\n---", "Related distilled context:"]
+        for item in items:
+            content = item.get("content", "").strip()
+            confidence = item.get("confidence", 0)
+            if content:
+                lines.append(f"• {content} (confidence: {confidence:.2f})")
+        
+        return "\n".join(lines)
+        
+    except Exception as e:
+        logger.debug("Context injection failed (non-fatal): %s", _sanitize_log_value(e))
+        return ""
+
+
 def _should_use_cascading_fallback(
     arguments: dict, query: str | None, memories: list[dict]
 ) -> bool:
@@ -1299,6 +1353,34 @@ async def _serialize_memory_search_summary(
     beliefs_section = await _format_beliefs_section(arguments, storage)
     if beliefs_section:
         payload["beliefs"] = beliefs_section.strip()
+    
+    # P1 #1: Add context injection to summary path
+    if _search_inject_enabled():
+        query = arguments.get("query", "") or result.get("query", "")
+        if query and query.strip():  # Respect P2 #2 fix
+            try:
+                from ...storage.context_injection import memory_context
+                context_result = await memory_context(storage, query, budget_tokens=500)
+                
+                if context_result.get("count", 0) > 0:
+                    items = context_result.get("items", [])
+                    if items:
+                        # For JSON, use structured data instead of markdown
+                        context_items = []
+                        for item in items:
+                            content = item.get("content", "").strip()
+                            confidence = item.get("confidence", 0)
+                            if content:
+                                context_items.append({
+                                    "content": content,
+                                    "confidence": confidence
+                                })
+                        if context_items:
+                            payload["related_context"] = context_items
+            except Exception as e:
+                # Non-fatal, just log
+                logger.debug("Context injection failed in summary (non-fatal): %s", _sanitize_log_value(e))
+    
     return json.dumps(payload, ensure_ascii=False, allow_nan=False)
 
 
@@ -1413,19 +1495,35 @@ async def _format_truncated_memory_search(
     ]
     header = _build_memory_search_header(result, total, fallback_used) + "\n\n"
     beliefs_section = await _format_beliefs_section(arguments, storage)
+    
+    # Add context injection section if enabled  
+    query = arguments.get("query", "") or result.get("query", "")
+    context_injection_section = await _format_context_injection_section(storage, query)
+    footer = beliefs_section + context_injection_section
+    
     if summary_warning:
         response_text = format_bounded_response(
             memory_dicts,
             max_response_chars,
             header=summary_warning + header,
-            footer=beliefs_section,
+            footer=footer,
         )
         return types.TextContent(type="text", text=response_text)
 
-    truncated, meta = truncate_memories(memory_dicts, max_response_chars)
-    response_text = (
-        header + format_truncated_response(truncated, meta) + beliefs_section
-    )
+    # Gate the format_bounded_response by the search inject context flag
+    if _search_inject_enabled():
+        # When flag is ON: use format_bounded_response (for footer injection budget)
+        response_text = format_bounded_response(
+            memory_dicts,
+            max_response_chars,
+            header=header,
+            footer=footer,
+        )
+    else:
+        # When flag is OFF: use legacy path (restore byte-exact original behavior)
+        truncated, meta = truncate_memories(memory_dicts, max_response_chars)
+        response_text = header + format_truncated_response(truncated, meta) + footer
+    
     return types.TextContent(type="text", text=response_text)
 
 
@@ -1440,16 +1538,22 @@ async def _format_empty_memory_search(
     if result.get("query"):
         response += f" for query: '{result['query']}'"
     beliefs_section = await _format_beliefs_section(arguments, storage)
+    
+    # Add context injection section if enabled
+    query = arguments.get("query", "") or result.get("query", "")
+    context_injection_section = await _format_context_injection_section(storage, query)
+    footer = beliefs_section + context_injection_section
+    
     if summary_warning and max_response_chars > 0:
         response = format_bounded_response(
             [],
             max_response_chars,
             header=summary_warning + response,
-            footer=beliefs_section,
+            footer=footer,
         )
         return types.TextContent(type="text", text=response)
     return types.TextContent(
-        type="text", text=summary_warning + response + beliefs_section
+        type="text", text=summary_warning + response + footer
     )
 
 
@@ -1465,11 +1569,16 @@ async def _format_full_memory_search(
     header = _build_memory_search_header(result, total, fallback_used)
     header += _format_memory_search_debug(result)
     beliefs_section = await _format_beliefs_section(arguments, storage)
+    
+    # Add context injection section if enabled
+    query = arguments.get("query", "") or result.get("query", "")
+    context_injection_section = await _format_context_injection_section(storage, query)
+    
     return types.TextContent(
         type="text",
         text=(
             summary_warning + header + "\n\n"
-            + "\n\n".join(formatted_results) + beliefs_section
+            + "\n\n".join(formatted_results) + beliefs_section + context_injection_section
         ),
     )
 

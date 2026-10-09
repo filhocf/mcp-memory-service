@@ -1,0 +1,1 @@
+Server-side proactive context injection: `memory_search` can append distilled theme-relevant context to its response, opt-in via `MCP_SEARCH_INJECT_CONTEXT` (default off). Zero behaviour change when unset.
