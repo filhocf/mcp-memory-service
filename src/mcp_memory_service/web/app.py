@@ -57,7 +57,6 @@ from .api.memories import router as memories_router
 from .api.search import router as search_router
 from .api.events import router as events_router
 from .api.sync import router as sync_router
-from .api.sync_events import router as sync_events_router
 from .api.manage import router as manage_router
 from .api.analytics import router as analytics_router
 from .api.documents import router as documents_router
@@ -70,6 +69,7 @@ from .api.configuration import router as configuration_router
 from .api.oauth_status import router as oauth_status_router
 from .api.conflicts import router as conflicts_router
 from .api.harvest import router as harvest_router
+from .api.sync_events import router as sync_events_router
 from .sse import sse_manager
 
 logger = logging.getLogger(__name__)
@@ -368,8 +368,6 @@ def create_app() -> FastAPI:
     logger.info("✓ Included events router with %s routes", _sanitize_log_value(len(events_router.routes)))
     app.include_router(sync_router, prefix="/api", tags=["sync"])
     logger.info("✓ Included sync router with %s routes", _sanitize_log_value(len(sync_router.routes)))
-    app.include_router(sync_events_router, prefix="/api", tags=["sync"])
-    logger.info("✓ Included sync_events router with %s routes", _sanitize_log_value(len(sync_events_router.routes)))
     app.include_router(backup_router, prefix="/api", tags=["backup"])
     logger.info("✓ Included backup router with %s routes", _sanitize_log_value(len(backup_router.routes)))
     app.include_router(quality_router, prefix="/api/quality", tags=["quality"])
@@ -404,6 +402,10 @@ def create_app() -> FastAPI:
 
     # Include session harvest router (Issue #630)
     app.include_router(harvest_router, tags=["harvest"])
+
+    # Include delta-sync event feed router (#1345 Phase 4 — pull/push transport)
+    app.include_router(sync_events_router, prefix="/api", tags=["sync"])
+    logger.info("✓ Included sync_events router with %s routes", _sanitize_log_value(len(sync_events_router.routes)))
     logger.info("✓ Included harvest router with %s routes", _sanitize_log_value(len(harvest_router.routes)))
 
     # Include delta-sync event feed router (#1345 Phase 4 — pull/push transport)
