@@ -126,9 +126,6 @@ class ConsolidationScheduler:
             # Add scheduled session-harvest job (opt-in via MCP_HARVEST_SCHEDULE)
             self._schedule_harvest_job()
 
-            # Add scheduled quality recompute job (opt-in via MCP_QUALITY_RECOMPUTE_SCHEDULE)
-            self._schedule_quality_recompute_job()
-
             # Add scheduled delta-sync cycle job (opt-in via MCP_SYNC_SCHEDULE) — Phase 4d, ADR-0028
             self._schedule_sync_job()
 
@@ -227,99 +224,10 @@ class ConsolidationScheduler:
         except Exception as e:
             self.logger.error(f"Error scheduling session harvest: {e}")
 
-    def _schedule_quality_recompute_job(self):
-        """Schedule quality recomputation job (opt-in via MCP_QUALITY_RECOMPUTE_SCHEDULE).
-
-        Recompute per-memory quality scores from derived usage signals and
-        persist them back into storage via ``persist_quality_scores``. Mirrors
-        _schedule_harvest_job: it runs in-process on the server host and
-        piggybacks on the consolidation cadence rather than as an external cron.
-
-        MCP_QUALITY_RECOMPUTE_SCHEDULE accepts an interval like "6h", "30m", "90s", or a
-        plain number of hours ("6"). Unset/blank/"disabled" → no job (default,
-        zero regression).
-        """
-        if not self.scheduler:
-            self.logger.debug("Quality recompute scheduling skipped - scheduler not available")
-            return
-
-        schedule_spec = os.getenv("MCP_QUALITY_RECOMPUTE_SCHEDULE", "").strip()
-        if not schedule_spec or schedule_spec.lower() == "disabled":
-            self.logger.debug("Quality recompute scheduling disabled (MCP_QUALITY_RECOMPUTE_SCHEDULE unset)")
-            return
-
-        seconds = self._parse_interval_seconds(schedule_spec)
-        if not seconds or seconds <= 0:
-            self.logger.error(
-                "Invalid MCP_QUALITY_RECOMPUTE_SCHEDULE=%r — expected e.g. '6h', '30m', '90s' or hours; skipping",
-                schedule_spec,
-            )
-            return
-
-        try:
-            self.scheduler.add_job(
-                func=self._run_quality_recompute,
-                trigger=IntervalTrigger(seconds=seconds),
-                id="quality_recompute",
-                name="Quality Recompute",
-                replace_existing=True,
-            )
-            self.logger.info("Scheduled quality recompute every %ss (MCP_QUALITY_RECOMPUTE_SCHEDULE=%s)", seconds, schedule_spec)
-        except Exception as e:
-            self.logger.error("Error scheduling quality recompute: %s", e)
-
-    async def _run_quality_recompute(self):
-        """Execute quality score recomputation and persistence.
-
-        Reads MCP_QUALITY_RECOMPUTE_DRY_RUN env var (default 'true') to control
-        whether to actually persist scores or just compute statistics.
-
-        Persistence writes ``computed_quality`` (machine origin) and the
-        effective ``quality_score`` via ``effective_quality`` so an existing
-        human ``user_rating`` (thumbs up/down) still wins and is NOT erased by
-        the periodic recompute (quality model split #1312). Dry-run ships as the
-        default because a shadow run on the live DB revealed agent_id=None
-        contamination (reaccess × retry overlap) — see ADR-0006.
-        """
-        storage = getattr(self.consolidator, "storage", None)
-        if storage is None:
-            self.logger.warning("Quality recompute skipped: consolidator has no storage")
-            return
-
-        try:
-            from ..storage.usage_telemetry import persist_quality_scores
-
-            # Read dry_run setting from environment (default True)
-            dry_run_env = os.getenv("MCP_QUALITY_RECOMPUTE_DRY_RUN", "true").lower()
-            dry_run = dry_run_env in ("true", "1", "yes")
-
-            job_start = datetime.now()
-            self.logger.info("Starting quality recompute (dry_run=%s)", dry_run)
-
-            # Execute quality score computation/persistence
-            result = await persist_quality_scores(storage, dry_run=dry_run)
-
-            # Update execution stats
-            self.execution_stats['successful_jobs'] += 1
-            self.last_execution_times['quality_recompute'] = job_start
-            duration = (datetime.now() - job_start).total_seconds()
-
-            # Log the result report
-            self.logger.info(
-                "Completed quality recompute in %.2fs: %s",
-                duration, result
-            )
-
-        except Exception as e:
-            # Never re-raise: a failing quality recompute must not tear down the scheduler
-            # or the consolidation jobs sharing it.
-            self.execution_stats['failed_jobs'] += 1
-            self.logger.error("Quality recompute failed: %s", e)
-
     def _schedule_sync_job(self):
         """Schedule the delta-sync cycle job (opt-in via MCP_SYNC_SCHEDULE). Phase 4d, ADR-0028.
 
-        Mirrors _schedule_harvest_job / _schedule_quality_recompute_job: in-process interval
+        Mirrors _schedule_harvest_job: in-process interval
         job on the consolidation scheduler, off by default (unset/blank/"disabled" → no job).
         Runs pull + push against each peer in MCP_SYNC_PEERS. Only spokes set peers; the hub
         sets none and thus schedules an effectively empty cycle (passive pivot, ADR-0027).
@@ -409,11 +317,13 @@ class ConsolidationScheduler:
                 )
             except Exception as e:
                 self.execution_stats['failed_jobs'] += 1
-                self.logger.error("Delta-sync cycle failed for peer %s: %s", _sanitize_log_value(peer_id), e)
+                self.logger.error("Delta-sync cycle failed for peer %s: %s", _sanitize_log_value(peer_id), _sanitize_log_value(e))
             finally:
                 try:
                     await peer.close()
                 except Exception:
+                    # Best-effort cleanup: a failing close() must not mask the cycle result
+                    # or abort the remaining peers. Nothing actionable to recover here.
                     pass
 
     @staticmethod
@@ -456,6 +366,7 @@ class ConsolidationScheduler:
         job_start = datetime.now()
         self.logger.info("Starting scheduled session harvest from %s", session_dir)
         try:
+            from ..harvest.models import HarvestConfig
             page_size = int(os.getenv("MCP_HARVEST_SCHEDULE_SESSIONS", "50"))
             use_llm = os.getenv("MCP_HARVEST_SCHEDULE_USE_LLM", "true").lower() in ("true", "1", "yes")
             # harvest_and_store stores via MemoryService.store_memory — pass the
@@ -467,7 +378,7 @@ class ConsolidationScheduler:
             # sessions, mirroring the memory_harvest handler so scheduled runs
             # don't re-process (and duplicate) sessions every cycle.
             already = await self._read_harvest_tracker(memory_service)
-            all_config = harvest_config_from_env(sessions=9999, project_path=session_dir)
+            all_config = HarvestConfig(sessions=9999, project_path=session_dir)
             all_sessions = harvester._resolve_sessions(all_config)
             pending = [s for s in all_sessions if harvester._session_id(s) not in already]
             if not pending:
