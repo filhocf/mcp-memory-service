@@ -49,6 +49,7 @@ _PRIMARY: dict[str, tuple[str, str]] = {
     "get_onboarding_guide": ("__self__", "handle_get_onboarding_guide"),
     "get_assertiveness_metrics": ("__self__", "handle_get_assertiveness_metrics"),
     "memory_distill": ("__self__", "handle_memory_distill"),
+    "memory_gaps": ("__self__", "handle_memory_gaps"),
 }
 
 # Active, non-advertised handlers. These are NOT deprecated aliases and stay

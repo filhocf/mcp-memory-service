@@ -1608,6 +1608,9 @@ async def handle_memory_search(server, arguments: dict) -> List[types.TextConten
         if filter_error:
             return [types.TextContent(type="text", text=filter_error)]
 
+        # Gap detection: record gaps when top score is below threshold (M3.1)
+        await _maybe_record_gap(server, arguments, query, memories)
+
         # Summarize only after retrieval, filters, and plugins. The helper keeps
         # raw results intact as a safe fallback when the provider is unavailable.
         summary_response, summary_warning = await _summarize_memory_search(
@@ -2132,3 +2135,36 @@ async def handle_delete_before_date(server, arguments: dict) -> List[types.TextC
             type="text",
             text=f"Error deleting memories: {str(e)}"
         )]
+
+
+async def _maybe_record_gap(server, arguments: dict, query: str, memories: list) -> None:
+    """Record a gap if search results are below threshold (M3.1).
+    
+    This is called after filtering but before formatting to capture the final
+    relevance scores. Best-effort operation - failure never breaks search (M3.8).
+    """
+    try:
+        # Skip if no query or query is empty (M3.4)
+        if not query or not query.strip():
+            return
+        
+        # Get threshold from environment (default 0.3)
+        threshold = float(os.environ.get("MCP_GAP_THRESHOLD", "0.3"))
+        
+        # Find the top relevance score
+        top_score = 0.0
+        if memories:
+            for memory in memories:
+                score = memory.get("similarity_score", memory.get("relevance_score", 0.0))
+                if score > top_score:
+                    top_score = score
+        
+        # Record gap only if top score is below threshold
+        if top_score < threshold:
+            from .gaps import record_gap
+            agent_id = arguments.get("agent_id")
+            await record_gap(server, query, top_score, agent_id)
+            
+    except Exception as e:
+        # M3.8: Best-effort, non-fatal - log debug but don't break search
+        logger.debug(f"Gap detection failed (non-fatal): {_sanitize_log_value(e)}")

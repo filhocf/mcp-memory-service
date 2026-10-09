@@ -2602,6 +2602,16 @@ class MemoryServer:
             logger.error("Error in get_assertiveness_metrics: %s", _sanitize_log_value(e))
             return [types.TextContent(type="text", text=json.dumps({"error": str(e)}, indent=2))]
 
+    async def handle_memory_gaps(self, arguments: dict) -> List[types.TextContent]:
+        """Handle memory_gaps tool for gap detection (RFC-MM-03)."""
+        await self._ensure_storage_initialized()
+        try:
+            from mcp_memory_service.server.handlers.gaps import handle_memory_gaps
+            return await handle_memory_gaps(self, arguments)
+        except Exception as e:
+            logger.error("Error in memory_gaps: %s", _sanitize_log_value(e))
+            return [types.TextContent(type="text", text=json.dumps({"error": str(e)}, indent=2))]
+
     # ============================================================
     # Test Compatibility Wrapper Methods
     # ============================================================

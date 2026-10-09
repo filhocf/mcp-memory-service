@@ -1497,4 +1497,33 @@ Examples:
         },
         annotations={"readOnlyHint": True},
     ),
+    ToolDef(
+        name="memory_gaps",
+        description="""Manage detected knowledge gaps from low-score searches (RFC-MM-03).""",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["list", "resolve", "stats"],
+                    "default": "list",
+                    "description": "Action to perform: list unresolved gaps, resolve specific gaps, or get statistics",
+                },
+                "gap_id": {
+                    "type": "integer",
+                    "description": "Specific gap ID to resolve (for resolve action)",
+                },
+                "normalized_query": {
+                    "type": "string",
+                    "description": "Normalized query to resolve all matching gaps (for resolve action)",
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 20,
+                    "description": "Maximum number of gaps to return (for list action)",
+                },
+            },
+        },
+        annotations={"readOnlyHint": False},
+    ),
 ]
