@@ -214,6 +214,13 @@ async def memory_context(
                 "confidence": confidence,
                 "relevance": relevance,
                 "belief_hash": b.get("belief_hash"),
+                # Provenance: the content_hashes of the source memories this belief was
+                # distilled from. Carried through so the L4 feedback signal can tell
+                # whether an injected belief was later USED (one of its source memories
+                # reappears in a retrieval) — belief_hash itself never matches a memory
+                # content_hash, so without this the coverage/injected_then_used metrics
+                # are structurally always 0.
+                "derived_from": list(b.get("derived_from") or []),
             }
         )
 
@@ -259,6 +266,13 @@ async def memory_context(
     belief_hashes = [s["belief_hash"] for s in selected if s.get("belief_hash")]
     count = len(selected)
 
+    # Provenance hashes: the union of source-memory content_hashes behind the injected
+    # beliefs. These are what the L4 feedback can actually correlate against later
+    # retrievals (a belief_hash never equals a memory content_hash).
+    source_hashes = sorted({
+        h for s in selected for h in (s.get("derived_from") or []) if h
+    })
+
     # Best-effort injection telemetry.
     try:
         from .usage_telemetry import log_usage_event, resolve_telemetry_agent_id
@@ -269,7 +283,7 @@ async def memory_context(
             n_results=count,
             agent_id=resolve_telemetry_agent_id(),
             metadata=json.dumps(
-                {"belief_hashes": belief_hashes, "count": count}
+                {"belief_hashes": belief_hashes, "source_hashes": source_hashes, "count": count}
             ),
         )
     except Exception as e:  # noqa: BLE001 - telemetry is best-effort
@@ -281,6 +295,7 @@ async def memory_context(
         "truncated": truncated,
         "injected": True,
         "belief_hashes": belief_hashes,
+        "source_hashes": source_hashes,
         "count": count,
         "budget_tokens": budget,
     }

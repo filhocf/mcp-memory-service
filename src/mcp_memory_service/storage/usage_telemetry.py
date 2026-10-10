@@ -317,7 +317,15 @@ def _event_returned_hashes(metadata_raw: Optional[str]) -> List[str]:
 
 
 def _event_belief_hashes(metadata_raw: Optional[str]) -> List[str]:
-    """Extract belief_hashes from an injection event's metadata JSON."""
+    """Extract the correlation hashes from an injection event's metadata JSON.
+
+    Returns the injected beliefs' SOURCE-memory content_hashes (``source_hashes``,
+    i.e. each belief's ``derived_from`` provenance) when present, because those are
+    what can actually reappear in a later retrieval's returned_hashes — a
+    ``belief_hash`` is a hash of distilled text and never equals a memory
+    content_hash, so correlating on it is structurally always empty. Falls back to
+    ``belief_hashes`` for older events written before provenance was recorded.
+    """
     if not metadata_raw:
         return []
     try:
@@ -326,6 +334,9 @@ def _event_belief_hashes(metadata_raw: Optional[str]) -> List[str]:
         return []
     if not isinstance(meta, dict):
         return []
+    source = meta.get("source_hashes")
+    if isinstance(source, list) and source:
+        return [h for h in source if h]
     hashes = meta.get("belief_hashes")
     if isinstance(hashes, list):
         return [h for h in hashes if h]
