@@ -1,7 +1,7 @@
 # ESTADO — mcp-memory-service (Claudio)
 
 > Para você abrir e entender onde estamos sem reconstruir contexto.
-> Árvore primeiro (visão), notas depois (detalhe). Atualizado: 2026-10-09 (manhã DTP — delta-sync Fase 4 MERGED #1489; arco delta-sync 4/5 fases no upstream; Fase 5 é o próximo e FECHA o arco).
+> Árvore primeiro (visão), notas depois (detalhe). Atualizado: 2026-10-10 (fim de semana casa — delta-sync 5/5 FASES + PR #1499 fix deadlock VERDE reconhecido pelo Henry; delta-sync E2E provado nos 3 hosts; learning-loop: fix proveniência destravou L4 coverage 0→0.013; frentes B/C/E iniciadas G0 feito → viram PRs atômicos).
 
 ```
 mcp-memory-service (fork = linha viva · 0 atrás do upstream · 246 à frente · 09/out)
@@ -46,10 +46,14 @@ mcp-memory-service (fork = linha viva · 0 atrás do upstream · 246 à frente �
 │   ├─ L4 REAL = terminar RFC-MM-01 (feedback PASSIVO) . 🟢 FORK 5/out (reconciliado 6/out) · WIRING ATIVO: job quality_recompute (MCP_QUALITY_RECOMPUTE_SCHEDULE=6h, dry-run=true ADR-0006: agent_id=None contamina) + persist_quality_scores delega (clamp+effective_quality PRESERVA user_rating #1312) · tool get_assertiveness_metrics (ADR-0005) · 2944 tests pass
 │   ├─ L4-unblock agent_id no retrieve/feedback/injection .. 🟢 FORK 6/out · _resolve_telemetry_agent_id (MCP_AGENT_ID, null-safe RFC#1100) nos 3 call sites de usage_events · derive_signals já particionava · 5 tests (REQ-A5 anti-contaminação) · banco vivo: retrieval grava agent_id=zero. PERSISTÊNCIA ainda dry-run: histórico 16965 eventos None contamina 96% até janela 14d limpar (ou expurgo) — decisão Claudio
 │   ├─ ENRIQUECIMENTO 6/out (backfill + host) ............. 🟢 FORK · (a) backfill: 22534 memórias NULL→agent_id=zero (guri==zero), kiro/unknown preservados, backup+integridade OK · (b) host automático: RFC rfc-mcp-hostname-stamping, _resolve_hostname nos 3 call sites MCP (store_memory+2×session, G5 P2 fechado), flag MCP_MEMORY_INCLUDE_HOSTNAME=true ligada, E2E quente: metadata.hostname=DNBSCDC289.741 · host = CANDIDATO PR UPSTREAM (assimetria: flag só na Web API)
-│   ├─ N1 janela 1 semana — medir proveito REAL ........ 🔨 EM ANDAMENTO (até ~10/out) · baseline 5/out: re_query_rate=0.125 injection_coverage=0.0 lost_context_rate=0.625 (1 hash c/ sinal; telemetria recém-ligada, acumula)
-│   ├─ (próximo) ligar score no ranking do retrieval ... 🔴 SÓ após N1 provar (ADR-0005: baseline antes de mexer) · RFC-MM-01 §5
-│   ├─ N2 PUSH automático (hook harness) ............... 🔴 depois de N1 · hoje é PULL; push real = startup-hook chamar memory_context
-│   ├─ N3 feedback positivo + sinal de uso auto ........ 🔴 depois de N1 · rating +1 reforça; belief reusado sobe sozinho
+│   ├─ N1 janela 1 semana — medir proveito REAL ........ ✅ MEDIDO 10/out · ACHADO: injection_coverage=0.0 era BUG ESTRUTURAL, não falta de volume (belief_hash nunca == content_hash). L3 push CONFIRMADO disparando (E2E memory_search via /mcp).
+│   ├─ 🔧 FIX PROVENIÊNCIA (10/out, 63ddfaaa, 3 hosts) .. 🟢 FORK · injeção grava source_hashes (=derived_from do belief) no evento injection; _event_belief_hashes correlaciona por eles. injection_coverage 0.0→0.013 no vivo (1º ciclo inject→use). É Context Utilization / Chunk Attribution (pesquisa 10/out). test_injection_provenance_coverage.py (4).
+│   ├─ ⭐ FRENTES B/C/E (10/out) ........................ 🔨 EM ANDAMENTO · ARC e3dc542d · gate+delegação · G0 (seven) FEITO (métricas-alvo abaixo). Vira PRs atômicos.
+│   │     ├─ B sinal-negativo (forgetting de belief inútil) 🔴 spec · "injetado ≥N sem uso → confiança −X%/ciclo → sai do top-k". Dá com usage_events + metadata JSON (zero DDL).
+│   │     ├─ C freshness (versão nova vence na injeção) ... 🔴 spec · "v2>v1 no top-k 100% casos". Rota barata: timestamp boost em context_injection.py:274 (zero DDL); robusta: beliefs.superseded_by (DDL).
+│   │     └─ E eval adversarial + MRR ................... 🔴 spec · "script offline determinístico: MRR(vs 0.4140)+taxa_freshness+taxa_forgetting". Harness LoCoMo reaproveitável (sem LLM no modo retrieval/ablation); precisa set adversarial novo.
+│   ├─ (próximo) ligar score no ranking do retrieval ... 🔴 após B/C/E · RFC-MM-01 §5
+│   ├─ A re-rank (context precision) / D chunk-attribution 🔴 DESIGN ABERTO → pesquisa multi-IA (frentes do §14 RFC não-cobertas por B/C/E)
 │   │
 │   └─ 📦 COMOs resgatados (protótipo 2e1978d5 = os 3 jobs da trilogia; branch validacao, 93 testes):
 │       ├─ rfc-mm-02 fact-extraction (L2) ............. 🟢 resgatado · job scheduler + migration · spec: 6 req
