@@ -1,13 +1,36 @@
-> 🟢 LOOP CLOSED IN CODE (09/out/2026): L1 memória · L2 destilação (belief store) · L3 injeção pull (memory_context) + push server-side (INC-2, memory_search anexa contexto) · L4 feedback (telemetria + quality recompute clampado + sinal injected_then_used que distingue utilidade de popularidade). Falta o fechamento EMPÍRICO: MRR subir vs baseline LoCoMo 0.4140 — depende de VOLUME acumular (2ª fatia). Guarda-chuva. Ver ADR-0003/0004/0005 + docs/_fork/benchmarks/baseline-locomo-20261009.md.
+> 🟡 LOOP CLOSED IN CODE, MENSURÁVEL A PARTIR DE 10/out (não "pronto"). L1 memória · L2 destilação (belief store, ruído filtrado) · L3 injeção pull (memory_context) + push server-side (INC-2) — **confirmado disparando** em memory_search via /mcp (teste E2E 10/out) · L4 feedback agora **mensurável**: o fix de proveniência (injection grava source_hashes = derived_from do belief) destravou injection_coverage, que saiu de 0.0 estrutural → 0.013 no serviço vivo após 1 ciclo inject→use. Ver §13 (avaliação honesta 10/out) e §14 (o que falta — context precision / 4 dimensões). O ciclo roda; o que falta é o TIRO CERTEIRO (ranking) e as dimensões freshness/forgetting. Guarda-chuva. ADR-0003/0004/0005 + baseline LoCoMo 0.4140.
 
 # RFC: Learning Loop — do colhedor ao aprendiz (closed-loop agent learning)
 
-**Status:** planned (draft v0.1) · **Criado:** 2026-10-02 · **Fork-only (amadurecimento)**
+**Status:** planned (draft v0.2) · **Criado:** 2026-10-02 · **Rev:** 2026-10-10 · **Fork-only (amadurecimento)**
 **Autor:** Claudio + Zero · **Base:** v11.14.0+ (fork sincronizado 02/out)
 
 > **A pergunta que origina esta RFC (Claudio, 02/out):** "De que adianta ficar
 > colhendo memórias — e eu poder acessá-las — se isso não se consolida em
 > CONHECIMENTO? E como fazer o agente APRENDER com isso?"
+
+## 0. A analogia que define o alvo (Claudio p/ Mari, 10/out)
+
+> *"Você estuda fisioterapia. Aula 1, 2, …, N, cada uma gerando anotações. Na prova,
+> quando precisa, você pega só o que é importante para AQUELE momento — diferente da
+> IA, que pega TUDO, lê de 1 a N sessões, e só então separa o que precisa. Quero levar
+> o que nós fazemos para o Zero fazer: **condensar conteúdo para tiro rápido e certeiro.**"*
+
+Essa analogia É a especificação do loop, traduzida:
+- **Aulas 1..N + anotações** = L1 memória (eventos brutos, 25k mems).
+- **"na prova, pega só o que importa para aquele momento"** = o aprendizado humano:
+  não se relê 40 aulas; tem-se a **condensação** (L2 destilação) e **puxa-se a certa,
+  na hora certa** (L3 injeção com boa *context precision*).
+- **"a IA pega TUDO, lê de 1 a N, e separa"** = o RAG ingênuo que estamos SAINDO —
+  reler tudo a cada pergunta. O loop quer o oposto: destilado pronto + injeção cirúrgica.
+- **"tiro rápido e certeiro"** = **rápido** (one-shot, sem rodadas de busca → L3 push, já
+  feito) + **certeiro** (o item CERTO para aquele momento, não o genérico → *context
+  precision*, o que AINDA FALTA — §14 frente A).
+
+Onde estamos na analogia (honesto, 10/out): temos as anotações condensadas (L2 ✅) e a
+entrega automática "junto" (L3 push ✅). Mas na "prova" ainda chega a anotação GENÉRICA
+no topo ("sempre revise antes") em vez da ESPECÍFICA e decisiva ("neste caso, o músculo
+X responde assim"). **Condensar: temos. Certeiro: é o próximo arco.**
 
 ## 1. Problema (em uma frase)
 
@@ -171,3 +194,57 @@ Esta visão sintetiza pesquisa anterior nossa. NÃO recomeçar do zero:
 AÇÃO: antes de implementar qualquer peça, reler o autolearn-rfc §2.2 (arquitetura) e
 §2.4 (plano) — provável que o COMO de L2/L4 já esteja desenhado lá e esta RFC só precise
 amarrar com o enquadramento do ciclo fechado + o insight do sinal de uso (§11).
+
+
+## 13. Avaliação honesta (10/out) — medido no serviço vivo, não narrativa
+
+Como CLIENTE (Zero usa isto todo dia) + MANAGER, com dados reais do sirdata:
+
+- **L3 push DISPARA** (refutada a suspeita de que não): `memory_search` via /mcp anexa
+  "Related distilled context" e grava o evento injection. Os "7 de 36.688" eram dados
+  históricos pré-deploys de 10/out (socrates nem tinha a flag até então).
+- **L4 estava CEGO** (bug estrutural, não falta de volume): `injection_coverage` e
+  `injected_then_used` eram 0.0 porque a injeção gravava só `belief_hash` (sha256 do
+  texto destilado) e a métrica correlacionava com `content_hash` de memória — namespaces
+  que **nunca cruzam**. FIX (commit 63ddfaaa): injeção grava `source_hashes`
+  (= `derived_from` do belief = content_hashes das memórias-fonte); telemetria correlaciona
+  por eles. **Prova E2E viva: coverage 0.0 → 0.013** após 1 ciclo inject→use.
+- Conceito formal (pesquisa 10/out): isto é **Context Utilization / Chunk Attribution** —
+  "o agente de fato usou o contexto injetado?". Nosso proxy via proveniência é sólido
+  sem LLM-judge, mas é indireto (mede "a fonte reapareceu", não "mudou a decisão").
+
+## 14. O que falta — "tiro certeiro" (context precision) + 4 dimensões
+
+A pesquisa de avaliação de memória de agente (FutureAGI 4-dimensões; Ragas context
+precision/recall/faithfulness; chunk attribution) revelou que medimos ~1,5 de 4
+dimensões. O loop RODA mas não é CERTEIRO. Frentes (candidatas a fatias desta RFC):
+
+**4 DIMENSÕES de memória (score separado — hoje só recall parcial):**
+1. **Recall** — fato certo surgiu (top-k hit-rate). 🟡 parcial.
+2. **Freshness** — versão MAIS NOVA vence quando o fato tem updates (`valid_at`). 🔴
+   não medido; busca por densidade de embedding pode entregar versão velha.
+3. **Contradiction handling** — quando fatos discordam, o certo vence + decisão logada.
+   🟡 NLI existe, não medido.
+4. **Forgetting** — retratado/expirado some (recall vazio em tombstone). 🔴 não medido.
++ non-negotiables: slice de privacidade (memória cruzar agente/tenant = P0), scores no
+  trace (mesma rubrica em CI e produção), adversarial set que retrata/atualiza fatos.
+
+**5 FRENTES de melhoria (do olhar de cliente + pesquisa):**
+- **A. Re-rank da injeção (CONTEXT PRECISION — o "certeiro" da analogia §0):** hoje
+  relevância×confiança favorece belief GENÉRICO muito-reforçado sobre o ESPECÍFICO raro.
+  É o específico raro que evita repetir erro. Investigar re-rank que valorize
+  especificidade/raridade + match ao tema. **Maior retorno de cliente. Design aberto →
+  candidato a pesquisa multi-IA.**
+- **B. Sinal NEGATIVO (forgetting de beliefs inúteis):** injetado e nunca usado após N →
+  rebaixar confiança / parar de injetar. Hoje só sinal positivo fraco. (conduzo sozinho)
+- **C. Freshness na injeção:** versão nova de um fato vence a antiga. (conduzo sozinho)
+- **D. Chunk attribution REAL:** medir se a injeção mudou a resposta, não só se a fonte
+  reapareceu. Proxy heurístico vs LLM-judge — trade-off de custo. **Design aberto →
+  candidato a pesquisa multi-IA.**
+- **E. Eval set adversarial + MRR contínuo vs baseline LoCoMo 0.4140.** (conduzo sozinho)
+
+**Método de ataque:** B/C/E são mensuração+heurística (interno, como o fix de 10/out).
+A/D são design genuinamente aberto — reservar pesquisa multi-IA para eles. Prioridade de
+cliente: **A primeiro** (é o que mais atrapalha o "tiro certeiro" hoje).
+
+Refs: pesquisa consolidada em memória hash 915c9d31; CdIA (a criar) sobre RAG-eval/agent-memory.
