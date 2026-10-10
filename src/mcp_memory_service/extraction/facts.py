@@ -9,16 +9,50 @@ Uses HarvestRewriter configuration: HARVEST_LLM_PROVIDERS or GROQ_API_KEY.
 import json
 import logging
 import os
+import re
 import sqlite3
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 
 logger = logging.getLogger(__name__)
 
-logger = logging.getLogger(__name__)
-
 BATCH_SIZE = 20
 MAX_CHUNKS_PER_RUN = 200
+
+
+_JSON_FENCE_RE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL | re.IGNORECASE)
+
+
+def _parse_llm_json_array(response: str):
+    """Parse a JSON array from an LLM response, tolerating common wrappers.
+
+    LLMs (e.g. groq gpt-oss) often wrap JSON in markdown code fences or add a
+    short preamble, which breaks a bare json.loads(). This strips fences and, as
+    a last resort, extracts the outermost [...] slice. Returns a list on success
+    or None if nothing parseable is found.
+    """
+    if not response:
+        return None
+    candidates = []
+    # 1. the raw response
+    candidates.append(response.strip())
+    # 2. inside a ```json ... ``` fence
+    m = _JSON_FENCE_RE.search(response)
+    if m:
+        candidates.append(m.group(1).strip())
+    # 3. the outermost bracket slice
+    start = response.find("[")
+    end = response.rfind("]")
+    if start != -1 and end != -1 and end > start:
+        candidates.append(response[start:end + 1].strip())
+    for cand in candidates:
+        try:
+            parsed = json.loads(cand)
+        except (json.JSONDecodeError, ValueError):
+            continue
+        if isinstance(parsed, list):
+            return parsed
+    return None
 THROTTLE_SECONDS = 1.0
 LLM_TIMEOUT = 30.0
 LLM_MAX_RETRIES = 1
@@ -112,19 +146,16 @@ async def extract_facts_batch(chunks: List[Dict[str, Any]]) -> Optional[List[Dic
             logger.warning("Empty response from LLM fact extraction")
             return None  # FAILURE: Empty response from LLM
             
-        # Parse JSON response
-        try:
-            results = json.loads(response)
-            if not isinstance(results, list):
-                logger.warning("LLM returned non-list for fact extraction: %s", _sanitize_log_value(response[:100]))
-                return None  # FAILURE: Invalid response format
-            
-            logger.debug("Extracted facts from %d chunks", len(results))
-            return results  # SUCCESS: May be empty list if no facts found
-            
-        except json.JSONDecodeError as e:
-            logger.warning("Failed to parse LLM response as JSON: %s", _sanitize_log_value(str(e)))
+        # Parse JSON response (tolerant: handles code fences / preamble)
+        results = _parse_llm_json_array(response)
+        if results is None:
+            logger.warning(
+                "Failed to parse LLM response as JSON array (after fence/slice fallbacks): %s",
+                _sanitize_log_value(response[:120]),
+            )
             return None  # FAILURE: JSON parse error
+        logger.debug("Extracted facts from %d chunks", len(results))
+        return results  # SUCCESS: May be empty list if no facts found
             
     except Exception as e:
         # FIXED H2: Return None for failure instead of empty list

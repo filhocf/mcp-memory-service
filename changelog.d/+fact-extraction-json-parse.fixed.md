@@ -1,0 +1,1 @@
+Fixed batch fact extraction aborting the entire run when the LLM wrapped its JSON array in markdown code fences or added a short preamble (groq gpt-oss). The parser now strips ```json fences and falls back to the outermost bracket slice before giving up.
