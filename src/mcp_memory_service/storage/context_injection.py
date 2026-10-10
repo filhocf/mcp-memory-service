@@ -136,6 +136,69 @@ async def _semantic_terms(storage, task: str) -> set:
     return terms
 
 
+def _get_freshness_enabled() -> bool:
+    """Return whether freshness boosting is enabled.
+
+    Default ON. Only 'false', '0', or 'no' (case-insensitive, trimmed) disable it.
+    """
+    raw = os.environ.get("MCP_INJECT_FRESHNESS")
+    if raw is None:
+        return True
+    return raw.strip().lower() not in _DISABLED_VALUES
+
+
+def _calculate_freshness_boost(updated_at: Optional[str]) -> float:
+    """Calculate a bounded freshness boost from updated_at timestamp.
+
+    Returns a score in [0.0, 0.1] based on recency. Newer = higher score.
+    The boost uses a steep 1-day half-life decay to strongly prefer
+    recent updates within a relevance band while being bounded enough
+    not to invert a materially higher relevance (R2): the 0.1 cap only
+    breaks ties within a relevance*confidence band of <=0.1, never overturns a
+    materially more relevant belief.
+
+    Args:
+        updated_at: ISO timestamp string or None
+
+    Returns:
+        float in [0.0, 0.1]: recency boost
+    """
+    if not updated_at:
+        return 0.0
+
+    try:
+        from datetime import datetime, timezone
+        
+        # Parse the timestamp - handle both timezone-aware and naive
+        if updated_at.endswith('Z'):
+            ts = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+        else:
+            # Try parsing as-is first
+            ts = datetime.fromisoformat(updated_at)
+            # If naive (no tzinfo), assume UTC
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+        
+        now = datetime.now(timezone.utc)
+        # Clamp age to >= 0: a future updated_at (clock skew between the 3 hosts +
+        # VPS that sync) must NOT produce decay > 1 — that would make the boost
+        # unbounded, blow past the 0.1 cap, invert relevance (violating R2), and
+        # even OverflowError on large future offsets. A future stamp is treated as
+        # "now" (full, capped boost).
+        age_seconds = max(0.0, (now - ts).total_seconds())
+
+        # Decay function: steep exponential decay with 1-day half-life
+        # Max boost = 0.1 (for very recent items) — tie-breaker band only (R2)
+        # After 1 day: 50% of max boost; after 2 days: 25%; after 7 days: ~1%
+        half_life_seconds = 24 * 3600  # 1 day
+        decay = 2 ** (-age_seconds / half_life_seconds)
+        return min(0.1, 0.1 * decay)
+
+    except (ValueError, AttributeError, TypeError, OverflowError):
+        # Invalid timestamp format / arithmetic overflow — no boost.
+        return 0.0
+
+
 async def memory_context(
     storage,
     task: str,
@@ -208,6 +271,10 @@ async def memory_context(
             # No embedding model -> pure confidence fallback.
             relevance = 1.0
 
+        # Calculate freshness score for all items (used if freshness enabled)
+        updated_at = b.get("updated_at") or b.get("created_at")
+        freshness_score = _calculate_freshness_boost(updated_at)
+
         scored.append(
             {
                 "content": content,
@@ -221,6 +288,11 @@ async def memory_context(
                 # content_hash, so without this the coverage/injected_then_used metrics
                 # are structurally always 0.
                 "derived_from": list(b.get("derived_from") or []),
+                # Timestamps for freshness ranking (R1: carry timestamp).
+                "updated_at": updated_at,
+                "created_at": b.get("created_at"),
+                # Freshness boost score for debugging/telemetry
+                "freshness_score": freshness_score,
             }
         )
 
@@ -230,9 +302,24 @@ async def memory_context(
         for s in scored:
             s["relevance"] = 1.0
 
-    # Order by combined relevance x confidence (desc), then confidence as a
-    # stable tiebreaker.
-    scored.sort(key=lambda s: (s["relevance"] * s["confidence"], s["confidence"]), reverse=True)
+    # Order by combined relevance x confidence (desc), with optional freshness boost.
+    # R4: When MCP_INJECT_FRESHNESS is off, use byte-identical ordering (no freshness).
+    if _get_freshness_enabled():
+        # R2: Freshness-aware sorting - limited boost + deterministic tiebreaker.
+        # Primary sort: relevance * confidence + bounded freshness boost
+        # Secondary sort: confidence (stability)
+        # Tertiary sort: freshness_score (deterministic tiebreaker for equal relevance)
+        scored.sort(
+            key=lambda s: (
+                s["relevance"] * s["confidence"] + s["freshness_score"],
+                s["confidence"],
+                s["freshness_score"],
+            ),
+            reverse=True,
+        )
+    else:
+        # Original ordering (no freshness consideration)
+        scored.sort(key=lambda s: (s["relevance"] * s["confidence"], s["confidence"]), reverse=True)
 
     # Apply explicit item limit first.
     if limit is not None:
