@@ -1,0 +1,1 @@
+Belief distillation now filters out degenerate short fragments (e.g. "TYPE:", "Reg", "convention") that previously leaked into the belief store as low-value beliefs. The noise filter requires at least ~15 characters and 3 words of substance.

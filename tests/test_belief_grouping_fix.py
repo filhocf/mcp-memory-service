@@ -35,8 +35,18 @@ class TestNoiseFilter:
     def test_real_decision_is_not_noise(self):
         assert not _is_noise("We decided to use PostgreSQL for the cache")
 
-    def test_empty_string_is_not_noise(self):
-        assert not _is_noise("")
+    def test_empty_string_is_noise(self):
+        # An empty/whitespace fragment carries no insight and must be filtered
+        # (updated 2026-10-10: minimum-length noise filter — a belief needs
+        # at least ~15 chars and 3 words of substance).
+        assert _is_noise("")
+        assert _is_noise("   ")
+
+    def test_short_fragments_are_noise(self):
+        # Regression: degenerate fragments like these leaked into the belief
+        # store (5% of 240 beliefs) before the minimum-length filter.
+        for frag in ("TYPE:", "Reg", "convention", "learning", "Capturar", "O grid de"):
+            assert _is_noise(frag), f"expected noise: {frag!r}"
 
 
 class TestSemanticGrouping:

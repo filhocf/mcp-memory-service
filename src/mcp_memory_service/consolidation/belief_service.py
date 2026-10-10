@@ -50,6 +50,13 @@ def _is_noise(content: str) -> bool:
     """Filter out non-useful observations using structural heuristics."""
     text = content.lstrip()
 
+    # Minimum-length check: fragments too short to carry a useful insight
+    # (e.g. "TYPE:", "Reg", "convention", "usar `") must not become beliefs.
+    # Require at least ~15 chars and 3 words of substance.
+    stripped = text.strip()
+    if len(stripped) < 15 or len(stripped.split()) < 3:
+        return True
+
     # Prefix check (fast path)
     if any(text.startswith(prefix) for prefix in _NOISE_PREFIXES):
         return True
