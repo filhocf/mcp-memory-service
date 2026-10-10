@@ -81,14 +81,20 @@ cd ~/git/mcp-memory-service && git reset --hard <ROLLBACK_HEAD> && systemctl --u
 ---
 
 ## Estado por máquina (checklist)
-| Máquina | Versão serviço | delta-sync F5 | papel sync | Status (09/out) |
+| Máquina | Versão serviço | delta-sync F5 | papel sync | Status (10/out) |
 |---------|---------------|---------------|-----------|-----------------|
-| DNBSCDC289 | v11.15.0 (HEAD 9355b6cd) | ✅ bootstrap presente | spoke (MCP_SYNC_SCHEDULE=1m → hub) | ✅ OPERACIONAL 09/out: sync bidirecional provado E2E (pull 194→197, push 386→390, hash propagou ao hub). Clamp quality aplicado. |
-| VPS (hub) | v11.15.0 (HEAD 9355b6cd) | ✅ bootstrap presente | hub (pivot passivo, sem peers) | ✅ OPERACIONAL 09/out: replicado da F4d→HEAD, 20659 mems preservadas, MCP_SYNC_EVENTLOG=on, serve feed/baseline |
-| sirdata | **VERIFICAR ao chegar** | **?** | spoke (quando ligado) | ⚠️ provável ATRÁS do HEAD (última ação 25/set, v11.14.0). PRECISA alinhar git antes de confiar no sync (ver "Chegada numa máquina" abaixo) |
-| socrates | **VERIFICAR ao chegar** | **?** | spoke (quando ligado) | ⚠️ provável ATRÁS do HEAD. Idem sirdata |
+| DNBSCDC289 | HEAD 9355b6cd+ | ✅ | spoke (1m → hub) | ✅ OPERACIONAL 09/out (sync bidirecional E2E). Atualizar p/ 36a33c70 ao chegar. |
+| VPS (hub) | **36a33c70** | ✅ | hub (pivot passivo) | ✅ OPERACIONAL 10/out: MAX seq 27367, serve feed/baseline, fixes de deadlock aplicados |
+| sirdata | **36a33c70** | ✅ | spoke (1m → hub) | ✅ OPERACIONAL 10/out: pull 27367 (=hub) / push 27366 (=localMAX), 0 fail-stops, learning-loop ligado |
+| socrates | **36a33c70** | ✅ | spoke (1m → hub) | ✅ OPERACIONAL 10/out: pull 27367 / push 27366, 0 fail-stops, learning-loop ligado |
 
-> **⚠️ delta-sync (#1345) está OPERACIONAL entre DNBSCDC289↔VPS (09/out).** As máquinas de casa (socrates/sirdata) foram tocadas por último em set (v11.14.0) → NÃO têm a Fase 5 (bootstrap). Antes de confiar no sync nelas, rodar a "Chegada numa máquina" abaixo.
+> **✅ delta-sync (#1345) OPERACIONAL nos 3 hosts (hub+sirdata+socrates), 10/out.** Convergência bidirecional 100% provada E2E (cursores = MAX seq do hub). PR #1499 upstream com os fixes de deadlock.
+>
+> **🐞 BUG DE DEADLOCK CORRIGIDO (10/out, PR #1499):** eventos "poison" (create com content vazio no payload E na tabela, por quarentena→unquarantine que zera content) travavam pull E push com fail-stop global. Fix: `ApplyResult.skippable` (apply avança em vez de parar) + feed não sobrescreve content bom com vazio + ingest classifica anti-replay/skippable como `skipped_duplicate`. Se o sync travar com "Create event missing content" → é esse padrão, já corrigido no HEAD.
+>
+> **🐞 LIÇÃO socrates (10/out):** a unit systemd da socrates (`~/.config/systemd/user/memory-service.service`) NÃO tinha a linha `EnvironmentFile=-.../memory-service.%H.env` (só o env compartilhado) — então nenhuma env host-specific (MCP_SYNC_*, LLM keys) chegava ao processo, apesar do arquivo existir. Diferente do sirdata/DNBSCDC289. Ao chegar numa máquina, CONFERIR `systemctl --user cat memory-service.service | grep EnvironmentFile` tem as DUAS linhas (compartilhado + %H). Backup da unit em `.bak.*`.
+>
+> **🐞 BUGS LEARNING-LOOP achados+corrigidos (10/out, fork-only):** (1) fact-extraction abortava quando groq gpt-oss envolvia JSON em ```fence (commit f97cac36, `_parse_llm_json_array` tolerante); (2) beliefs degenerados — `_is_noise` sem piso de comprimento deixava "TYPE:"/"Reg" virarem belief (commit 36a33c70, exige >=15 chars + >=3 palavras). Limpos da base viva.
 
 ---
 
