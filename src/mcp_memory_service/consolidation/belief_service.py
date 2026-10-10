@@ -8,6 +8,7 @@ to the beliefs table. No LLM dependency.
 import hashlib
 import json
 import logging
+import os
 import re
 from datetime import datetime, timezone
 from typing import List, Optional
@@ -175,6 +176,9 @@ class BeliefService:
                     existing = await self._get_belief(belief_hash)
 
                     if existing:
+                        # Apply negative use-signal penalty before updating (learning-loop frente B)
+                        confidence = await self._apply_unused_penalty(belief_hash, confidence, existing)
+                        
                         await self._update_belief(
                             belief_hash, confidence, supporting_hashes, contradicting_hashes, now
                         )
@@ -472,3 +476,114 @@ class BeliefService:
             (status, now.isoformat(), belief_hash),
         )
         conn.commit()
+
+    def _get_max_unused_count_for_belief(self, belief_hash: str, unused_stats: dict) -> tuple:
+        """Extract maximum unused count and relevant agent for a belief across all agents.
+        
+        Returns (max_count, agent_id). Takes conservative max when belief is
+        used by multiple agents (unused-by-one penalizes-globally).
+        This is a product decision: confidence is a single global column, so we
+        cannot apply different penalties per-agent. Ideally would penalize only
+        per the agent(s) that inject without use.
+        """
+        max_count = 0
+        relevant_agent = None
+        
+        for composite_key, stats in unused_stats.items():
+            if stats.get("belief_hash") == belief_hash:
+                count = stats.get("injections_without_use", 0)
+                if count > max_count:
+                    max_count = count
+                    relevant_agent = stats.get("agent_id")
+        
+        return max_count, relevant_agent
+
+    def _update_belief_metadata_counter(self, belief_hash: str, existing: dict, count: int) -> None:
+        """Store unused injection counter in beliefs.metadata JSON.
+        
+        If count is 0, removes the counter (reset). This enables visibility
+        of the negative signal state and facilitates debugging.
+        """
+        metadata = json.loads(existing.get("metadata") or "{}")
+        
+        if count == 0:
+            metadata.pop("injections_without_use", None)
+        else:
+            metadata["injections_without_use"] = count
+        
+        conn = self.storage.conn
+        conn.execute(
+            "UPDATE beliefs SET metadata = ? WHERE belief_hash = ?",
+            (json.dumps(metadata), belief_hash)
+        )
+        conn.commit()
+
+    async def _apply_unused_penalty(self, belief_hash: str, confidence: float, existing: dict) -> float:
+        """Apply negative use-signal penalty to belief confidence (learning-loop frente B).
+        
+        Checks if belief has been injected ≥N times without use and applies penalty.
+        Stores unused counter in beliefs.metadata JSON to enable counter reset on use.
+        
+        NOTE: Uses max() across agents when a belief is used by multiple agents
+        (conservative penalty — unused-by-one penalizes-globally). See 
+        _get_max_unused_count_for_belief docstring for rationale.
+        """
+        # Import _sanitize_log_value for consistent log sanitization
+        from .contradictions import _sanitize_log_value
+        
+        # Check opt-in flag
+        use_feedback_enabled = os.getenv("MCP_BELIEF_USE_FEEDBACK", "false").lower() == "true"
+        if not use_feedback_enabled:
+            return confidence
+        
+        try:
+            # Import here to avoid circular dependency
+            from ..storage.usage_telemetry import _derive_injected_never_used
+            
+            # Get unused stats for all beliefs (keyed by "agent_id:belief_hash")
+            unused_stats = await _derive_injected_never_used(self.storage)
+            
+            # Find maximum unused count for this belief across all agents
+            max_unused_count, relevant_agent = self._get_max_unused_count_for_belief(
+                belief_hash, unused_stats
+            )
+            
+            if max_unused_count == 0:
+                # No penalty - belief is being used or has no unused injections
+                # Reset counter in metadata if it exists (R4: use resets)
+                self._update_belief_metadata_counter(belief_hash, existing, 0)
+                return confidence
+            
+            # Check if belief meets the threshold for penalty
+            threshold = int(os.getenv("MCP_BELIEF_UNUSED_THRESHOLD", "3"))
+            
+            if max_unused_count < threshold:
+                # Below threshold - no penalty but store counter for visibility
+                self._update_belief_metadata_counter(belief_hash, existing, max_unused_count)
+                return confidence
+            
+            # Belief meets unused threshold - apply penalty (R2)
+            self._update_belief_metadata_counter(belief_hash, existing, max_unused_count)
+            
+            # Apply penalty factor
+            penalty_factor = float(os.getenv("MCP_BELIEF_UNUSED_PENALTY", "0.20"))
+            penalized_confidence = confidence * (1 - penalty_factor)
+            
+            # Log with sanitization for consistency (L2 fix)
+            logger.info(
+                "[belief] Applying unused penalty to %s: %d unused injections, "
+                "confidence %.3f → %.3f",
+                _sanitize_log_value(belief_hash[:8]), 
+                max_unused_count, 
+                confidence, 
+                penalized_confidence
+            )
+            
+            return penalized_confidence
+            
+        except Exception as e:
+            logger.warning(
+                "[belief] Failed to apply unused penalty (non-fatal): %s", 
+                _sanitize_log_value(str(e))
+            )
+            return confidence

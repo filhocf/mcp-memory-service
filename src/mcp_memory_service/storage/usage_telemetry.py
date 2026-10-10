@@ -456,6 +456,172 @@ async def _derive_injected_then_used(
         logger.warning("injected_then_used signal derivation failed (non-fatal): %s", e)
 
 
+def _parse_single_injection_row(row) -> Optional[tuple]:
+    """Parse a single injection event row.
+    
+    Returns (agent_id, ts, belief_hashes, source_hashes) or None if invalid.
+    source_hashes is a set (union of all derived_from across injected beliefs).
+    """
+    agent_id = row.get("agent_id")
+    if not agent_id:
+        return None
+    
+    ts = _parse_iso(row.get("timestamp"))
+    if not ts:
+        return None
+    
+    metadata_raw = row.get("metadata")
+    if not metadata_raw:
+        return None
+    
+    try:
+        metadata = json.loads(metadata_raw)
+    except (ValueError, TypeError):
+        return None
+    
+    belief_hashes = metadata.get("belief_hashes", [])
+    source_hashes_list = metadata.get("source_hashes", [])
+    
+    if not belief_hashes or not source_hashes_list:
+        return None
+    
+    # source_hashes is the union set of ALL derived_from across ALL beliefs.
+    # It has NO positional correspondence with belief_hashes.
+    source_hashes = set(source_hashes_list)
+    
+    return (agent_id, ts, belief_hashes, source_hashes)
+
+
+def _parse_injection_events(rows) -> Dict[str, Dict[str, List[Dict[str, Any]]]]:
+    """Parse injection events into agent→belief→injections structure.
+    
+    Returns {agent_id: {belief_hash: [{"ts": datetime, "source_hashes": set}]}}
+    Each injection event can inject multiple beliefs with shared source provenance.
+    """
+    result: Dict[str, Dict[str, List[Dict[str, Any]]]] = {}
+    
+    for row in rows:
+        parsed = _parse_single_injection_row(row)
+        if not parsed:
+            continue
+        
+        agent_id, ts, belief_hashes, source_hashes = parsed
+        
+        agent_data = result.setdefault(agent_id, {})
+        for belief_hash in belief_hashes:
+            belief_data = agent_data.setdefault(belief_hash, [])
+            belief_data.append({"ts": ts, "source_hashes": source_hashes})
+    
+    return result
+
+
+def _parse_retrieval_events(rows) -> Dict[str, List[Dict[str, Any]]]:
+    """Parse retrieval events into agent→retrievals structure.
+    
+    Returns {agent_id: [{"ts": datetime, "returned_hashes": set}]}
+    Sorted by timestamp within each agent.
+    """
+    result: Dict[str, List[Dict[str, Any]]] = {}
+    
+    for row in rows:
+        agent_id = row.get("agent_id")
+        if not agent_id:
+            continue
+        
+        ts = _parse_iso(row.get("timestamp"))
+        if not ts:
+            continue
+        
+        returned_hashes = _event_returned_hashes(row.get("metadata"))
+        if not returned_hashes:
+            continue
+        
+        agent_retrievals = result.setdefault(agent_id, [])
+        agent_retrievals.append({"ts": ts, "returned_hashes": set(returned_hashes)})
+    
+    # Sort by timestamp
+    for events in result.values():
+        events.sort(key=lambda e: e["ts"])
+    
+    return result
+
+
+def _count_trailing_unused_injections(
+    injections: List[Dict[str, Any]], 
+    retrievals: List[Dict[str, Any]]
+) -> int:
+    """Count consecutive unused injections from most recent backward.
+    
+    An injection is "unused" when none of its source_hashes appear in any
+    later retrieval. Counter resets (returns early) when use is found.
+    """
+    count = 0
+    for injection in reversed(injections):
+        injection_ts = injection["ts"]
+        source_hashes = injection["source_hashes"]
+        
+        # Check if ANY source_hash from this injection appears in a later retrieval
+        found_use = False
+        for retrieval in retrievals:
+            if retrieval["ts"] > injection_ts:
+                if source_hashes & retrieval["returned_hashes"]:  # set intersection
+                    found_use = True
+                    break
+        
+        if found_use:
+            break  # Use found - stop counting (counter resets)
+        else:
+            count += 1
+    
+    return count
+
+
+async def _derive_injected_never_used(storage) -> Dict[str, Dict[str, Any]]:
+    """Derive negative use-signal for beliefs injected but never used (learning-loop frente B).
+    
+    Returns mapping of f"{agent_id}:{belief_hash}" → 
+    {"injections_without_use": int, "agent_id": str, "belief_hash": str}
+    for beliefs with unused injections. A belief is "unused" when injected but
+    its source_hashes never reappear in subsequent retrievals from the same agent.
+    
+    Counter resets when belief is used. This is the negative mirror of _derive_injected_then_used.
+    The opt-in check MCP_BELIEF_USE_FEEDBACK happens at penalty application, not here.
+    
+    NOTE: Aggregates per-agent unused counts using max() across agents when a belief
+    is used by multiple agents (conservative penalty — unused-by-one penalizes-globally).
+    This is a product decision to avoid partial-use edge cases; ideally would penalize
+    only per the agent(s) that inject without use, but confidence is a single global column.
+    """
+    try:
+        injection_rows = await _load_events_async(storage, "injection")
+        retrieval_rows = await _load_events_async(storage, "retrieval")
+        
+        injections_by_agent = _parse_injection_events(injection_rows)
+        retrievals_by_agent = _parse_retrieval_events(retrieval_rows)
+        
+        unused_stats: Dict[str, Dict[str, Any]] = {}
+        
+        for agent_id, beliefs in injections_by_agent.items():
+            agent_retrievals = retrievals_by_agent.get(agent_id, [])
+            
+            for belief_hash, injection_events in beliefs.items():
+                count = _count_trailing_unused_injections(injection_events, agent_retrievals)
+                
+                if count > 0:
+                    composite_key = f"{agent_id}:{belief_hash}"
+                    unused_stats[composite_key] = {
+                        "injections_without_use": count,
+                        "agent_id": agent_id,
+                        "belief_hash": belief_hash
+                    }
+        
+        return unused_stats
+        
+    except Exception as e:
+        logger.warning("injected_never_used signal derivation failed (non-fatal): %s", e)
+        return {}
+
+
 async def derive_signals(storage) -> Dict[str, Dict[str, int]]:
     """Derive per-content_hash reaccess / retry_failed signals (REQ-2/3).
 
