@@ -9,7 +9,7 @@
 - **ARCO DELTA-SYNC (#1345): 4/5 fases MERGED** — #1478 (F1 event-log), #1485 (F2 HLC+resolver), #1487 (F3 embedding consistency), #1489 (F4 pull+push+scheduler). **Fase 5 (per-spoke identity + bootstrap) é o próximo e FECHA o arco.**
 - **ARCO #1304 (hybrid HTTP secondary): FECHADO** — 4 fases MERGED (#1470/#1471/#1474/#1476). Raiz que destravou o delta-sync. PR #1480 (CF-guard) pode estar pendente.
 - **ARCO rating/quality: FECHADO** (#1349/#1368/#1391/#1404).
-- **ARCO learning-loop:** L1/L2/L3/L4 fork-only. L3 push CONFIRMADO disparando (10/out). L4 DESTRAVADO: fix proveniência (source_hashes, 63ddfaaa) tirou injection_coverage de 0.0 estrutural → 0.013 vivo. Frente B (sinal-negativo, abbea491) ✅ e C (freshness, 5b8c6d1f) ✅ FEITAS via gate (G0 seven→G3 rok→G4 reg→G5 tuvok); E (eval+MRR) próxima. ARC e3dc542d. Viram PRs atômicos. A/D (re-rank, chunk-attribution) = design aberto → pesquisa multi-IA.
+- **ARCO learning-loop:** L1/L2/L3/L4 fork-only. L3 push CONFIRMADO disparando (10/out). L4 DESTRAVADO: fix proveniência (source_hashes, 63ddfaaa) tirou injection_coverage de 0.0 estrutural → 0.013 vivo. Frentes B (sinal-negativo abbea491) ✅ C (freshness 5b8c6d1f) ✅ E (eval adversarial 708dcd38) ✅ TODAS FEITAS via gate (G0 seven→G3 rok→G4 reg→G5 tuvok). O loop agora é MENSURÁVEL E2E: eval offline emite MRR/taxa_freshness/taxa_forgetting e DISCRIMINA feature-on/off. ARC e3dc542d. PRÓXIMO: empacotar TODO learning-loop em PRs atômicos upstream (85febdca). A/D (re-rank, chunk-attribution) = design aberto → pesquisa multi-IA. A/D (re-rank, chunk-attribution) = design aberto → pesquisa multi-IA.
 - **Foco atual (09/out):** Fase 5 do delta-sync — fechar o arco completo.
 
 ## Arcos
