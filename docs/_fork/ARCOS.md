@@ -9,7 +9,7 @@
 - **ARCO DELTA-SYNC (#1345): 4/5 fases MERGED** — #1478 (F1 event-log), #1485 (F2 HLC+resolver), #1487 (F3 embedding consistency), #1489 (F4 pull+push+scheduler). **Fase 5 (per-spoke identity + bootstrap) é o próximo e FECHA o arco.**
 - **ARCO #1304 (hybrid HTTP secondary): FECHADO** — 4 fases MERGED (#1470/#1471/#1474/#1476). Raiz que destravou o delta-sync. PR #1480 (CF-guard) pode estar pendente.
 - **ARCO rating/quality: FECHADO** (#1349/#1368/#1391/#1404).
-- **ARCO learning-loop:** L1/L2/L4 fork-only; L4 quality-recompute DORMENTE (dry-run, bloqueado por agent_id no retrieve). Trilogia em branch viva.
+- **ARCO learning-loop:** L1/L2/L3/L4 fork-only. L3 push CONFIRMADO disparando (10/out). L4 DESTRAVADO: fix proveniência (source_hashes, 63ddfaaa) tirou injection_coverage de 0.0 estrutural → 0.013 vivo. Frentes B (sinal-negativo), C (freshness), E (eval+MRR) EM ANDAMENTO (ARC e3dc542d, G0 feito, specs em escrita) → viram PRs atômicos. A/D (re-rank, chunk-attribution) = design aberto → pesquisa multi-IA.
 - **Foco atual (09/out):** Fase 5 do delta-sync — fechar o arco completo.
 
 ## Arcos
