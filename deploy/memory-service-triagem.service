@@ -1,0 +1,23 @@
+[Unit]
+Description=MCP Memory Service — base de TRIAGEM upstream (bancada, EN, all-MiniLM)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/claudio/git/mcp-memory-service
+ExecStart=/home/claudio/git/mcp-memory-service/.venv/bin/memory-server
+Restart=on-failure
+RestartSec=5
+
+# Mesmas variáveis compartilhadas das outras instâncias
+EnvironmentFile=/home/claudio/dtp/ai-configs/services/env/memory-service.env
+EnvironmentFile=-/home/claudio/dtp/ai-configs/services/env/memory-service.%H.env
+
+# Overrides desta instância: base própria, modelo padrão do produto, porta própria.
+# Modelo diferente exige arquivo diferente — vetores de modelos distintos não
+# convivem no mesmo arquivo (foi o que partiu o acervo pessoal em três espaços).
+# Overrides por arquivo: EnvironmentFile vence Environment= no systemd.
+EnvironmentFile=/home/claudio/local-data/mcp/bench/triagem.env
+
+[Install]
+WantedBy=default.target
