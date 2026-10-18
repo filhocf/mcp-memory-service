@@ -1,0 +1,828 @@
+{
+ "cases": [
+  {
+   "id": "xmir-001",
+   "pergunta": "O que o aviso legal da documentação do fornecedor diz sobre garantias e sobre possíveis alterações do conteúdo publicado?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "Huawei Cloud",
+    "AS IS"
+   ],
+   "gold_hashes": [
+    "e2c973fdc6077b15780c6c1d2e80bcf24d5d4e9685393968f1b55939e1adfca2"
+   ]
+  },
+  {
+   "id": "xmir-002",
+   "pergunta": "Quais parâmetros obrigatórios e opcionais compõem a informação de rede virtual usada como backend de API na integração de serviços?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "ecs_id",
+    "cascade_fag"
+   ],
+   "gold_hashes": [
+    "e36c2598eb161301d7f7115eec3523fbc6010eaa38850428ca0c93f96abd4168"
+   ]
+  },
+  {
+   "id": "xmir-003",
+   "pergunta": "Quais regras o nome do grupo de servidores de backend de um canal de rede virtual deve respeitar e qual parâmetro ainda não é suportado?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "VpcMemberInfo",
+    "dict_code"
+   ],
+   "gold_hashes": [
+    "fbc6f0b12e392e8d0ea688dc237104098ea0fd48144cb88c42673d3b9fe47406"
+   ]
+  },
+  {
+   "id": "xmir-004",
+   "pergunta": "Quais restrições numéricas se aplicam aos valores de início e fim de intervalo em mapeamentos de orquestração?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "range_start",
+    "range_end"
+   ],
+   "gold_hashes": [
+    "0e457a3f3f568259b688b001e47e03e509882ece4dca1fde904ddc17216d0aaf"
+   ]
+  },
+  {
+   "id": "xmir-005",
+   "pergunta": "Qual é a solução recomendada para digitalizar a gestão de estacionamentos convencionais com controle de entrada e saída de veículos?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "parking lot",
+    "ROMA Connect"
+   ],
+   "gold_hashes": [
+    "831150bdaee6b86906de1b7b2c8a067e33383ac5988e9bbfc768812912105f57"
+   ]
+  },
+  {
+   "id": "xmir-006",
+   "pergunta": "Como o exemplo de código autentica o produtor de mensagens no serviço de fila e quais credenciais ele utiliza?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "SCRAM-SHA-512",
+    "kafka_brokers"
+   ],
+   "gold_hashes": [
+    "a1d124481863b23fd1be0b3e41e6f381643b88a90b40dffe434e60b8f73960f5"
+   ]
+  },
+  {
+   "id": "xmir-007",
+   "pergunta": "O que acontece com as mensagens quando o status de busca não é enviado com sucesso para a plataforma?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "consumer",
+    "retrieval status"
+   ],
+   "gold_hashes": [
+    "8fe4d0abcb932fc358fbaf242af5cedcb1207356a631a5e7a0e4cf351057659c"
+   ]
+  },
+  {
+   "id": "xmir-008",
+   "pergunta": "Como as réplicas de uma partição de mensagens se dividem em papéis para garantir a confiabilidade do armazenamento?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "leader",
+    "follower"
+   ],
+   "gold_hashes": [
+    "992b69ae8aeb9fb1af96e5af6a04f87757854d20ae3152a4dc8730bec5a4475c"
+   ]
+  },
+  {
+   "id": "xmir-009",
+   "pergunta": "Quais identificadores são necessários para revogar a autorização de um ativo de dados do conector?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "bucket_id",
+    "OBS"
+   ],
+   "gold_hashes": [
+    "f9c7a79fe6216cd746d587ca3c847b871ad2817946088a079061eb81eae5d9b8"
+   ]
+  },
+  {
+   "id": "xmir-010",
+   "pergunta": "Na configuração do conector de formulários corporativos, como deve ser prefixado o subconta e qual o tamanho máximo de página retornado?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "qw$",
+    "fuzzy query"
+   ],
+   "gold_hashes": [
+    "463707ca16f30b87bb16d61756555bd2259376358e95a6d362072e2af7147f9f"
+   ]
+  },
+  {
+   "id": "xmir-011",
+   "pergunta": "Quais parâmetros devem ser adicionados à requisição ao configurar paginação e migração incremental para uma API como destino na integração de dados?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "pageSize",
+    "startTime"
+   ],
+   "gold_hashes": [
+    "db3e5d67be8be2c775432149c1789797bf66764342770d17d71c233fd670cd49"
+   ]
+  },
+  {
+   "id": "xmir-012",
+   "pergunta": "Quais etapas são necessárias para expor dados de uma fonte como serviço consumível por sistemas externos e como a autenticação protege as chamadas?",
+   "categoria": "metodo",
+   "idioma": "pt",
+   "gold_terms": [
+    "App authentication",
+    "data API"
+   ],
+   "gold_hashes": [
+    "b9941a1001e015a758bbd20e59e38a8efe045fccd2483b5f1e8b355facefd156"
+   ]
+  },
+  {
+   "id": "xmir-013",
+   "pergunta": "Quantos tópicos básicos são gerados automaticamente ao criar um dispositivo na plataforma e onde a documentação os descreve?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "MQTT",
+    "Topics"
+   ],
+   "gold_hashes": [
+    "f510c079b8ad039c92d2442324921b6905153ecdd285c08e1ef39f0f2d525fe2"
+   ]
+  },
+  {
+   "id": "xmir-014",
+   "pergunta": "Quais entregas compuseram a primeira fase da implementação das florestas públicas tipo B e em que estado cada uma ficou?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "ogr2ogr",
+    "ST_Intersects",
+    "8131c64"
+   ],
+   "gold_hashes": [
+    "f2ff211c6d04690ab6f83f8978488d33eca5de45d3a810fe64912f0161a992df"
+   ]
+  },
+  {
+   "id": "xmir-015",
+   "pergunta": "Como está estruturado o exemplo de financiamento rural com juros, parcelas e vínculo a imóvel?",
+   "categoria": "dados",
+   "idioma": "pt",
+   "gold_terms": [
+    "PRONAF",
+    "codigoCAR",
+    "recursoProprio"
+   ],
+   "gold_hashes": [
+    "d92189f6fd844abe17b32605a3978a2b7ff9a06904550dfaefcceadfd39d9a77"
+   ]
+  },
+  {
+   "id": "xmir-016",
+   "pergunta": "Quais são as diferenças de comportamento entre o sistema de referência e o nosso em relação a critérios de verificação e metadados de auditoria?",
+   "categoria": "metodo",
+   "idioma": "pt",
+   "gold_terms": [
+    "AB+S",
+    "SIGEF"
+   ],
+   "gold_hashes": [
+    "ed7e95d62df4e0511ab6120f60f605f3eed54bab88733ed0fb8ab180c75c5c47"
+   ]
+  },
+  {
+   "id": "xmir-017",
+   "pergunta": "Por que um banco pode negar crédito rural quando detecta sobreposição de área e quais informações faltam para aplicar as exceções?",
+   "categoria": "bug",
+   "idioma": "pt",
+   "gold_terms": [
+    "MCR",
+    "PRONAF"
+   ],
+   "gold_hashes": [
+    "5dcc223a1acd8dcbd7748ffddd3ffb9ddd35bdf2e5807c10da6d67394334687e"
+   ]
+  },
+  {
+   "id": "xmir-018",
+   "pergunta": "Quais campos do arquivo geoespacial de autorização de manejo florestal devem ser extraídos e qual é a chave primária?",
+   "categoria": "dados",
+   "idioma": "pt",
+   "gold_terms": [
+    "nu_car_imo",
+    "nu_autoriz",
+    "SINAFLOR"
+   ],
+   "gold_hashes": [
+    "bab70f0c9817e97fe9ace578f4b2c1df36206664421573ff483f5d492ad01159"
+   ]
+  },
+  {
+   "id": "xmir-019",
+   "pergunta": "Quais funcionalidades foram demonstradas na apresentação da plataforma de regularidade fundiária?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "SNCR",
+    "CCIR",
+    "Tô em Dia"
+   ],
+   "gold_hashes": [
+    "afb6147951ed59fa66c4640bb96ca2b9481ad4da47f664fdce2111b100339169"
+   ]
+  },
+  {
+   "id": "xmir-020",
+   "pergunta": "Qual é a base de dados que sustenta a ferramenta de zoneamento de risco climático e qual o impacto econômico estimado de seguir as janelas de plantio?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "ZARC",
+    "PROAGRO",
+    "decêndios"
+   ],
+   "gold_hashes": [
+    "f79cb0456e3fc4be6f00c5b18413456b75834e768b87b3404a2c24d3063ca44d"
+   ]
+  },
+  {
+   "id": "xdoc-001",
+   "pergunta": "Quando um cenário do catálogo exige a intervenção manual de um arquiteto em vez de ser elegido automaticamente pelo questionário de requisitos?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "FastOps",
+    "WebLogic",
+    "PDB"
+   ],
+   "gold_hashes": [
+    "2212c975365cdc418e40169e2041f7ac426668b334f252a06206dce753340fb9"
+   ]
+  },
+  {
+   "id": "xdoc-002",
+   "pergunta": "Em que momentos do ciclo de desenvolvimento a pesquisa de experiência do usuário pode ser realizada, e como se distinguem a fase de descoberta de necessidades e a fase de avaliação?",
+   "categoria": "metodo",
+   "idioma": "pt",
+   "gold_terms": [
+    "Descoberta de Problema",
+    "Avaliação da Experiência",
+    "Backlog"
+   ],
+   "gold_hashes": [
+    "823ce709cf435c3e64a840bdc4cc356a56766c9d2742c13f7b43f467c3726fbe"
+   ]
+  },
+  {
+   "id": "xdoc-003",
+   "pergunta": "Qual foi a trajetória de evolução do projeto desde o segundo semestre de 2022, incluindo a conversão de módulos de automação e a unificação em um fluxo único?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "FastOps",
+    "Puppet",
+    "Ansible"
+   ],
+   "gold_hashes": [
+    "936e93a1973f94390214450f6b7f93f98869cfb891a5a91ea4370d8e566ca847"
+   ]
+  },
+  {
+   "id": "xdoc-004",
+   "pergunta": "Que tipo de servidor é indicado para ambientes de missão crítica com alta densidade de processamento, e qual sua compatibilidade de formato de rack?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "ThinkSystem",
+    "7D9RCTO1WW",
+    "padraotic"
+   ],
+   "gold_hashes": [
+    "03171fa601c3e4e2884e5084a86d6e2577c8ed22a1425c8810c8bf8c0b7834b4"
+   ]
+  },
+  {
+   "id": "xdoc-005",
+   "pergunta": "Que tipo de equipamento de rede é responsável pela qualidade de serviço e por prover acesso à Internet para clientes e data centers da empresa?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "NetEngine",
+    "VRP",
+    "QoS"
+   ],
+   "gold_hashes": [
+    "b28e22cea3d60b72168c4963e310f349dd7714840639231ec172cb835ec76cc4"
+   ]
+  },
+  {
+   "id": "xdoc-006",
+   "pergunta": "Qual servidor em rack de dois soquetes é projetado para otimizar cargas de trabalho de virtualização e de banco de dados?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "PowerEdge",
+    "Intel Xeon",
+    "R660"
+   ],
+   "gold_hashes": [
+    "7cb085a631d0c19cb3b95e8eff9ca1f3e2e5d8a16fb2076379e39dab05db953e"
+   ]
+  },
+  {
+   "id": "xdoc-007",
+   "pergunta": "Qual solução de gestão centralizada de logs é composta por um mecanismo de indexação, uma plataforma de visualização e agentes leves de coleta de dados?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "Elasticsearch",
+    "Kibana",
+    "Logstash"
+   ],
+   "gold_hashes": [
+    "a2542a764f0e6ac11e953300a289a54356ade6e3a741577f87c891170992f596"
+   ]
+  },
+  {
+   "id": "xdoc-008",
+   "pergunta": "Que ferramentas de IA generativa são recomendadas para auxiliar desenvolvedores a otimizar a criação de código de forma eficiente e segura?",
+   "categoria": "metodo",
+   "idioma": "pt",
+   "gold_terms": [
+    "QDeveloper",
+    "Copilot Chat",
+    "MCP"
+   ],
+   "gold_hashes": [
+    "e804473b11359de17056e41e472b63dd6884d7540f73ea8e0460c8be8952ed21"
+   ]
+  },
+  {
+   "id": "xdoc-009",
+   "pergunta": "Qual serviço de armazenamento em nuvem é operado via SDK em Python neste ambiente, e qual a forma recomendada de autenticação?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "Object Storage Service",
+    "ModelArts",
+    "STS"
+   ],
+   "gold_hashes": [
+    "23205a289d128fc39e3975ec58b828b76508aa95049821e1a36d48c16b8096c6"
+   ]
+  },
+  {
+   "id": "xdoc-010",
+   "pergunta": "Por que nem toda API deve receber um mecanismo de autenticação robusto e cobrança por uso, e o que orienta a escolha da infraestrutura para cada uma?",
+   "categoria": "metodo",
+   "idioma": "pt",
+   "gold_terms": [
+    "bilhetagem",
+    "frontend",
+    "Classificações de APIs"
+   ],
+   "gold_hashes": [
+    "ff02140a687b539884d962099e9f6e2bd81712659f53f20fdce6d5711867a0bc"
+   ]
+  },
+  {
+   "id": "xdoc-011",
+   "pergunta": "Quais modelos de machine learning são usados para detectar manipulação e falsificação em imagens, e qual abordagem forense eles adotam?",
+   "categoria": "dados",
+   "idioma": "pt",
+   "gold_terms": [
+    "FreqNet",
+    "MesoInception",
+    "TruFor"
+   ],
+   "gold_hashes": [
+    "25afa1a48df7b56ccc00625947b9bc9319a2712433734fb41e5cb90be122b606"
+   ]
+  },
+  {
+   "id": "xdoc-012",
+   "pergunta": "Em que se diferencia uma plataforma de operações de TI de uma de gestão de serviços, considerando usuários-alvo e dados gerenciados?",
+   "categoria": "decisao",
+   "idioma": "pt",
+   "gold_terms": [
+    "CRM",
+    "ITOM",
+    "LCAP"
+   ],
+   "gold_hashes": [
+    "57370a9069ba4f02fc8214972eaf3323f3a62efdded628db5b0bc5159eaeb6d0"
+   ]
+  },
+  {
+   "id": "xdoc-013",
+   "pergunta": "Quais plataformas de baixa codificação a empresa avalia para adoção, e que critérios diferenciam suas propostas e integrações?",
+   "categoria": "decisao",
+   "idioma": "pt",
+   "gold_terms": [
+    "Mendix",
+    "ServiceNow",
+    "APEX"
+   ],
+   "gold_hashes": [
+    "d0205a56771de63af62a23125e716404ebe72bd3d7b0410cff77fa5317656d2c"
+   ]
+  },
+  {
+   "id": "xdoc-014",
+   "pergunta": "Quais elementos estruturantes compõem a estratégia da área de inteligência artificial, e qual a visão sobre o papel do código dentro do processo de entrega?",
+   "categoria": "metodo",
+   "idioma": "pt",
+   "gold_terms": [
+    "DEIA",
+    "MLOps",
+    "Governança"
+   ],
+   "gold_hashes": [
+    "aecd6a827639647f86321faee26f4a1b820e1e144f94a61bbabfa1d31d593060"
+   ]
+  },
+  {
+   "id": "xdoc-015",
+   "pergunta": "Onde o agente de monitoramento de aplicação deve ser inicializado num aplicativo Node.js para que comece a capturar requisições corretamente?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "apm.server_url",
+    "index.js",
+    "app.js"
+   ],
+   "gold_hashes": [
+    "d44dbbdc6d906950e112129e21491bf1144907b61b9efe8f577cb61571f4b355"
+   ]
+  },
+  {
+   "id": "xdoc-016",
+   "pergunta": "Quais são o identificador, a licença e o órgão responsável pelo módulo de registro ambiental rural aberto pelo governo federal?",
+   "categoria": "dados",
+   "idioma": "pt",
+   "gold_terms": [
+    "GID0092718",
+    "GPL-3.0",
+    "MGI"
+   ],
+   "gold_hashes": [
+    "c8ebae63253a35f1bd0d56c60c42c9d7221368a31cd2e4ddd52b8c592151fe80"
+   ]
+  },
+  {
+   "id": "xdoc-017",
+   "pergunta": "Qual política do cluster audita tokens de longa duração associados a contas de serviço, e que ação de validação ela adota?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "ClusterPolicy",
+    "check-serviceaccount-secrets",
+    "validationFailureAction"
+   ],
+   "gold_hashes": [
+    "36a1e6aeea4ce7e1965f2f443738622d64ce02d48874f4cca7bdee729b277bf4"
+   ]
+  },
+  {
+   "id": "xdoc-018",
+   "pergunta": "Que regra impõe que todo contêiner defina limites e solicitações de CPU e memória, e como ela define o escopo de namespaces a que se aplica?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "require-resource-requests-limits",
+    "namespaceSelector",
+    "matchExpressions"
+   ],
+   "gold_hashes": [
+    "011587c47fe260a5e5d8d9612582f696c628d180e7c720b962e25ff50e434b26"
+   ]
+  },
+  {
+   "id": "xdoc-019",
+   "pergunta": "Como se organiza o showcase de aplicações de inteligência artificial da empresa em famílias, e qual o endereço base da sua interface de demonstração?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "ÍCARO",
+    "TESEU",
+    "PERSEU"
+   ],
+   "gold_hashes": [
+    "5a8dc2a6eb3d4e280d57abcef45922797d7f516f415c446597369d1e7a89b849"
+   ]
+  },
+  {
+   "id": "xdoc-020",
+   "pergunta": "Qual é o fluxo de autenticação do gateway de serviços de IA e qual o ponto de entrada para chamadas de geração de linguagem no padrão OpenAI?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "OAuth2",
+    "chat/completions",
+    "pgvector"
+   ],
+   "gold_hashes": [
+    "ffe924528082e9042eba43531ab1c6de2ae3ae9f6d97961e899498f83454b1df"
+   ]
+  },
+  {
+   "id": "xhack-001",
+   "pergunta": "Qual instituição pública lançou a maratona de soluções sobre o cadastro ambiental rural como um desafio de inovação aberta?",
+   "categoria": "decisao",
+   "idioma": "pt",
+   "gold_terms": [
+    "haCARthon",
+    "Decreto nº 10.369",
+    "15 de maio de 2026"
+   ],
+   "gold_hashes": [
+    "b8a515e8e040550f515eb52a270d7c0b834718eafb9880fdfbc954014ea2d315"
+   ]
+  },
+  {
+   "id": "xhack-002",
+   "pergunta": "Quem detém o voto que decide o empate na comissão julgadora e qual norma rege a interposição de recursos contra o resultado preliminar do prêmio?",
+   "categoria": "decisao",
+   "idioma": "pt",
+   "gold_terms": [
+    "voto de desempate",
+    "Lei nº 9.784/99",
+    "desafios.car@enap.gov.br"
+   ],
+   "gold_hashes": [
+    "cbb7785b9fb0cfbd830e9cce65735e431146468cb5a850f2000fd18c303c5e32"
+   ]
+  },
+  {
+   "id": "xhack-003",
+   "pergunta": "Qual órgão é o responsável pelo sistema nacional de cadastro rural que emite o certificado do imóvel, e quantas propriedades rurais estão registradas nele?",
+   "categoria": "dados",
+   "idioma": "pt",
+   "gold_terms": [
+    "INCRA",
+    "sncr.serpro.gov.br",
+    "Certificado de Cadastro de Imóvel Rural"
+   ],
+   "gold_hashes": [
+    "c9e0a80698c0674f744848b35af0fa56b20d0b13dcd9213d1f05dcce973a24fe"
+   ]
+  },
+  {
+   "id": "xhack-004",
+   "pergunta": "Quais instituições colombianas operam o cadastro multipropósito e quais organismos internacionais aprovaram o financiamento do projeto?",
+   "categoria": "dados",
+   "idioma": "pt",
+   "gold_terms": [
+    "Instituto Geográfico Agustín Codazzi",
+    "Banco Mundial",
+    "SIAC"
+   ],
+   "gold_hashes": [
+    "ce86e3d5b43473f613f60a4cea31778a9269943496dc3c7ab3806a3d941515a7"
+   ]
+  },
+  {
+   "id": "xhack-005",
+   "pergunta": "Onde estão disponíveis, na web, os dados anuais de desmatamento da Amazônia e os repositórios de código do projeto de registro ambiental rural?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "terrabrasilis.dpi.inpe.br",
+    "MapBiomas",
+    "Rural-Environmental-Registry"
+   ],
+   "gold_hashes": [
+    "4c6cf20a035f74c56bc7e77287dc3cdc8c30db63489c889d2e22aa4a6da667e8"
+   ]
+  },
+  {
+   "id": "xhack-006",
+   "pergunta": "Qual normativo do Ministério da Agricultura estabelece os procedimentos complementares de análise do cadastro ambiental rural e qual sistema de referência geodésica é exigido para as bases de dados temáticas?",
+   "categoria": "decisao",
+   "idioma": "pt",
+   "gold_terms": [
+    "PORTARIA MAPA Nº 121",
+    "SIRGAS2000",
+    "1:50.000"
+   ],
+   "gold_hashes": [
+    "9817fc6ba12bca26f5e1ad4a9abe6ce9c01dba836b6abbae2e8368c7ae8bcb4b"
+   ]
+  },
+  {
+   "id": "xhack-007",
+   "pergunta": "Por qual endereço eletrônico o proprietário acessa a central de atendimento para fazer o primeiro registro e quais números de identificação fiscal ele precisa informar?",
+   "categoria": "metodo",
+   "idioma": "pt",
+   "gold_terms": [
+    "https://www.car.gov.br",
+    "SICAR",
+    "CPF"
+   ],
+   "gold_hashes": [
+    "54a78979b096842c35ba45e9827620faebb795105a06e4e3bb893017006a1f90"
+   ]
+  },
+  {
+   "id": "xhack-008",
+   "pergunta": "Por que a pessoa que ajudou a preencher o formulário fica sem acesso ao sistema depois do envio do cadastro e qual providência mantém esse acesso?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "representante",
+    "Adicionar",
+    "Limpar"
+   ],
+   "gold_hashes": [
+    "de7b07928476cfcbafc5fff732e91c4dd9cd2434ca7fb3a3ba4f5cb5ac5f5c25"
+   ]
+  },
+  {
+   "id": "xhack-009",
+   "pergunta": "O que acontece com o registro do imóvel depois que o seu limite é alterado e por que o sistema precisa refazer a verificação das áreas protegidas?",
+   "categoria": "metodo",
+   "idioma": "pt",
+   "gold_terms": [
+    "Retificação",
+    "Revisão",
+    "Reserva Legal"
+   ],
+   "gold_hashes": [
+    "c69cc23b1496d3a31c916e09edfe145cabbaf8d52e2d4b9a23542aa859a125d3"
+   ]
+  },
+  {
+   "id": "xhack-010",
+   "pergunta": "O que fazer quando o sistema não confirma os dados do contribuinte na base da fiscalização tributária e qual o padrão de data exigido pelo módulo na consulta cadastral?",
+   "categoria": "bug",
+   "idioma": "pt",
+   "gold_terms": [
+    "DD/MM/AAAA",
+    "digitação",
+    "nascimento"
+   ],
+   "gold_hashes": [
+    "447a29d11c869f46d5a27db119b70db944996568784b6d0a58a30bafa0ba9088"
+   ]
+  },
+  {
+   "id": "xhack-011",
+   "pergunta": "Como o sistema preenche sozinho os dados do imóvel a partir dos números de identificação fiscal informados na etapa inicial do cadastro?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "SNCR/SIGEF",
+    "CNPJ",
+    "documentações"
+   ],
+   "gold_hashes": [
+    "adf7ae9625ec42398a447ce118ec783f2b949bd6fd97285b48598c333d9a1172"
+   ]
+  },
+  {
+   "id": "xhack-012",
+   "pergunta": "Quais documentos comprovam a posse do imóvel rural quando não há escritura pública e quais campos são obrigatórios em cada um deles?",
+   "categoria": "metodo",
+   "idioma": "pt",
+   "gold_terms": [
+    "confrontantes",
+    "autodeclaração",
+    "sindicato"
+   ],
+   "gold_hashes": [
+    "2a6e4f269aa5a4303d44ee1c682eaa19afc91dc908d63c5d075281d283c5ec74"
+   ]
+  },
+  {
+   "id": "xhack-013",
+   "pergunta": "Em que situações o sistema impede de concluir o desenho do limite do imóvel e qual é o percentual máximo de sobreposição permitido com outro imóvel de mesmo dono?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "40%",
+    "vetorização",
+    "pendência"
+   ],
+   "gold_hashes": [
+    "080383133db3671c8de486848e16cdea023ae91e9e87419e8dcdc8488af8587d"
+   ]
+  },
+  {
+   "id": "xhack-014",
+   "pergunta": "Quais recursos o módulo do cadastro ambiental rural oferece para consultar a norma que rege o uso do solo e para obter imagens de satélite de municípios?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "CAR",
+    "Satélites",
+    "Legislação"
+   ],
+   "gold_hashes": [
+    "f7e605da987107efec7202974eb766efe2b47d6c9dbc771f977cf56eaae72ef7"
+   ]
+  },
+  {
+   "id": "xhack-015",
+   "pergunta": "Como o usuário verifica se a versão instalada do software já é a mais recente e o que a tela exibe quando não há nada para corrigir?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "4.4",
+    "ATUALIZAÇÃO",
+    "atualizado"
+   ],
+   "gold_hashes": [
+    "ffd606dac8f1a9bae262941f5e45279e26c1fbd5c2556cf31389845e4254c1bf"
+   ]
+  },
+  {
+   "id": "xhack-016",
+   "pergunta": "Qual dispositivo do código florestal isenta de recompor a reserva legal quem suprimiu vegetação respeitando os percentuais vigentes à época e por que essa regra é tão difícil de aplicar na prática?",
+   "categoria": "decisao",
+   "idioma": "pt",
+   "gold_terms": [
+    "artigo 68",
+    "RADAM",
+    "ZEE"
+   ],
+   "gold_hashes": [
+    "e37214d81bb433fe92d6e5c08a0e276ad6dce6fb08c3f10f198040748abacb50"
+   ]
+  },
+  {
+   "id": "xhack-017",
+   "pergunta": "Quais normas compõem o marco regulatório da regularização ambiental no estado do Mato Grosso e qual programa estadual de sustentabilidade está vinculado ao decreto de junho de 2014 mencionado?",
+   "categoria": "decisao",
+   "idioma": "pt",
+   "gold_terms": [
+    "SIMCAR",
+    "MS Mais Sustentável",
+    "Lei Complementar nº 592"
+   ],
+   "gold_hashes": [
+    "7e1578a74d43a819daf92eec05e3b7e2a8781e7c6795da2ae7f8e43f57972b6c"
+   ]
+  },
+  {
+   "id": "xhack-018",
+   "pergunta": "Qual formato de arquivo o sistema aceita para importar em lote a lista de donos do imóvel e onde o registro de cada um aparece depois do envio?",
+   "categoria": "metodo",
+   "idioma": "pt",
+   "gold_terms": [
+    ".CSV",
+    "adicionados"
+   ],
+   "gold_hashes": [
+    "de0928bf53847ab683b6a4985999e1d4ee025eb19a37fe1f287b58d8d3e1c529"
+   ]
+  },
+  {
+   "id": "xhack-019",
+   "pergunta": "Qual ferramenta mostra os quanta de tributação calculados sobre a área desenhada e qual categoria de território tem regra especial para o cômputo da faixa de proteção permanente?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "Módulos",
+    "geometrias",
+    "Preservação"
+   ],
+   "gold_hashes": [
+    "0395b4a0fe829d40da131b2e077dd78f9514453554d6c59bf5173465fd0f2a1e"
+   ]
+  },
+  {
+   "id": "xhack-020",
+   "pergunta": "Até que data se encerra a fase de inscrição dos participantes da maratona e quando sai o resultado final, depois de analisados os recursos?",
+   "categoria": "metodo",
+   "idioma": "pt",
+   "gold_terms": [
+    "25/06/26",
+    "3/07/2026",
+    "17/07/26"
+   ],
+   "gold_hashes": [
+    "2ed88630f655665792d7334c8f3fcf8531d6467f1d9e8e8d40ba93ba3f0e16ef"
+   ]
+  }
+ ]
+}

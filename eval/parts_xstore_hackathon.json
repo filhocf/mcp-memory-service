@@ -1,0 +1,281 @@
+[
+  {
+    "id": "xhack-001",
+    "pergunta": "Qual instituição pública lançou a maratona de soluções sobre o cadastro ambiental rural como um desafio de inovação aberta?",
+    "categoria": "decisao",
+    "idioma": "pt",
+    "gold_terms": [
+      "haCARthon",
+      "Decreto nº 10.369",
+      "15 de maio de 2026"
+    ],
+    "gold_hashes": [
+      "b8a515e8e040550f515eb52a270d7c0b834718eafb9880fdfbc954014ea2d315"
+    ]
+  },
+  {
+    "id": "xhack-002",
+    "pergunta": "Quem detém o voto que decide o empate na comissão julgadora e qual norma rege a interposição de recursos contra o resultado preliminar do prêmio?",
+    "categoria": "decisao",
+    "idioma": "pt",
+    "gold_terms": [
+      "voto de desempate",
+      "Lei nº 9.784/99",
+      "desafios.car@enap.gov.br"
+    ],
+    "gold_hashes": [
+      "cbb7785b9fb0cfbd830e9cce65735e431146468cb5a850f2000fd18c303c5e32"
+    ]
+  },
+  {
+    "id": "xhack-003",
+    "pergunta": "Qual órgão é o responsável pelo sistema nacional de cadastro rural que emite o certificado do imóvel, e quantas propriedades rurais estão registradas nele?",
+    "categoria": "dados",
+    "idioma": "pt",
+    "gold_terms": [
+      "INCRA",
+      "sncr.serpro.gov.br",
+      "Certificado de Cadastro de Imóvel Rural"
+    ],
+    "gold_hashes": [
+      "c9e0a80698c0674f744848b35af0fa56b20d0b13dcd9213d1f05dcce973a24fe"
+    ]
+  },
+  {
+    "id": "xhack-004",
+    "pergunta": "Quais instituições colombianas operam o cadastro multipropósito e quais organismos internacionais aprovaram o financiamento do projeto?",
+    "categoria": "dados",
+    "idioma": "pt",
+    "gold_terms": [
+      "Instituto Geográfico Agustín Codazzi",
+      "Banco Mundial",
+      "SIAC"
+    ],
+    "gold_hashes": [
+      "ce86e3d5b43473f613f60a4cea31778a9269943496dc3c7ab3806a3d941515a7"
+    ]
+  },
+  {
+    "id": "xhack-005",
+    "pergunta": "Onde estão disponíveis, na web, os dados anuais de desmatamento da Amazônia e os repositórios de código do projeto de registro ambiental rural?",
+    "categoria": "infra",
+    "idioma": "pt",
+    "gold_terms": [
+      "terrabrasilis.dpi.inpe.br",
+      "MapBiomas",
+      "Rural-Environmental-Registry"
+    ],
+    "gold_hashes": [
+      "4c6cf20a035f74c56bc7e77287dc3cdc8c30db63489c889d2e22aa4a6da667e8"
+    ]
+  },
+  {
+    "id": "xhack-006",
+    "pergunta": "Qual normativo do Ministério da Agricultura estabelece os procedimentos complementares de análise do cadastro ambiental rural e qual sistema de referência geodésica é exigido para as bases de dados temáticas?",
+    "categoria": "decisao",
+    "idioma": "pt",
+    "gold_terms": [
+      "PORTARIA MAPA Nº 121",
+      "SIRGAS2000",
+      "1:50.000"
+    ],
+    "gold_hashes": [
+      "9817fc6ba12bca26f5e1ad4a9abe6ce9c01dba836b6abbae2e8368c7ae8bcb4b"
+    ]
+  },
+  {
+    "id": "xhack-007",
+    "pergunta": "Por qual endereço eletrônico o proprietário acessa a central de atendimento para fazer o primeiro registro e quais números de identificação fiscal ele precisa informar?",
+    "categoria": "metodo",
+    "idioma": "pt",
+    "gold_terms": [
+      "https://www.car.gov.br",
+      "SICAR",
+      "CPF"
+    ],
+    "gold_hashes": [
+      "54a78979b096842c35ba45e9827620faebb795105a06e4e3bb893017006a1f90"
+    ]
+  },
+  {
+    "id": "xhack-008",
+    "pergunta": "Por que a pessoa que ajudou a preencher o formulário fica sem acesso ao sistema depois do envio do cadastro e qual providência mantém esse acesso?",
+    "categoria": "produto",
+    "idioma": "pt",
+    "gold_terms": [
+      "representante",
+      "Adicionar",
+      "Limpar"
+    ],
+    "gold_hashes": [
+      "de7b07928476cfcbafc5fff732e91c4dd9cd2434ca7fb3a3ba4f5cb5ac5f5c25"
+    ]
+  },
+  {
+    "id": "xhack-009",
+    "pergunta": "O que acontece com o registro do imóvel depois que o seu limite é alterado e por que o sistema precisa refazer a verificação das áreas protegidas?",
+    "categoria": "metodo",
+    "idioma": "pt",
+    "gold_terms": [
+      "Retificação",
+      "Revisão",
+      "Reserva Legal"
+    ],
+    "gold_hashes": [
+      "c69cc23b1496d3a31c916e09edfe145cabbaf8d52e2d4b9a23542aa859a125d3"
+    ]
+  },
+  {
+    "id": "xhack-010",
+    "pergunta": "O que fazer quando o sistema não confirma os dados do contribuinte na base da fiscalização tributária e qual o padrão de data exigido pelo módulo na consulta cadastral?",
+    "categoria": "bug",
+    "idioma": "pt",
+    "gold_terms": [
+      "DD/MM/AAAA",
+      "digitação",
+      "nascimento"
+    ],
+    "gold_hashes": [
+      "447a29d11c869f46d5a27db119b70db944996568784b6d0a58a30bafa0ba9088"
+    ]
+  },
+  {
+    "id": "xhack-011",
+    "pergunta": "Como o sistema preenche sozinho os dados do imóvel a partir dos números de identificação fiscal informados na etapa inicial do cadastro?",
+    "categoria": "infra",
+    "idioma": "pt",
+    "gold_terms": [
+      "SNCR/SIGEF",
+      "CNPJ",
+      "documentações"
+    ],
+    "gold_hashes": [
+      "adf7ae9625ec42398a447ce118ec783f2b949bd6fd97285b48598c333d9a1172"
+    ]
+  },
+  {
+    "id": "xhack-012",
+    "pergunta": "Quais documentos comprovam a posse do imóvel rural quando não há escritura pública e quais campos são obrigatórios em cada um deles?",
+    "categoria": "metodo",
+    "idioma": "pt",
+    "gold_terms": [
+      "confrontantes",
+      "autodeclaração",
+      "sindicato"
+    ],
+    "gold_hashes": [
+      "2a6e4f269aa5a4303d44ee1c682eaa19afc91dc908d63c5d075281d283c5ec74"
+    ]
+  },
+  {
+    "id": "xhack-013",
+    "pergunta": "Em que situações o sistema impede de concluir o desenho do limite do imóvel e qual é o percentual máximo de sobreposição permitido com outro imóvel de mesmo dono?",
+    "categoria": "produto",
+    "idioma": "pt",
+    "gold_terms": [
+      "40%",
+      "vetorização",
+      "pendência"
+    ],
+    "gold_hashes": [
+      "080383133db3671c8de486848e16cdea023ae91e9e87419e8dcdc8488af8587d"
+    ]
+  },
+  {
+    "id": "xhack-014",
+    "pergunta": "Quais recursos o módulo do cadastro ambiental rural oferece para consultar a norma que rege o uso do solo e para obter imagens de satélite de municípios?",
+    "categoria": "produto",
+    "idioma": "pt",
+    "gold_terms": [
+      "CAR",
+      "Satélites",
+      "Legislação"
+    ],
+    "gold_hashes": [
+      "f7e605da987107efec7202974eb766efe2b47d6c9dbc771f977cf56eaae72ef7"
+    ]
+  },
+  {
+    "id": "xhack-015",
+    "pergunta": "Como o usuário verifica se a versão instalada do software já é a mais recente e o que a tela exibe quando não há nada para corrigir?",
+    "categoria": "produto",
+    "idioma": "pt",
+    "gold_terms": [
+      "4.4",
+      "ATUALIZAÇÃO",
+      "atualizado"
+    ],
+    "gold_hashes": [
+      "ffd606dac8f1a9bae262941f5e45279e26c1fbd5c2556cf31389845e4254c1bf"
+    ]
+  },
+  {
+    "id": "xhack-016",
+    "pergunta": "Qual dispositivo do código florestal isenta de recompor a reserva legal quem suprimiu vegetação respeitando os percentuais vigentes à época e por que essa regra é tão difícil de aplicar na prática?",
+    "categoria": "decisao",
+    "idioma": "pt",
+    "gold_terms": [
+      "artigo 68",
+      "RADAM",
+      "ZEE"
+    ],
+    "gold_hashes": [
+      "e37214d81bb433fe92d6e5c08a0e276ad6dce6fb08c3f10f198040748abacb50"
+    ]
+  },
+  {
+    "id": "xhack-017",
+    "pergunta": "Quais normas compõem o marco regulatório da regularização ambiental no estado do Mato Grosso e qual programa estadual de sustentabilidade está vinculado ao decreto de junho de 2014 mencionado?",
+    "categoria": "decisao",
+    "idioma": "pt",
+    "gold_terms": [
+      "SIMCAR",
+      "MS Mais Sustentável",
+      "Lei Complementar nº 592"
+    ],
+    "gold_hashes": [
+      "7e1578a74d43a819daf92eec05e3b7e2a8781e7c6795da2ae7f8e43f57972b6c"
+    ]
+  },
+  {
+    "id": "xhack-018",
+    "pergunta": "Qual formato de arquivo o sistema aceita para importar em lote a lista de donos do imóvel e onde o registro de cada um aparece depois do envio?",
+    "categoria": "metodo",
+    "idioma": "pt",
+    "gold_terms": [
+      ".CSV",
+      "adicionados"
+    ],
+    "gold_hashes": [
+      "de0928bf53847ab683b6a4985999e1d4ee025eb19a37fe1f287b58d8d3e1c529"
+    ]
+  },
+  {
+    "id": "xhack-019",
+    "pergunta": "Qual ferramenta mostra os quanta de tributação calculados sobre a área desenhada e qual categoria de território tem regra especial para o cômputo da faixa de proteção permanente?",
+    "categoria": "produto",
+    "idioma": "pt",
+    "gold_terms": [
+      "Módulos",
+      "geometrias",
+      "Preservação"
+    ],
+    "gold_hashes": [
+      "0395b4a0fe829d40da131b2e077dd78f9514453554d6c59bf5173465fd0f2a1e"
+    ]
+  },
+  {
+    "id": "xhack-020",
+    "pergunta": "Até que data se encerra a fase de inscrição dos participantes da maratona e quando sai o resultado final, depois de analisados os recursos?",
+    "categoria": "metodo",
+    "idioma": "pt",
+    "gold_terms": [
+      "25/06/26",
+      "3/07/2026",
+      "17/07/26"
+    ],
+    "gold_hashes": [
+      "2ed88630f655665792d7334c8f3fcf8531d6467f1d9e8e8d40ba93ba3f0e16ef"
+    ]
+  }
+]

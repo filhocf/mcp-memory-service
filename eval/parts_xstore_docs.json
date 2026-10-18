@@ -1,0 +1,282 @@
+[
+  {
+    "id": "xdoc-001",
+    "pergunta": "Quando um cenário do catálogo exige a intervenção manual de um arquiteto em vez de ser elegido automaticamente pelo questionário de requisitos?",
+    "categoria": "produto",
+    "idioma": "pt",
+    "gold_terms": [
+      "FastOps",
+      "WebLogic",
+      "PDB"
+    ],
+    "gold_hashes": [
+      "2212c975365cdc418e40169e2041f7ac426668b334f252a06206dce753340fb9"
+    ]
+  },
+  {
+    "id": "xdoc-002",
+    "pergunta": "Em que momentos do ciclo de desenvolvimento a pesquisa de experiência do usuário pode ser realizada, e como se distinguem a fase de descoberta de necessidades e a fase de avaliação?",
+    "categoria": "metodo",
+    "idioma": "pt",
+    "gold_terms": [
+      "Descoberta de Problema",
+      "Avaliação da Experiência",
+      "Backlog"
+    ],
+    "gold_hashes": [
+      "823ce709cf435c3e64a840bdc4cc356a56766c9d2742c13f7b43f467c3726fbe"
+    ]
+  },
+  {
+    "id": "xdoc-003",
+    "pergunta": "Qual foi a trajetória de evolução do projeto desde o segundo semestre de 2022, incluindo a conversão de módulos de automação e a unificação em um fluxo único?",
+    "categoria": "produto",
+    "idioma": "pt",
+    "gold_terms": [
+      "FastOps",
+      "Puppet",
+      "Ansible"
+    ],
+    "gold_hashes": [
+      "936e93a1973f94390214450f6b7f93f98869cfb891a5a91ea4370d8e566ca847"
+    ]
+  },
+  {
+    "id": "xdoc-004",
+    "pergunta": "Que tipo de servidor é indicado para ambientes de missão crítica com alta densidade de processamento, e qual sua compatibilidade de formato de rack?",
+    "categoria": "infra",
+    "idioma": "pt",
+    "gold_terms": [
+      "ThinkSystem",
+      "7D9RCTO1WW",
+      "padraotic"
+    ],
+    "gold_hashes": [
+      "03171fa601c3e4e2884e5084a86d6e2577c8ed22a1425c8810c8bf8c0b7834b4"
+    ]
+  },
+  {
+    "id": "xdoc-005",
+    "pergunta": "Que tipo de equipamento de rede é responsável pela qualidade de serviço e por prover acesso à Internet para clientes e data centers da empresa?",
+    "categoria": "infra",
+    "idioma": "pt",
+    "gold_terms": [
+      "NetEngine",
+      "VRP",
+      "QoS"
+    ],
+    "gold_hashes": [
+      "b28e22cea3d60b72168c4963e310f349dd7714840639231ec172cb835ec76cc4"
+    ]
+  },
+  {
+    "id": "xdoc-006",
+    "pergunta": "Qual servidor em rack de dois soquetes é projetado para otimizar cargas de trabalho de virtualização e de banco de dados?",
+    "categoria": "infra",
+    "idioma": "pt",
+    "gold_terms": [
+      "PowerEdge",
+      "Intel Xeon",
+      "R660"
+    ],
+    "gold_hashes": [
+      "7cb085a631d0c19cb3b95e8eff9ca1f3e2e5d8a16fb2076379e39dab05db953e"
+    ]
+  },
+  {
+    "id": "xdoc-007",
+    "pergunta": "Qual solução de gestão centralizada de logs é composta por um mecanismo de indexação, uma plataforma de visualização e agentes leves de coleta de dados?",
+    "categoria": "infra",
+    "idioma": "pt",
+    "gold_terms": [
+      "Elasticsearch",
+      "Kibana",
+      "Logstash"
+    ],
+    "gold_hashes": [
+      "a2542a764f0e6ac11e953300a289a54356ade6e3a741577f87c891170992f596"
+    ]
+  },
+  {
+    "id": "xdoc-008",
+    "pergunta": "Que ferramentas de IA generativa são recomendadas para auxiliar desenvolvedores a otimizar a criação de código de forma eficiente e segura?",
+    "categoria": "metodo",
+    "idioma": "pt",
+    "gold_terms": [
+      "QDeveloper",
+      "Copilot Chat",
+      "MCP"
+    ],
+    "gold_hashes": [
+      "e804473b11359de17056e41e472b63dd6884d7540f73ea8e0460c8be8952ed21"
+    ]
+  },
+  {
+    "id": "xdoc-009",
+    "pergunta": "Qual serviço de armazenamento em nuvem é operado via SDK em Python neste ambiente, e qual a forma recomendada de autenticação?",
+    "categoria": "infra",
+    "idioma": "pt",
+    "gold_terms": [
+      "Object Storage Service",
+      "ModelArts",
+      "STS"
+    ],
+    "gold_hashes": [
+      "23205a289d128fc39e3975ec58b828b76508aa95049821e1a36d48c16b8096c6"
+    ]
+  },
+  {
+    "id": "xdoc-010",
+    "pergunta": "Por que nem toda API deve receber um mecanismo de autenticação robusto e cobrança por uso, e o que orienta a escolha da infraestrutura para cada uma?",
+    "categoria": "metodo",
+    "idioma": "pt",
+    "gold_terms": [
+      "bilhetagem",
+      "frontend",
+      "Classificações de APIs"
+    ],
+    "gold_hashes": [
+      "ff02140a687b539884d962099e9f6e2bd81712659f53f20fdce6d5711867a0bc"
+    ]
+  },
+  {
+    "id": "xdoc-011",
+    "pergunta": "Quais modelos de machine learning são usados para detectar manipulação e falsificação em imagens, e qual abordagem forense eles adotam?",
+    "categoria": "dados",
+    "idioma": "pt",
+    "gold_terms": [
+      "FreqNet",
+      "MesoInception",
+      "TruFor"
+    ],
+    "gold_hashes": [
+      "25afa1a48df7b56ccc00625947b9bc9319a2712433734fb41e5cb90be122b606"
+    ]
+  },
+  {
+    "id": "xdoc-012",
+    "pergunta": "Em que se diferencia uma plataforma de operações de TI de uma de gestão de serviços, considerando usuários-alvo e dados gerenciados?",
+    "categoria": "decisao",
+    "idioma": "pt",
+    "gold_terms": [
+      "CRM",
+      "ITOM",
+      "LCAP"
+    ],
+    "gold_hashes": [
+      "57370a9069ba4f02fc8214972eaf3323f3a62efdded628db5b0bc5159eaeb6d0"
+    ]
+  },
+  {
+    "id": "xdoc-013",
+    "pergunta": "Quais plataformas de baixa codificação a empresa avalia para adoção, e que critérios diferenciam suas propostas e integrações?",
+    "categoria": "decisao",
+    "idioma": "pt",
+    "gold_terms": [
+      "Mendix",
+      "ServiceNow",
+      "APEX"
+    ],
+    "gold_hashes": [
+      "d0205a56771de63af62a23125e716404ebe72bd3d7b0410cff77fa5317656d2c"
+    ]
+  },
+  {
+    "id": "xdoc-014",
+    "pergunta": "Quais elementos estruturantes compõem a estratégia da área de inteligência artificial, e qual a visão sobre o papel do código dentro do processo de entrega?",
+    "categoria": "metodo",
+    "idioma": "pt",
+    "gold_terms": [
+      "DEIA",
+      "MLOps",
+      "Governança"
+    ],
+    "gold_hashes": [
+      "aecd6a827639647f86321faee26f4a1b820e1e144f94a61bbabfa1d31d593060"
+    ]
+  },
+  {
+    "id": "xdoc-015",
+    "pergunta": "Onde o agente de monitoramento de aplicação deve ser inicializado num aplicativo Node.js para que comece a capturar requisições corretamente?",
+    "categoria": "infra",
+    "idioma": "pt",
+    "gold_terms": [
+      "apm.server_url",
+      "index.js",
+      "app.js"
+    ],
+    "gold_hashes": [
+      "d44dbbdc6d906950e112129e21491bf1144907b61b9efe8f577cb61571f4b355"
+    ]
+  },
+  {
+    "id": "xdoc-016",
+    "pergunta": "Quais são o identificador, a licença e o órgão responsável pelo módulo de registro ambiental rural aberto pelo governo federal?",
+    "categoria": "dados",
+    "idioma": "pt",
+    "gold_terms": [
+      "GID0092718",
+      "GPL-3.0",
+      "MGI"
+    ],
+    "gold_hashes": [
+      "c8ebae63253a35f1bd0d56c60c42c9d7221368a31cd2e4ddd52b8c592151fe80"
+    ]
+  },
+  {
+    "id": "xdoc-017",
+    "pergunta": "Qual política do cluster audita tokens de longa duração associados a contas de serviço, e que ação de validação ela adota?",
+    "categoria": "infra",
+    "idioma": "pt",
+    "gold_terms": [
+      "ClusterPolicy",
+      "check-serviceaccount-secrets",
+      "validationFailureAction"
+    ],
+    "gold_hashes": [
+      "36a1e6aeea4ce7e1965f2f443738622d64ce02d48874f4cca7bdee729b277bf4"
+    ]
+  },
+  {
+    "id": "xdoc-018",
+    "pergunta": "Que regra impõe que todo contêiner defina limites e solicitações de CPU e memória, e como ela define o escopo de namespaces a que se aplica?",
+    "categoria": "infra",
+    "idioma": "pt",
+    "gold_terms": [
+      "require-resource-requests-limits",
+      "namespaceSelector",
+      "matchExpressions"
+    ],
+    "gold_hashes": [
+      "011587c47fe260a5e5d8d9612582f696c628d180e7c720b962e25ff50e434b26"
+    ]
+  },
+  {
+    "id": "xdoc-019",
+    "pergunta": "Como se organiza o showcase de aplicações de inteligência artificial da empresa em famílias, e qual o endereço base da sua interface de demonstração?",
+    "categoria": "produto",
+    "idioma": "pt",
+    "gold_terms": [
+      "ÍCARO",
+      "TESEU",
+      "PERSEU"
+    ],
+    "gold_hashes": [
+      "5a8dc2a6eb3d4e280d57abcef45922797d7f516f415c446597369d1e7a89b849"
+    ]
+  },
+  {
+    "id": "xdoc-020",
+    "pergunta": "Qual é o fluxo de autenticação do gateway de serviços de IA e qual o ponto de entrada para chamadas de geração de linguagem no padrão OpenAI?",
+    "categoria": "infra",
+    "idioma": "pt",
+    "gold_terms": [
+      "OAuth2",
+      "chat/completions",
+      "pgvector"
+    ],
+    "gold_hashes": [
+      "ffe924528082e9042eba43531ab1c6de2ae3ae9f6d97961e899498f83454b1df"
+    ]
+  }
+]
