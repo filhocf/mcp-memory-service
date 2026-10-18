@@ -1,0 +1,1580 @@
+{
+ "cases": [
+  {
+   "id": "g01-001",
+   "pergunta": "Por que a equipe decidiu separar cada componente em um repositório próprio?",
+   "categoria": "decisao",
+   "idioma": "pt",
+   "gold_terms": [
+    "Kubernetes",
+    "CI/CD",
+    "deploy independente"
+   ],
+   "gold_hashes": [
+    "44d690128d8efae5b937dd7e73257ed537b8a3e7f448f73d879f7800a3009946"
+   ]
+  },
+  {
+   "id": "g01-002",
+   "pergunta": "Como a equipe decidiu paralelizar as chamadas externas simultâneas ao SICAR, SNCR e SIGEF?",
+   "categoria": "decisao",
+   "idioma": "pt",
+   "gold_terms": [
+    "Spring WebFlux",
+    "Mono.zip()",
+    "paralelização"
+   ],
+   "gold_hashes": [
+    "2212fa6c299b2ad7c7863d8e7a796b08b337022e4c63cc14e5ccb78eed6215e7"
+   ]
+  },
+  {
+   "id": "g01-003",
+   "pergunta": "Where should the personal MEMORY.md be stored and why not in Git?",
+   "categoria": "decisao",
+   "idioma": "en",
+   "gold_terms": [
+    "backup-ai-configs",
+    "OneDrive",
+    "Privacidade"
+   ],
+   "gold_hashes": [
+    "dcbbe9fc80ba346a0de7ff2066c377414c5ba4722771eb2dff8f2767a415a741"
+   ]
+  },
+  {
+   "id": "g01-004",
+   "pergunta": "O que foi decidido sobre o sistema de notificações para avisar os usuários sobre compartilhamentos?",
+   "categoria": "decisao",
+   "idioma": "pt",
+   "gold_terms": [
+    "FCM",
+    "Controle total",
+    "push"
+   ],
+   "gold_hashes": [
+    "7698fc18288c9533bb02bc00167623f1797fcbd959bc6bc5024cdc6643700d54"
+   ]
+  },
+  {
+   "id": "g01-005",
+   "pergunta": "How is the memory system structured to separate shared knowledge from project-specific knowledge?",
+   "categoria": "decisao",
+   "idioma": "en",
+   "gold_terms": [
+    "global/",
+    "projects/<nome>/",
+    "Isolamento"
+   ],
+   "gold_hashes": [
+    "55986e989d35b3d6579a12c9c6743163ba6d675e83da697f9b5319d8d66c787f"
+   ]
+  },
+  {
+   "id": "g01-006",
+   "pergunta": "Por que o botão de download do CCIR não aparecia para os usuários que recebem compartilhamento?",
+   "categoria": "bug",
+   "idioma": "pt",
+   "gold_terms": [
+    "baixarCcir",
+    "detalhesCompartilhamento",
+    "duplicado"
+   ],
+   "gold_hashes": [
+    "d64ca82c7ef0d82035867954de9634ea400dedd89662dc95af920ba492eb01bc"
+   ]
+  },
+  {
+   "id": "g01-007",
+   "pergunta": "Why does the CAR demonstrative download open a new browser tab while the other downloads don't?",
+   "categoria": "bug",
+   "idioma": "en",
+   "gold_terms": [
+    "target=\"_blank\"",
+    "linksAcessoRapido",
+    "createElement"
+   ],
+   "gold_hashes": [
+    "ed17ee70f9583e14296d4519f5c290d95f0a53dd1f93bc82385009c054e45d67"
+   ]
+  },
+  {
+   "id": "g01-008",
+   "pergunta": "Qual o workaround adotado para o SIGEF às vezes responder devagar em produção?",
+   "categoria": "bug",
+   "idioma": "pt",
+   "gold_terms": [
+    "Circuit breaker",
+    "ISSUE-024",
+    "cache"
+   ],
+   "gold_hashes": [
+    "0b2679646c9f1e6f50469f38d322d6edbe4bbc81b9f8807ddfd655fc49b7aef8"
+   ]
+  },
+  {
+   "id": "g01-009",
+   "pergunta": "What was the confirmed root cause of the Core-API production requests taking 15 to 22 seconds?",
+   "categoria": "bug",
+   "idioma": "en",
+   "gold_terms": [
+    "AccessToken",
+    "n311p006897",
+    "COUNT"
+   ],
+   "gold_hashes": [
+    "79029e063aa76f2764e964d1e12b953707c13eb21a79a79bdeae1970337bec43"
+   ]
+  },
+  {
+   "id": "g01-010",
+   "pergunta": "O script de deploy do Core API lê o arquivo .env?",
+   "categoria": "bug",
+   "idioma": "pt",
+   "gold_terms": [
+    "deploy.conf",
+    "sed",
+    "production.py"
+   ],
+   "gold_hashes": [
+    "168acdb4e7171d31f91f1fc6bd2198586594d2b504ac7d5ad3b05c7c0b4ad8db"
+   ]
+  },
+  {
+   "id": "g01-011",
+   "pergunta": "What two issues caused the RER calc_engine and geoserver Docker builds to fail or misbehave?",
+   "categoria": "bug",
+   "idioma": "en",
+   "gold_terms": [
+    "spring-boot-starter-actuator",
+    "ghcr.io",
+    "lowercase"
+   ],
+   "gold_hashes": [
+    "9923884ec11aa1af64a89821ce68205f446818b54637aba77bc910707edec96c"
+   ]
+  },
+  {
+   "id": "g01-012",
+   "pergunta": "Por que o deploy do RER no ambiente DEV está bloqueado?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "cce-sp-ctn02-np",
+    "quota",
+    "15 CPU"
+   ],
+   "gold_hashes": [
+    "9c4537a4f232dea6f9b4186ae9d3864dc54d02ca8f21b391ea88a10cf9da0c3c"
+   ]
+  },
+  {
+   "id": "g01-013",
+   "pergunta": "Quantos pods e quanta CPU o ambiente de produção do RER exige no mínimo?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "36 CPU",
+    "76GB",
+    "HPA"
+   ],
+   "gold_hashes": [
+    "b6300453706d7184d1892ed22983c69977205824b003704fd0280f1ef6b9ff49"
+   ]
+  },
+  {
+   "id": "g01-014",
+   "pergunta": "Quantas instâncias do PostgreSQL rodam no servidor n311p006897 e em quais portas?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "5433",
+    "core_api_manager",
+    "128MB"
+   ],
+   "gold_hashes": [
+    "4318d8e81b5032ae2d1560bf40490826f169783aae6632eb95e6fd3d12346eb1"
+   ]
+  },
+  {
+   "id": "g01-015",
+   "pergunta": "Which critical issues were found on the Core API production servers running version 1.0.0?",
+   "categoria": "infra",
+   "idioma": "en",
+   "gold_terms": [
+    "DEBUG",
+    "n321p008662",
+    "CELERY_BEAT_SCHEDULE"
+   ],
+   "gold_hashes": [
+    "6e61ca46a989dc455ae79bb236836f973186462e8273f0050bd3b0aae781f667"
+   ]
+  },
+  {
+   "id": "g01-016",
+   "pergunta": "Quais dois domínios o ambiente de produção do MIR utiliza?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "meuimovelrural.dataprev.gov.br",
+    "meuimovelrural.sistema.gov.br",
+    "Ingress"
+   ],
+   "gold_hashes": [
+    "613dd534d67fb8121b7dbccb832710642dd5b0ed58e100bb3ac4b0c34eb28a0a"
+   ]
+  },
+  {
+   "id": "g01-017",
+   "pergunta": "Qual a velocidade média do POC com sqlite-vec para os 84 documentos indexados?",
+   "categoria": "metodo",
+   "idioma": "pt",
+   "gold_terms": [
+    "0.26ms",
+    "384x",
+    "100%"
+   ],
+   "gold_hashes": [
+    "553ce65ccb7e3231a3577b869134aec07ba70698c5e28284842e1dd4bc570f26"
+   ]
+  },
+  {
+   "id": "g01-018",
+   "pergunta": "Qual a proporção recomendada entre a busca vetorial e a busca por texto no sistema de memória estilo OpenClaw?",
+   "categoria": "metodo",
+   "idioma": "pt",
+   "gold_terms": [
+    "70% vector",
+    "30% BM25",
+    "SHA-256"
+   ],
+   "gold_hashes": [
+    "42fb632abc8f2cc357774f383d1217403c76200765f0dcb6374cf37b00ab5d9b"
+   ]
+  },
+  {
+   "id": "g01-019",
+   "pergunta": "How often should the project MEMORY.md be updated during an active work session?",
+   "categoria": "metodo",
+   "idioma": "en",
+   "gold_terms": [
+    "~30 min",
+    "CHANGELOG.md",
+    "raiz"
+   ],
+   "gold_hashes": [
+    "bab386fb420c316e5da0e57761c758f60fec557a4a6e733c22d2930c272ce652"
+   ]
+  },
+  {
+   "id": "g01-020",
+   "pergunta": "Por que o plano trocou a ferramenta de automação de navegador anterior por um novo MCP?",
+   "categoria": "metodo",
+   "idioma": "pt",
+   "gold_terms": [
+    "100x",
+    "Playwright MCP",
+    "substitui Puppeteer"
+   ],
+   "gold_hashes": [
+    "7424c40ad80cf563f2972e57acfd431deb59d5aba1439e43122b0585c5eb1e8e"
+   ]
+  },
+  {
+   "id": "g01-021",
+   "pergunta": "O que fazer quando é preciso trabalhar em um projeto que não está clonado na máquina atual?",
+   "categoria": "metodo",
+   "idioma": "pt",
+   "gold_terms": [
+    "~/git/{nome-projeto}",
+    "clonar",
+    "verificar"
+   ],
+   "gold_hashes": [
+    "fc42865390d0ab7d36c2540ef8acb902998f3c2826ef41d39a792cc6368f6d80"
+   ]
+  },
+  {
+   "id": "g01-022",
+   "pergunta": "What backend framework and database does the MIR project use?",
+   "categoria": "produto",
+   "idioma": "en",
+   "gold_terms": [
+    "Spring Boot 3.4.0",
+    "Java 21",
+    "PostgreSQL"
+   ],
+   "gold_hashes": [
+    "4a6012154cc3ee5270a45913ae514eac88ba0023e67c1e084bdf502f5f1b3072"
+   ]
+  },
+  {
+   "id": "g01-023",
+   "pergunta": "Quais são os 7 componentes da arquitetura oficial do RER?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "Calculation Engine",
+    "GeoServer",
+    "Keycloak"
+   ],
+   "gold_hashes": [
+    "b4d9794ddae1d55b7fb8c8265853048c646495c4a52ee3ea8655afff6d9c717b"
+   ]
+  },
+  {
+   "id": "g01-024",
+   "pergunta": "Quais camadas estão incluídas no download de GeoPackage do MIR?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "sicar_imoveis",
+    "sigef_parcelas",
+    "EPSG:4326"
+   ],
+   "gold_hashes": [
+    "eac15e306a38a2ae52bc54484d8867239d388a8de4657a09f227bd382d22804e"
+   ]
+  },
+  {
+   "id": "g01-025",
+   "pergunta": "Como o app mobile do MIR faz o login com o Gov.br sem sair da aplicação?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "WebView",
+    "onShouldStartLoadWithRequest",
+    "AsyncStorage"
+   ],
+   "gold_hashes": [
+    "207c51aab2f2799aef9a071d971d18543667c9083569a21d544b5836543e0c05"
+   ]
+  },
+  {
+   "id": "g01-026",
+   "pergunta": "What is the default endpoint and port for the OpenClaw gateway?",
+   "categoria": "produto",
+   "idioma": "en",
+   "gold_terms": [
+    "/v1/responses",
+    "18789",
+    "Bearer Token"
+   ],
+   "gold_hashes": [
+    "8920b32d4d535afe120d3e0c9cf7023c958a6a22589c1107e2eee8f06c0b66c8"
+   ]
+  },
+  {
+   "id": "g01-027",
+   "pergunta": "O que consome a maior parte do espaço da tabela log_access no Core-API?",
+   "categoria": "dados",
+   "idioma": "pt",
+   "gold_terms": [
+    "39MB",
+    "28MB",
+    "índices"
+   ],
+   "gold_hashes": [
+    "cd46369efbb33d84627ebdbd30c4397730501b4d62f2953e6f1926c9f6e35f9d"
+   ]
+  },
+  {
+   "id": "g01-028",
+   "pergunta": "What is the expected performance gain from removing the Core-API logging system?",
+   "categoria": "dados",
+   "idioma": "en",
+   "gold_terms": [
+    "27%",
+    "30 índices",
+    "4 COUNTs"
+   ],
+   "gold_hashes": [
+    "face1c4ce88f5a85b2938908e651cce6596473614ff8b10fb9e8f39b8074fa19"
+   ]
+  },
+  {
+   "id": "g01-029",
+   "pergunta": "Qual a diferença entre a configuração atual de memória do PostgreSQL e o recomendado no Core-API em produção?",
+   "categoria": "dados",
+   "idioma": "pt",
+   "gold_terms": [
+    "128MB",
+    "4GB",
+    "32x"
+   ],
+   "gold_hashes": [
+    "4786951cd4b814369f0be107c86f44dd5d0e4443dc6bac024aa02c87843d96b1"
+   ]
+  },
+  {
+   "id": "g01-030",
+   "pergunta": "Quantos registros de desmatamento PRODES foram importados do CSV de março de 2026 para o banco local?",
+   "categoria": "dados",
+   "idioma": "pt",
+   "gold_terms": [
+    "100.261",
+    "dt_referencia",
+    "SQLite"
+   ],
+   "gold_hashes": [
+    "d4f47943084e357261729dad30ca9a3781722990ec0e2ff9405a74d95e30fc0e"
+   ]
+  },
+  {
+   "id": "g02-001",
+   "pergunta": "Quantos registros a safra de março de 2026 do PRODES adicionou ao datalake, e qual era o nome do arquivo importado?",
+   "categoria": "dados",
+   "idioma": "pt",
+   "gold_terms": [
+    "100.261",
+    "copy_of_car_lista_mcr_19032026_acima4mf_toleranc.zip"
+   ],
+   "gold_hashes": [
+    "7a26fe734a06a60117aa9eb4027e786e9430375097c9196a9058bf7de0cbd669"
+   ]
+  },
+  {
+   "id": "g02-002",
+   "pergunta": "O que estava errado na configuração do endpoint SIGEF que fez o WireMock parar de responder com dados?",
+   "categoria": "bug",
+   "idioma": "pt",
+   "gold_terms": [
+    "barra extra",
+    "application-local.yaml"
+   ],
+   "gold_hashes": [
+    "e968a7616a93cc5567f6fedd11db74723786dfd73624ce9b434faeffa3a4e845"
+   ]
+  },
+  {
+   "id": "g02-003",
+   "pergunta": "Para quanto queremos elevar a cobertura mínima de código novo no gate de qualidade do CI?",
+   "categoria": "decisao",
+   "idioma": "pt",
+   "gold_terms": [
+    "80%",
+    "dtp_basico"
+   ],
+   "gold_hashes": [
+    "0a8b249ef351730c4e0cf78109a4af7ed3dfe4bdb06d52d6aa6f10246a9d8144"
+   ]
+  },
+  {
+   "id": "g02-004",
+   "pergunta": "Em qual porta local o servidor de mocks do time escuta durante o desenvolvimento?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "8082"
+   ],
+   "gold_hashes": [
+    "777f8e5ecac06d0ffc31b6737d2aa0576d531860bdfb71333776e9f5bd2482f9"
+   ]
+  },
+  {
+   "id": "g02-005",
+   "pergunta": "Qual namespace Kubernetes o ambiente de desenvolvimento do MIR usa, e de qual branch do GitOps ele recebe deploy?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "dev-mir",
+    "entrega-nuvem"
+   ],
+   "gold_hashes": [
+    "d7d91d1ba4d02edccdd8ed5fd92fd65b028d46cd24a1a7f21b62b32efaaf040d"
+   ]
+  },
+  {
+   "id": "g02-006",
+   "pergunta": "Em quais fases demarcatórias uma Terra Indígena gera alerta de não conformidade no painel?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "Regularizada",
+    "Homologada"
+   ],
+   "gold_hashes": [
+    "8c9bb78f6827e99e92ad3b9a7e64fc790bc4cd8b0bf0864953099bbb4b68d40a"
+   ]
+  },
+  {
+   "id": "g02-007",
+   "pergunta": "Qual é o nome do tópico que o consumer do MIR vai escutar para receber o resultado do processamento do painel?",
+   "categoria": "decisao",
+   "idioma": "pt",
+   "gold_terms": [
+    "mir.regularidade.resultado"
+   ],
+   "gold_hashes": [
+    "cd8b11cc98c3e456df2b5f085a86e3492e4e2dad12b9e7277173c20e95e25799"
+   ]
+  },
+  {
+   "id": "g02-008",
+   "pergunta": "Qual engine geoespacial usamos para validar a prova de conceito do motor do painel localmente?",
+   "categoria": "decisao",
+   "idioma": "pt",
+   "gold_terms": [
+    "SpatiaLite"
+   ],
+   "gold_hashes": [
+    "47c3ffe876cfe74dbdef180490d5aa7deea05aa8e8ea46f1b3af50488d62f3a4"
+   ]
+  },
+  {
+   "id": "g02-009",
+   "pergunta": "Por quanto tempo a certidão de nada consta de embargos gerada pelo sistema permanece válida?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "90 dias"
+   ],
+   "gold_hashes": [
+    "739edfb479f50f09360d925134f6bc69fc5525170606dd9e0757fe8902841c6f"
+   ]
+  },
+  {
+   "id": "g02-010",
+   "pergunta": "Quantos polígonos vêm no shapefile de florestas públicas do SFB que será carregado no PostGIS?",
+   "categoria": "dados",
+   "idioma": "pt",
+   "gold_terms": [
+    "20.829"
+   ],
+   "gold_hashes": [
+    "7ac5d1c4f558d073370cf1622457bdbeaf3a63828fd34f2df03794773da91f5f"
+   ]
+  },
+  {
+   "id": "g02-011",
+   "pergunta": "Qual registry recebe as imagens na etapa de build e qual é consultado pelo Kubernetes na hora do deploy?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "registry-ctn",
+    "SWR"
+   ],
+   "gold_hashes": [
+    "1799f0025be23303ccd894926cd045dea13c1f6a44ad0cc47369844aa4798e23"
+   ]
+  },
+  {
+   "id": "g02-012",
+   "pergunta": "Por que a ingestão das memórias do projeto MIR caiu na store padrão em vez da store dele?",
+   "categoria": "bug",
+   "idioma": "pt",
+   "gold_terms": [
+    "store=mir",
+    "schema cacheado"
+   ],
+   "gold_hashes": [
+    "f5bb631d91369112120c98017541e40ef1e3dcbda508909782ddd4462b204ee3"
+   ]
+  },
+  {
+   "id": "g02-013",
+   "pergunta": "Que regra de ouro registramos depois de afirmar uma restrição de rede sem confirmar na prática?",
+   "categoria": "metodo",
+   "idioma": "pt",
+   "gold_terms": [
+    "TESTAR ANTES"
+   ],
+   "gold_hashes": [
+    "2e4d4bdb078134399e2c60b52760add51080749d7734fa44aac9f93f5c1aca85"
+   ]
+  },
+  {
+   "id": "g02-014",
+   "pergunta": "Qual commit contém a correção da SQL injection no scheduler de execução de procedimentos?",
+   "categoria": "bug",
+   "idioma": "pt",
+   "gold_terms": [
+    "45e3e0a",
+    "validateSqlEntry"
+   ],
+   "gold_hashes": [
+    "e7b547ac4df249293bc5235c0d0c5226a66ae5c1682c1b3940fab0f446c7d66e"
+   ]
+  },
+  {
+   "id": "g02-015",
+   "pergunta": "Quais features nativas da Kiro CLI 2.7.0 substituem o enforcement soft via hooks e steering?",
+   "categoria": "metodo",
+   "idioma": "pt",
+   "gold_terms": [
+    "/goal",
+    "Queue Steering",
+    "Subagent Review Loops"
+   ],
+   "gold_hashes": [
+    "35755e1ee43a0d9db9ed9ba882fb88643fdc63215a64a4950bce5e4c956071b5"
+   ]
+  },
+  {
+   "id": "g02-016",
+   "pergunta": "Qual erro de credencial aparecia quando o token gerado no Rio era usado no gateway de São Paulo, e qual era o nome técnico do problema?",
+   "categoria": "bug",
+   "idioma": "pt",
+   "gold_terms": [
+    "900901",
+    "truststore"
+   ],
+   "gold_hashes": [
+    "4f10a16f08e4fdb471d4f6700a833974432647c38e5fdefa65cc54a56c073a72"
+   ]
+  },
+  {
+   "id": "g02-017",
+   "pergunta": "Qual é o limite seguro de tamanho para o prompt de um subagent, acima do qual a sessão do Kiro CLI morre?",
+   "categoria": "metodo",
+   "idioma": "pt",
+   "gold_terms": [
+    "2000 chars",
+    "prompt_template"
+   ],
+   "gold_hashes": [
+    "eaa1fafc189a1e7d32d72e8ec0bd466086e31c16d0924c427a8c05ab61bb8769"
+   ]
+  },
+  {
+   "id": "g02-018",
+   "pergunta": "Quais faixas de IP interno estão na whitelist do ingress que expõe a API diretamente para sistemas parceiros?",
+   "categoria": "decisao",
+   "idioma": "pt",
+   "gold_terms": [
+    "10.0.0.0/8",
+    "mir-ingress-internal"
+   ],
+   "gold_hashes": [
+    "ab298ea505b9ceb0a38b19a2add15b57533a9d38aac4cc20ccc1a963fb46ea5d"
+   ]
+  },
+  {
+   "id": "g02-019",
+   "pergunta": "Qual status novo criamos no painel para o caso em que a exigência de supressão só entra em vigor em 2027 e 2028?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "EXIGENCIA_PRORROGADA_CONFORME"
+   ],
+   "gold_hashes": [
+    "4cafbd7bcefec1c0448c20debffe87eb766339a1072ca566f83e54539e71d374"
+   ]
+  },
+  {
+   "id": "g02-020",
+   "pergunta": "Qual coluna já existente escolhemos para guardar a data da fonte MTE, evitando DDL novo?",
+   "categoria": "decisao",
+   "idioma": "pt",
+   "gold_terms": [
+    "dt_atualizacao",
+    "dataReferenciaBase"
+   ],
+   "gold_hashes": [
+    "a2fe082d4d195cf28e28ed75c53fa949cdc80c1f0b2b8e1cab878112e9079938"
+   ]
+  },
+  {
+   "id": "g02-021",
+   "pergunta": "How many slave labor list records does the regularidade datalake currently hold?",
+   "categoria": "dados",
+   "idioma": "en",
+   "gold_terms": [
+    "trabalho_escravo",
+    "671"
+   ],
+   "gold_hashes": [
+    "584e19fd0f4060d27eb0fe72a02b633e56da1f535a7a2b9a4f5a848468e7aca1"
+   ]
+  },
+  {
+   "id": "g02-022",
+   "pergunta": "Which spatial extension is paired with PostgreSQL in the MIR backend stack?",
+   "categoria": "produto",
+   "idioma": "en",
+   "gold_terms": [
+    "PostGIS"
+   ],
+   "gold_hashes": [
+    "590110cad2c8e8227a9fcce10ca1448c339b83f1b9f19e990c43eacdc02fe4e1"
+   ]
+  },
+  {
+   "id": "g02-023",
+   "pergunta": "What was the rationale for picking an in-memory database over container-based test databases in the API test suite?",
+   "categoria": "decisao",
+   "idioma": "en",
+   "gold_terms": [
+    "Testcontainers",
+    "H2"
+   ],
+   "gold_hashes": [
+    "fb2cb59e6cd549a182fc1b8551e323f10b086cd75209757c5ade2703a3c1e229"
+   ]
+  },
+  {
+   "id": "g02-024",
+   "pergunta": "How many retry attempts does the circuit breaker make for external integrations, and with what backoff strategy?",
+   "categoria": "infra",
+   "idioma": "en",
+   "gold_terms": [
+    "Resilience4j",
+    "backoff exponencial"
+   ],
+   "gold_hashes": [
+    "7bce7bc3d8f1557e270f0e68cd97ded3a037624880cebe90d8a6976b7a0d49e1"
+   ]
+  },
+  {
+   "id": "g02-025",
+   "pergunta": "What retention period applies to the daily production database backups?",
+   "categoria": "infra",
+   "idioma": "en",
+   "gold_terms": [
+    "30 dias",
+    "Backup diário"
+   ],
+   "gold_hashes": [
+    "d2faa4bcb20d291ab73b57ca2b0ad3c3605a23cb2fb5f39c29f548590933b7fb"
+   ]
+  },
+  {
+   "id": "g02-026",
+   "pergunta": "Why is the CAF OAuth2 token shared through the database instead of being issued per session?",
+   "categoria": "bug",
+   "idioma": "en",
+   "gold_terms": [
+    "singleton",
+    "401"
+   ],
+   "gold_hashes": [
+    "11a8deb54df07cde4a434b6003bb2b9738a6c2d34028510ec53d8566ef48a95d"
+   ]
+  },
+  {
+   "id": "g02-027",
+   "pergunta": "Which geospatial engine is still missing from the CDP datalake, blocking spatial functions in Spark and Hive?",
+   "categoria": "infra",
+   "idioma": "en",
+   "gold_terms": [
+    "Sedona"
+   ],
+   "gold_hashes": [
+    "ec0668db3c5dfb5104ee676403404274e0199cc2a5fb624fd1ece60a4abbcd8c"
+   ]
+  },
+  {
+   "id": "g02-028",
+   "pergunta": "Which APM agent jar and log shipper sidecar are part of the MIR observability branch waiting for client validation?",
+   "categoria": "infra",
+   "idioma": "en",
+   "gold_terms": [
+    "elastic-apm-agent",
+    "Filebeat"
+   ],
+   "gold_hashes": [
+    "19539be2fd2f7175cc2ffc19185921453e7af3ba38c6430197ec646cbcaadb7c"
+   ]
+  },
+  {
+   "id": "g02-029",
+   "pergunta": "What class was created to sanitize inputs in the security fix branch, and which commit holds the SSRF fix?",
+   "categoria": "bug",
+   "idioma": "en",
+   "gold_terms": [
+    "InputSanitizer",
+    "8185605"
+   ],
+   "gold_hashes": [
+    "8fb617e8a01eaadd7cdf9140be13c4cb487f18223282aa83e3e812dd1fd4a9cb"
+   ]
+  },
+  {
+   "id": "g02-030",
+   "pergunta": "Why do the mock mappings not load when the API runs as a packaged JAR instead of via Maven?",
+   "categoria": "bug",
+   "idioma": "en",
+   "gold_terms": [
+    "filesPath",
+    "usingFilesUnderClasspath"
+   ],
+   "gold_hashes": [
+    "1af3c3c0f6961da3bb5f050adcb77c1be72e205ea3730b9719b86ba10d94c0d7"
+   ]
+  },
+  {
+   "id": "g03-001",
+   "pergunta": "O que impedia que as observações fossem agrupadas de forma útil e gerassem crenças no incidente do pipeline em junho de 2026?",
+   "categoria": "bug",
+   "idioma": "pt",
+   "gold_terms": [
+    "provenance_floor",
+    "_group_observations"
+   ],
+   "gold_hashes": [
+    "b25d7c98941cc05e394c15730caf5ec6bbb1a7716ac74ed0ff18b01bdb8bface"
+   ]
+  },
+  {
+   "id": "g03-002",
+   "pergunta": "Quantas crenças o sistema passou a derivar depois que a extração foi ligada em junho de 2026, e qual era o limiar de similaridade adotado?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "1038",
+    "0.85"
+   ],
+   "gold_hashes": [
+    "3f89d79692425de4a93e831003b68e9261be969fc4be9eee75f77eacb5fcea9c"
+   ]
+  },
+  {
+   "id": "g03-003",
+   "pergunta": "Com quem o Claudio decidiu formar dupla para o hackathon de junho, e qual era o prazo de inscrição individual?",
+   "categoria": "decisao",
+   "idioma": "pt",
+   "gold_terms": [
+    "Edemar Santos",
+    "25/jun"
+   ],
+   "gold_hashes": [
+    "c9453ee26451e569713c60278e87abb2575b386634e7e9591e223cefafb7701c"
+   ]
+  },
+  {
+   "id": "g03-004",
+   "pergunta": "Qual foi a decisão sobre o que o arquivo de lock de versões deveria espelhar no ambiente DNBSCDC289?",
+   "categoria": "decisao",
+   "idioma": "pt",
+   "gold_terms": [
+    "versions.lock"
+   ],
+   "gold_hashes": [
+    "77c303b64351d339305b8e102e84e26854610573d246f1de4d3fda328d60c5f5"
+   ]
+  },
+  {
+   "id": "g03-005",
+   "pergunta": "Por que o cadastro georreferenciado de imóveis rurais não resolve sozinho a regularização da maioria das pequenas propriedades?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "8.2M",
+    "SIGEF"
+   ],
+   "gold_hashes": [
+    "1edc24d41b7798adcf687ee5c600b220eb68593e2e01304ae39bc63033645260"
+   ]
+  },
+  {
+   "id": "g03-006",
+   "pergunta": "Qual advogada confirmou que a proposta pode manter o caráter de autodeclaração do produtor?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "Jéssica Nogueira",
+    "autodeclaratório"
+   ],
+   "gold_hashes": [
+    "bb8a6251197f33c9266af97ed700de4d84bc6267c9b454e601e7a9109ccdd48f"
+   ]
+  },
+  {
+   "id": "g03-007",
+   "pergunta": "Qual é a convenção de prefixo para mensagens de commit feitas pela ferramenta de IA nos repositórios de conhecimento e do hackathon?",
+   "categoria": "metodo",
+   "idioma": "pt",
+   "gold_terms": [
+    "[Kiro]"
+   ],
+   "gold_hashes": [
+    "51a8705a1957cd1209d7f3efe9b98b7fa53a28215cffc7d0ac01aeecc7d4220f"
+   ]
+  },
+  {
+   "id": "g03-008",
+   "pergunta": "Qual anotação do ingress estava travando o certificado em produção e o que ela impedia de funcionar?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "kubernetes.io/ingress.allow-http",
+    "ACME"
+   ],
+   "gold_hashes": [
+    "fca821677a8294b23bf72b40888c5e08017379191eefff808602893c9970ec8f"
+   ]
+  },
+  {
+   "id": "g03-009",
+   "pergunta": "Por que o serviço de memória precisa rodar os embeddings usando apenas o processador nesta máquina específica?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "CUDA_VISIBLE_DEVICES",
+    "SM 6.1"
+   ],
+   "gold_hashes": [
+    "2b2383a812deb2d474b7ab268e613b3041de00e48e6847bddb9f4bdc10d8ebea"
+   ]
+  },
+  {
+   "id": "g03-010",
+   "pergunta": "Para habilitar o push de notificação no celular, qual método o serviço de notificação passou a chamar, e em qual CPF isso foi validado?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "saveAndSendNotification",
+    "86525425620"
+   ],
+   "gold_hashes": [
+    "9b625a6aa7f02edc356c5c63d845c02fd5c8dd214de76c350ebb1bc44fab3dd3"
+   ]
+  },
+  {
+   "id": "g03-011",
+   "pergunta": "Qual configuração do sistema era insuficiente para abrir o Obsidian e para qual valor foi ajustada?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "inotify.max_user_instances",
+    "EMFILE"
+   ],
+   "gold_hashes": [
+    "13380087ab518077a129f42c0fcc5f679599b4d41f968ef915dc41bad4718e3f"
+   ]
+  },
+  {
+   "id": "g03-012",
+   "pergunta": "Para qual plataforma de código o repositório de memória foi transferido quando o fork do GitHub foi aposentado?",
+   "categoria": "decisao",
+   "idioma": "pt",
+   "gold_terms": [
+    "CODEBERG",
+    "86 branches"
+   ],
+   "gold_hashes": [
+    "880f218d9284fcec333651651e3c9b7d884ced5447382f419cbcd8b8b416b78f"
+   ]
+  },
+  {
+   "id": "g03-013",
+   "pergunta": "Qual framework foi escolhido como principal para testar o app web e mobile do MIR de forma unificada?",
+   "categoria": "decisao",
+   "idioma": "pt",
+   "gold_terms": [
+    "Maestro.dev",
+    "maestro mcp"
+   ],
+   "gold_hashes": [
+    "8bdcd2c62989cc5ffc18ad5d14e21bfe90853f3fa346cfb9de462a180c9540a9"
+   ]
+  },
+  {
+   "id": "g03-014",
+   "pergunta": "Qual o valor do bônus previsto para o produtor que confirmar o cadastro, e em qual artigo do código ambiental a base legal se apoia?",
+   "categoria": "decisao",
+   "idioma": "pt",
+   "gold_terms": [
+    "art.41",
+    "R$100"
+   ],
+   "gold_hashes": [
+    "ff2780b012dd3e77fa9479a665e85d2a14483f9cf6a7cfa1ec1ad1ed46af40df"
+   ]
+  },
+  {
+   "id": "g03-015",
+   "pergunta": "Qual comando faltou executar antes de subir os contêineres, o que impedia a recriação do proxy no caso do Diego?",
+   "categoria": "bug",
+   "idioma": "pt",
+   "gold_terms": [
+    "docker compose down"
+   ],
+   "gold_hashes": [
+    "cc05c80e75afcb2b967960aad05d34e4db479e7ccc9b89ae88ded1350a44e560"
+   ]
+  },
+  {
+   "id": "g03-016",
+   "pergunta": "Por que os meses retornados pela API estavam deslocados em relação ao que o backend calculava, e qual função precisou ser corrigida?",
+   "categoria": "bug",
+   "idioma": "pt",
+   "gold_terms": [
+    "decendioParaData",
+    "AGO"
+   ],
+   "gold_hashes": [
+    "dfeee1afc3defced2e865d2dff7b8ea0e9cb7e4e49d0d24d0a18f4560eca5c09"
+   ]
+  },
+  {
+   "id": "g03-017",
+   "pergunta": "O que foi verificado sobre a disponibilidade de dados de agricultura sustentável nos bancos do sistema de imóveis rurais?",
+   "categoria": "dados",
+   "idioma": "pt",
+   "gold_terms": [
+    "PRODES",
+    "ASV"
+   ],
+   "gold_hashes": [
+    "f0d0377452d0255d037629c7b97a3ff63f54946e5e4dd8855f000fc897bd9a41"
+   ]
+  },
+  {
+   "id": "g03-018",
+   "pergunta": "Qual formato de geometria o campo do imóvel precisava usar para o demo rodar, e qual era a limitação do cache na API?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "WKT MULTIPOLYGON",
+    "Caffeine"
+   ],
+   "gold_hashes": [
+    "23d1a56ed2913c89f4a3b9bf5884077b0f3e17ec41c476e2011c0aa9de3efc68"
+   ]
+  },
+  {
+   "id": "g03-019",
+   "pergunta": "Na comparação de custo entre os dois modelos de IA, qual era aproximadamente dez vezes mais caro que o outro?",
+   "categoria": "dados",
+   "idioma": "pt",
+   "gold_terms": [
+    "DeepSeek",
+    "Minimax"
+   ],
+   "gold_hashes": [
+    "7dd23c1ee50c54b82cf3dae6cee5b31a4d8c0a0df5707fc2a0089e6a7e00767f"
+   ]
+  },
+  {
+   "id": "g03-020",
+   "pergunta": "Qual falha grave de segurança foi identificada no sistema cadastral que permitia acessar dados de qualquer propriedade?",
+   "categoria": "bug",
+   "idioma": "pt",
+   "gold_terms": [
+    "SICAR",
+    "rate limiting"
+   ],
+   "gold_hashes": [
+    "45d033b7be69c7a6ff25079acbc84747949a41f6c0f54146e3dc876c9f170670"
+   ]
+  },
+  {
+   "id": "g03-021",
+   "pergunta": "Which Java version does the rural property platform strictly require for building, and what should you check before packaging?",
+   "categoria": "bug",
+   "idioma": "en",
+   "gold_terms": [
+    "Java 21",
+    "java-21-openjdk"
+   ],
+   "gold_hashes": [
+    "b38c98c4a630bc2b8a0c65eaa6a3de77e77b1c5d48ffd34739f37d4342ff3336"
+   ]
+  },
+  {
+   "id": "g03-022",
+   "pergunta": "In the memory service handler, what type mismatch caused the retrieval bug between the handler and the service layer?",
+   "categoria": "bug",
+   "idioma": "en",
+   "gold_terms": [
+    "retrieve_memories"
+   ],
+   "gold_hashes": [
+    "46168dd41a176345f5a65e52b7ca14f17aeae662f4811e60b53a01243a63aa15"
+   ]
+  },
+  {
+   "id": "g03-023",
+   "pergunta": "What caused the GitOps merge to fail with a 422 during the cloud delivery build 159?",
+   "categoria": "infra",
+   "idioma": "en",
+   "gold_terms": [
+    "MR #384",
+    "race condition"
+   ],
+   "gold_hashes": [
+    "9a298014caa1174d05ab379bd37896b6211c418ade9d261bbc11d680474f2b31"
+   ]
+  },
+  {
+   "id": "g03-024",
+   "pergunta": "What environment variable signals that a process is running inside the Rust terminal multiplexer integrated with the CLI agent?",
+   "categoria": "infra",
+   "idioma": "en",
+   "gold_terms": [
+    "HERDR_ENV",
+    "ogulcancelik/herdr"
+   ],
+   "gold_hashes": [
+    "91b9a60a892fde8740a073a086f9803028f901effe9d8aea984c51491135b858"
+   ]
+  },
+  {
+   "id": "g03-025",
+   "pergunta": "What single broken dependency caused a cascade where the memory plugin's tools never registered and harvesting failed?",
+   "categoria": "bug",
+   "idioma": "en",
+   "gold_terms": [
+    "sharp",
+    "mcp-memory"
+   ],
+   "gold_hashes": [
+    "36b65f1bf347666eb8421541d8966a1c4c67e62b368a99230f120c7a66c0563d"
+   ]
+  },
+  {
+   "id": "g03-026",
+   "pergunta": "What module-level caching fix was applied to resolve the performance issue in the pluggable NER pull request?",
+   "categoria": "metodo",
+   "idioma": "en",
+   "gold_terms": [
+    "_DOMAIN_EXTRACTOR_CACHE",
+    "N+1"
+   ],
+   "gold_hashes": [
+    "e1af50e1c798ed5a2ad8b0da93daa234f160f03cf09eee428ca772e8d2dee2b1"
+   ]
+  },
+  {
+   "id": "g03-027",
+   "pergunta": "Which issue would remove a heavy deep-learning dependency and shrink the install footprint by roughly an order of magnitude?",
+   "categoria": "infra",
+   "idioma": "en",
+   "gold_terms": [
+    "torch",
+    "200MB"
+   ],
+   "gold_hashes": [
+    "d9dc4060c89c2d993d4e7136e67bb310f4cf8e2c31f6e5bab077f76bc2c5f4ef"
+   ]
+  },
+  {
+   "id": "g03-028",
+   "pergunta": "Why did a model cache left by an earlier test cause subsequent backend-free tests to fail in a cascade?",
+   "categoria": "bug",
+   "idioma": "en",
+   "gold_terms": [
+    "_MODEL_CACHE",
+    "ONNX"
+   ],
+   "gold_hashes": [
+    "d77235f3b5c7b71acfb678034d7118224645a4a3bc53458a44e64868084df6be"
+   ]
+  },
+  {
+   "id": "g03-029",
+   "pergunta": "What configuration mistake pointed the memory service at an empty database and corrupted the write-ahead log?",
+   "categoria": "infra",
+   "idioma": "en",
+   "gold_terms": [
+    "MCP_MEMORY_DB_PATH",
+    "WAL"
+   ],
+   "gold_hashes": [
+    "ea7edc84d1ff417d6b898efa68240ae0c458d2bafa0fea4d15316e477c11ff22"
+   ]
+  },
+  {
+   "id": "g03-030",
+   "pergunta": "Why does ingesting reference documents into the memory store degrade semantic search for working memories?",
+   "categoria": "dados",
+   "idioma": "en",
+   "gold_terms": [
+    "718 chunks",
+    "MCR"
+   ],
+   "gold_hashes": [
+    "a86d8e5a6dd620c086dc9ac4bfc6ebcd60f47cff406e3e318c5b2e7f19cea229"
+   ]
+  },
+  {
+   "id": "g04-001",
+   "pergunta": "Qual ferramenta substituiu o script standalone de mineração de sessões e por que ele foi descontinuado?",
+   "categoria": "decisao",
+   "idioma": "pt",
+   "gold_terms": [
+    "harvest",
+    "3466"
+   ],
+   "gold_hashes": [
+    "b1cdbad30535b9739f003c49fbbdc8314bf071af154bfef169e273a9bfe038c8"
+   ]
+  },
+  {
+   "id": "g04-002",
+   "pergunta": "O que causava o desvio de tempo na sincronização das legendas do episódio da Larissa no Kdenlive?",
+   "categoria": "bug",
+   "idioma": "pt",
+   "gold_terms": [
+    "3.87s",
+    "renderizado"
+   ],
+   "gold_hashes": [
+    "21df989b55a8a484c64255edb0705e1a6dfd887d5dd283811ceb40045e91ab64"
+   ]
+  },
+  {
+   "id": "g04-003",
+   "pergunta": "Quantas sessões foram colhidas no encerramento da sessão de 06/jul e qual o estado das pendências?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "169 sessões",
+    "Groq"
+   ],
+   "gold_hashes": [
+    "07a4339d2b8f24da489436dda34353fd7569071d58df89908fa685b4bd48b010"
+   ]
+  },
+  {
+   "id": "g04-004",
+   "pergunta": "Onde o site mcpmemory.services é publicado e qual a stack da landing page atual?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "Cloudflare Pages",
+    "estático"
+   ],
+   "gold_hashes": [
+    "a849943d9912259dcddbf05cf0695d5715e6091c18eb16b7c0530fefc99c6a02"
+   ]
+  },
+  {
+   "id": "g04-005",
+   "pergunta": "Quantos nós e arestas o grafo 3D navegável de memórias realmente possui e qual a limitação atual?",
+   "categoria": "produto",
+   "idioma": "pt",
+   "gold_terms": [
+    "100 nós",
+    "64 arestas"
+   ],
+   "gold_hashes": [
+    "106422246eaa5c7cf76f89025c8a9704caaa07623945099568d50bb3c5e3c9df"
+   ]
+  },
+  {
+   "id": "g04-006",
+   "pergunta": "Quantos recursos externos legítimos o hardening de CSP bloqueou e qual o commit que o introduziu?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "70063ed",
+    "vlibras.gov.br"
+   ],
+   "gold_hashes": [
+    "903891b3854296af132e85191b6d6c681218ca07753dfeb735b8cdc473a7481b"
+   ]
+  },
+  {
+   "id": "g04-007",
+   "pergunta": "Qual a subnet dos nós CCE e qual a faixa de rede alocada aos pods?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "10.202.144.0/22",
+    "172.18.0.0/16"
+   ],
+   "gold_hashes": [
+    "5741f1d594c84e0d6db7f2263e885eda47d9714acad29247220465b612667a99"
+   ]
+  },
+  {
+   "id": "g04-008",
+   "pergunta": "Por que a coleta agendada por cron não está gerando novas memórias de conhecimento?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "found=0",
+    "6h"
+   ],
+   "gold_hashes": [
+    "39cbde911937b785146b40487d93cf8b58419070964728b7a9a2f68b389ba01d"
+   ]
+  },
+  {
+   "id": "g04-009",
+   "pergunta": "Ao inserir conteúdo entre elementos existentes de um índice, qual abordagem preserva a ordem correta?",
+   "categoria": "metodo",
+   "idioma": "pt",
+   "gold_terms": [
+    "inserção posicional"
+   ],
+   "gold_hashes": [
+    "d761326a887f0bfd803cf83959e4abf0a68ab43d80cf6c95cfd4e4d10b94790b"
+   ]
+  },
+  {
+   "id": "g04-010",
+   "pergunta": "Em vez de conceder privilégios ALL ao usuário da intranet, qual a recomendação para separar as responsabilidades de DDL?",
+   "categoria": "decisao",
+   "idioma": "pt",
+   "gold_terms": [
+    "cardpg_admin",
+    "cardpg_owner"
+   ],
+   "gold_hashes": [
+    "8996528f9b59eede24d9cef3dd3165be71abd6157d698d5a3cbebddc7caa7a50"
+   ]
+  },
+  {
+   "id": "g04-011",
+   "pergunta": "Por que o script de pré-execução faz o gate de checkpoint bloquear somente um tipo de comando?",
+   "categoria": "metodo",
+   "idioma": "pt",
+   "gold_terms": [
+    "matcher",
+    "TOOL"
+   ],
+   "gold_hashes": [
+    "fb12094e512c4145bfc10d924b609974b045f9458633e63945fd9346ae8d60fb"
+   ]
+  },
+  {
+   "id": "g04-012",
+   "pergunta": "Por que a condição de interrupção falha mesmo após um memory_store bem-sucedido?",
+   "categoria": "bug",
+   "idioma": "pt",
+   "gold_terms": [
+    "checkpoint",
+    "ELAPSED"
+   ],
+   "gold_hashes": [
+    "e2c873272518532156a4d1a729d9ab9d1846b73554c618fc465c3e4c60598b70"
+   ]
+  },
+  {
+   "id": "g04-013",
+   "pergunta": "Por que a imagem do usuário não é salva quando o fluxo de autenticação é bypassado por injeção de token?",
+   "categoria": "bug",
+   "idioma": "pt",
+   "gold_terms": [
+    "idImage",
+    "imageStorage"
+   ],
+   "gold_hashes": [
+    "2a7a01add5931712427fb2637dea8d1f15950ed8046d038d7697e6ce031a4b61"
+   ]
+  },
+  {
+   "id": "g04-014",
+   "pergunta": "Como reduzir o custo e o tempo de processamento dos candidatos em lote na chamada de API?",
+   "categoria": "decisao",
+   "idioma": "pt",
+   "gold_terms": [
+    "chunks de 15",
+    "10-20x"
+   ],
+   "gold_hashes": [
+    "2132a3ac5a8a71552bf58fc12e50726ce00e579d06c6e8ca404f411739140762"
+   ]
+  },
+  {
+   "id": "g04-015",
+   "pergunta": "Por que o bloqueio do timer só passa a valer depois que o agente já salvou o primeiro checkpoint?",
+   "categoria": "bug",
+   "idioma": "pt",
+   "gold_terms": [
+    "LAST_CHECKPOINT",
+    "PostToolUse"
+   ],
+   "gold_hashes": [
+    "caf12c29725c27bf09ccb97c4887ef085c16a7234619279eb6ae322111688096"
+   ]
+  },
+  {
+   "id": "g04-016",
+   "pergunta": "O que foi corrigido no build multi-stage do Dockerfile do Frontend e para qual porta a aplicação foi movida?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "map_component",
+    "8080"
+   ],
+   "gold_hashes": [
+    "a89c76fc682a54cb6372498f3b7b4c73b5d061b08ccc13ed025c43261808384b"
+   ]
+  },
+  {
+   "id": "g04-017",
+   "pergunta": "Qual a porta padrão hardcoded em ConnectionConfig e por que ela está incorreta para o MySQL?",
+   "categoria": "bug",
+   "idioma": "pt",
+   "gold_terms": [
+    "5432",
+    "model_validator"
+   ],
+   "gold_hashes": [
+    "0fab6d0a0ddec87c33615f9523596292101b1b000408f5d7e0a13da4c22fc127"
+   ]
+  },
+  {
+   "id": "g04-018",
+   "pergunta": "Por que um upgrade de pacotes no Alpine pode quebrar a validação da cadeia de confiança de um endpoint específico?",
+   "categoria": "infra",
+   "idioma": "pt",
+   "gold_terms": [
+    "ca-certificates",
+    "pissp.dataprev.gov.br"
+   ],
+   "gold_hashes": [
+    "047415076aa89f22002f4c7df3ce0d33ad3719b9dfed5f26d7f1c5d7e8eb507c"
+   ]
+  },
+  {
+   "id": "g04-019",
+   "pergunta": "Como obter o código do município a partir do campo do imóvel na query, dado que não há coluna dedicada?",
+   "categoria": "dados",
+   "idioma": "pt",
+   "gold_terms": [
+    "cod_municipio_ibge",
+    "geocodigo"
+   ],
+   "gold_hashes": [
+    "a7dbf87cadf295a67993b68ff9a1844891b259013340720d0d7434f2679f1cd4"
+   ]
+  },
+  {
+   "id": "g04-020",
+   "pergunta": "Qual a principal limitação do algoritmo de quebra de linha ao dividir texto em palavras?",
+   "categoria": "bug",
+   "idioma": "pt",
+   "gold_terms": [
+    "contagem de caracteres"
+   ],
+   "gold_hashes": [
+    "6619a2cc76bf3627345995aae52264e3ef3aca4e0da824aa88feddad04147552"
+   ]
+  },
+  {
+   "id": "g04-021",
+   "pergunta": "Which three files were updated to adopt the shared domain-extractor pattern?",
+   "categoria": "metodo",
+   "idioma": "en",
+   "gold_terms": [
+    "quality.py",
+    "graph.py"
+   ],
+   "gold_hashes": [
+    "a20a7e0c32db2b11601036f0a1af8362d96efb985a2c3e927b2cd882d8e5605a"
+   ]
+  },
+  {
+   "id": "g04-022",
+   "pergunta": "Why does every observation end up in its own single-element group during distillation?",
+   "categoria": "metodo",
+   "idioma": "en",
+   "gold_terms": [
+    "exact content equality",
+    "PROVENANCE_FLOOR"
+   ],
+   "gold_hashes": [
+    "fbeb0a05925a1476add1d25c8191796b2bce432f13c2fc456fee51a950c49ab7"
+   ]
+  },
+  {
+   "id": "g04-023",
+   "pergunta": "What is the most likely root cause behind a finishing subagent surfacing an empty result in the CLI?",
+   "categoria": "bug",
+   "idioma": "en",
+   "gold_terms": [
+    "send_recv_command_to_socket_with_timeout",
+    "tokio::time::timeout"
+   ],
+   "gold_hashes": [
+    "12e79af90a87596c5c61b3abb51e14d52ef2e64b9f7d0615896aaa1fefd89d16"
+   ]
+  },
+  {
+   "id": "g04-024",
+   "pergunta": "Why does audio play seamlessly across clip segments in Kdenlive even when video uses the same in/out points?",
+   "categoria": "produto",
+   "idioma": "en",
+   "gold_terms": [
+    "continuously",
+    "59.159"
+   ],
+   "gold_hashes": [
+    "9013e67561257664f826d83220a7801f8f437e7e10f329d54717da9021d2ca33"
+   ]
+  },
+  {
+   "id": "g04-025",
+   "pergunta": "What score threshold triggers the automatic skill injection in the confirmed production hook?",
+   "categoria": "infra",
+   "idioma": "en",
+   "gold_terms": [
+    "skill_match",
+    "0.5"
+   ],
+   "gold_hashes": [
+    "ad771a586b04ba0db1963265cfa47be630c401321bc72788fb6b9d75f4d51d4f"
+   ]
+  },
+  {
+   "id": "g04-026",
+   "pergunta": "Why does each observation end up in its own single-element cluster in the failing test?",
+   "categoria": "bug",
+   "idioma": "en",
+   "gold_terms": [
+    "MagicMock",
+    "AsyncMock"
+   ],
+   "gold_hashes": [
+    "a2d1ea6c5f4cead6ce53bbaca1b385df8ef69f1d02b41e2e2dc313437219a51d"
+   ]
+  },
+  {
+   "id": "g04-027",
+   "pergunta": "What race condition can leave the parent agent in a bad state relative to its spawned subagent?",
+   "categoria": "bug",
+   "idioma": "en",
+   "gold_terms": [
+    "Idle",
+    "subagent tool result"
+   ],
+   "gold_hashes": [
+    "566f6cf3d38c8d6719e2fd437076ace310c7b64089e1e7c44b939be6e1635a6d"
+   ]
+  },
+  {
+   "id": "g04-028",
+   "pergunta": "Should the final reported score be clamped to a perfect value when bonuses act as penalty reductions?",
+   "categoria": "decisao",
+   "idioma": "en",
+   "gold_terms": [
+    "test_report_fields",
+    "1.0"
+   ],
+   "gold_hashes": [
+    "d31a0c4b0fa2c0061c796bf55d5e9c760ad9083f597a79003bc11a01a4d01853"
+   ]
+  },
+  {
+   "id": "g04-029",
+   "pergunta": "Why does filtering on a None description incorrectly exclude repos that actually have one?",
+   "categoria": "bug",
+   "idioma": "en",
+   "gold_terms": [
+    "description=None",
+    "README"
+   ],
+   "gold_hashes": [
+    "72f6df316ccce492dc39c77461f011207143c2af51f3ac88f95a4624007e39f3"
+   ]
+  },
+  {
+   "id": "g04-030",
+   "pergunta": "Why do hash-based embeddings cause related content to be stored as separate duplicate notes instead of updating existing ones?",
+   "categoria": "bug",
+   "idioma": "en",
+   "gold_terms": [
+    "hash vector similarity",
+    "hash embeddings"
+   ],
+   "gold_hashes": [
+    "b1aeb83984aa62a815e98325ca4dca0ddcc047874db463994dfd5c1d90f136ac"
+   ]
+  }
+ ]
+}
