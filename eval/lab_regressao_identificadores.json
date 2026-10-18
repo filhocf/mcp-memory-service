@@ -1,179 +1,174 @@
 {
  "referencias": 25,
- "cobertura": "21/25",
+ "cobertura": "25/25",
  "estado_correto": "21/21",
- "latencia_p50_ms": 127,
- "faltando": [
-  1286,
-  1287,
-  1312,
-  1393
- ],
+ "latencia_p50_ms": 155,
+ "faltando": [],
  "detalhe": [
   {
    "numero": 1039,
    "no_banco": true,
-   "latencia_ms": 217,
+   "latencia_ms": 475,
    "estado_gh": "closed",
    "estado_banco_correto": true
   },
   {
    "numero": 1095,
    "no_banco": true,
-   "latencia_ms": 219,
+   "latencia_ms": 182,
    "estado_gh": "open",
    "estado_banco_correto": true
   },
   {
    "numero": 1097,
    "no_banco": true,
-   "latencia_ms": 103,
+   "latencia_ms": 97,
    "estado_gh": "closed",
    "estado_banco_correto": true
   },
   {
    "numero": 1100,
    "no_banco": true,
-   "latencia_ms": 125,
+   "latencia_ms": 143,
    "estado_gh": "closed",
    "estado_banco_correto": true
   },
   {
    "numero": 1286,
-   "no_banco": false,
-   "latencia_ms": 127
+   "no_banco": true,
+   "latencia_ms": 155
   },
   {
    "numero": 1287,
-   "no_banco": false,
-   "latencia_ms": 122
+   "no_banco": true,
+   "latencia_ms": 144
   },
   {
    "numero": 1304,
    "no_banco": true,
-   "latencia_ms": 118,
+   "latencia_ms": 98,
    "estado_gh": "closed",
    "estado_banco_correto": true
   },
   {
    "numero": 1312,
-   "no_banco": false,
-   "latencia_ms": 117
+   "no_banco": true,
+   "latencia_ms": 103
   },
   {
    "numero": 1345,
    "no_banco": true,
-   "latencia_ms": 120,
+   "latencia_ms": 161,
    "estado_gh": "closed",
    "estado_banco_correto": true
   },
   {
    "numero": 1393,
-   "no_banco": false,
-   "latencia_ms": 128
+   "no_banco": true,
+   "latencia_ms": 94
   },
   {
    "numero": 1401,
    "no_banco": true,
-   "latencia_ms": 117,
+   "latencia_ms": 79,
    "estado_gh": "closed",
    "estado_banco_correto": true
   },
   {
    "numero": 1402,
    "no_banco": true,
-   "latencia_ms": 118,
+   "latencia_ms": 125,
    "estado_gh": "closed",
    "estado_banco_correto": true
   },
   {
    "numero": 1465,
    "no_banco": true,
-   "latencia_ms": 209,
+   "latencia_ms": 129,
    "estado_gh": "closed",
    "estado_banco_correto": true
   },
   {
    "numero": 1466,
    "no_banco": true,
-   "latencia_ms": 229,
+   "latencia_ms": 155,
    "estado_gh": "closed",
    "estado_banco_correto": true
   },
   {
    "numero": 1470,
    "no_banco": true,
-   "latencia_ms": 260,
+   "latencia_ms": 166,
    "estado_gh": "closed",
    "estado_banco_correto": true
   },
   {
    "numero": 1471,
    "no_banco": true,
-   "latencia_ms": 125,
+   "latencia_ms": 154,
    "estado_gh": "closed",
    "estado_banco_correto": true
   },
   {
    "numero": 1474,
    "no_banco": true,
-   "latencia_ms": 140,
+   "latencia_ms": 161,
    "estado_gh": "closed",
    "estado_banco_correto": true
   },
   {
    "numero": 1478,
    "no_banco": true,
-   "latencia_ms": 130,
+   "latencia_ms": 160,
    "estado_gh": "closed",
    "estado_banco_correto": true
   },
   {
    "numero": 1489,
    "no_banco": true,
-   "latencia_ms": 117,
+   "latencia_ms": 148,
    "estado_gh": "closed",
    "estado_banco_correto": true
   },
   {
    "numero": 1516,
    "no_banco": true,
-   "latencia_ms": 124,
+   "latencia_ms": 226,
    "estado_gh": "closed",
    "estado_banco_correto": true
   },
   {
    "numero": 1518,
    "no_banco": true,
-   "latencia_ms": 121,
+   "latencia_ms": 198,
    "estado_gh": "closed",
    "estado_banco_correto": true
   },
   {
    "numero": 1522,
    "no_banco": true,
-   "latencia_ms": 186,
+   "latencia_ms": 180,
    "estado_gh": "closed",
    "estado_banco_correto": true
   },
   {
    "numero": 1551,
    "no_banco": true,
-   "latencia_ms": 220,
+   "latencia_ms": 130,
    "estado_gh": "closed",
    "estado_banco_correto": true
   },
   {
    "numero": 1562,
    "no_banco": true,
-   "latencia_ms": 246,
+   "latencia_ms": 168,
    "estado_gh": "closed",
    "estado_banco_correto": true
   },
   {
    "numero": 1564,
    "no_banco": true,
-   "latencia_ms": 139,
+   "latencia_ms": 190,
    "estado_gh": "closed",
    "estado_banco_correto": true
   }

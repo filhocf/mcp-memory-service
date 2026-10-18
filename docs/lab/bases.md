@@ -20,3 +20,13 @@ convivem na mesma base — foi o que partiu o acervo pessoal em três espaços e
 Instância de triagem: `memory-service-triagem.service` + `deploy/triagem.env.example`.
 Pitfall: no systemd `EnvironmentFile` vence `Environment=`; overrides precisam ser
 arquivo próprio carregado por último.
+
+## Pitfall: instância derivada não herda rotina do env compartilhado
+
+A instância de triagem carrega `memory-service.env`, que traz
+`MCP_CONSOLIDATION_ENABLED=true` e as agendas diária/semanal/mensal. Resultado
+observado: a base de triagem recebeu 23.921 memórias do acervo pessoal (store
+`default`) intercaladas com as do GitHub, contaminando qualquer medição.
+
+`triagem.env` agora desliga consolidação, harvest e as três agendas. Regra: base
+derivada declara explicitamente tudo que NÃO quer do env compartilhado.
