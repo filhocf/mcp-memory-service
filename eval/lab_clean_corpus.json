@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "db": "/home/claudio/local-data/mcp/lab/snapshot-20261018.db",
+    "cases": "eval/recall_cases_v2.json",
+    "model": "paraphrase-multilingual-MiniLM-L12-v2",
+    "store": "default",
+    "threshold_semantico": 0.97,
+    "corpus_original": 20310,
+    "removidos_lixo": 186,
+    "removidos_duplicata": 2468
+  },
+  "resultados": {
+    "B_higienizado": {
+      "n": 17656,
+      "recall@10": 0.5917,
+      "recall@30": 0.7083,
+      "recall@100": 0.7667
+    },
+    "C_higienizado_dedup": {
+      "n": 15198,
+      "recall@10": 0.6,
+      "recall@30": 0.7083,
+      "recall@100": 0.7667
+    }
+  }
+}
