@@ -84,3 +84,39 @@ fonte consultável com confiança em vez de fonte que exige três tentativas.
 ## Ordem de execução
 
 F1 (feito) → F2 (medido, decisão pendente) → F3 → F4 → F5. F6 já medido.
+
+## Revisão de estratégia (18/out, depois do diagnóstico de coortes)
+
+O corpus está partido em três espaços vetoriais (35,8% all-MiniLM, 64,2% paraphrase,
+~10,5% órfãos). Isso invalida a prática de medir e decidir sobre o banco vivo: todo
+número produzido ali descreve o estado do índice, não o desenho do sistema. Mesmo
+conteúdo, índice coerente: 0,8% → 59,2% por documento.
+
+Passa a valer a separação em dois planos:
+
+- **Plano A — bancada de referência**: corpus higienizado, um único modelo,
+  `embedding_version` por linha. É aqui que se mede o sistema e se decide intervenção.
+- **Plano B — banco vivo**: trabalho de migração com checkpoints (dedup, stores
+  corrompidos, re-embed uniforme), não de pesquisa.
+
+Regra: dado do plano A não julga o banco vivo; mudança no banco vivo não se valida
+só nele.
+
+## F3 — encerrada: chunking não é a intervenção
+
+Índice uniforme em paraphrase, blocos de 126 tokens (stride 96), 36.830 blocos,
+agregação max-pool por documento, régua por documento:
+
+| cenário | @10 | @30 | @100 |
+|---|---|---|---|
+| índice simples (1 vetor por memória) | **0,592** | **0,708** | 0,767 |
+| chunking + max-pool | 0,567 | 0,683 | **0,775** |
+
+Chunking perde 2,5 p.p. em @10 e 2,5 em @30, ganha 0,8 em @100. O truncamento em
+128 tokens **não** é o gargalo quando consulta e índice usam o mesmo modelo — a
+hipótese que a noite deixou aberta está resolvida, com resultado negativo.
+Artefato: `eval/lab_chunking_maxpool.json`.
+
+Consequência: a ordem muda. Migração do acervo antes de qualquer outra
+experimentação; reranker depois, com teto de 0,767.
+

@@ -83,14 +83,29 @@ def recall_at(pos, k):
     return round(sum(1 for p in pos if p and p <= k) / len(pos), 4)
 
 
-def embed(model, texts, log=None):
+def _cache_path(db, model, tag):
+    base = os.path.join(os.path.dirname(__file__), "..", ".cache")
+    os.makedirs(base, exist_ok=True)
+    key = hashlib.sha256(f"{db}|{model}|{tag}".encode()).hexdigest()[:16]
+    return os.path.join(base, f"emb_{key}.npy")
+
+
+def embed(model, texts, log=None, cache=None):
+    if cache and os.path.isfile(cache):
+        arr = np.load(cache)
+        if arr.shape[0] == len(texts):
+            print(f"    cache: {arr.shape}", file=log or sys.stdout, flush=True)
+            return arr
     out = []
     t0 = time.perf_counter()
     for i in range(0, len(texts), 64):
         out.append(np.asarray(model.encode(texts[i : i + 64]), dtype=np.float32))
         if log and (i // 64) % 100 == 0:
             print(f"    {min(i+64, len(texts))}/{len(texts)}", file=log, flush=True)
-    return l2(np.vstack(out))
+    mat = l2(np.vstack(out))
+    if cache:
+        np.save(cache, mat)
+    return mat
 
 
 def evaluate(model, doc_vecs, hashes, contents, cases):
@@ -111,6 +126,9 @@ def main() -> int:
     ap.add_argument("--model", default="paraphrase-multilingual-MiniLM-L12-v2")
     ap.add_argument("--store", default="default")
     ap.add_argument("--semantic-threshold", type=float, default=0.97)
+    ap.add_argument("--skip-full", action="store_true",
+                    help="pula a variante A (corpus completo): use quando o número já "
+                         "existe de outra execução com o mesmo modelo/método")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
@@ -142,33 +160,39 @@ def main() -> int:
     print(f"higienizado: {len(clean)} (-{drop_junk} lixo, -{drop_dup} duplicata)", flush=True)
 
     results = {}
-    hashes = [r[0] for r in corpus]
-    contents = [r[1] for r in corpus]
-    t0 = time.perf_counter()
-    vecs = embed(model, contents, log=sys.stdout)
-    print(f"  embeddings completos em {time.perf_counter()-t0:.0f}s", flush=True)
-    m, pos = evaluate(model, vecs, hashes, contents, cases)
-    results["A_completo"] = {"n": len(corpus), **m}
+    if args.skip_full:
+        print("variante A pulada (--skip-full)", flush=True)
+    else:
+        hashes = [r[0] for r in corpus]
+        contents = [r[1] for r in corpus]
+        t0 = time.perf_counter()
+        vecs = embed(model, contents, log=sys.stdout,
+                     cache=_cache_path(args.db, args.model, f"full{len(contents)}"))
+        print(f"  embeddings completos em {time.perf_counter()-t0:.0f}s", flush=True)
+        m, pos = evaluate(model, vecs, hashes, contents, cases)
+        results["A_completo"] = {"n": len(corpus), **m}
 
     hashes_c = [h for h, _ in clean]
     contents_c = [c for _, c in clean]
     t0 = time.perf_counter()
-    vecs_c = embed(model, contents_c)
+    vecs_c = embed(model, contents_c, log=sys.stdout, cache=_cache_path(args.db, args.model, f"clean{len(contents_c)}"))
     print(f"  embeddings higienizados em {time.perf_counter()-t0:.0f}s", flush=True)
     m2, _ = evaluate(model, vecs_c, hashes_c, contents_c, cases)
     results["B_higienizado"] = {"n": len(clean), **m2}
 
     # --- C: dedup semântico guloso (ordem do mais antigo para o mais novo)
     keep_idx: list[int] = []
-    keep_vecs: list[np.ndarray] = []
+    buf = np.zeros_like(vecs_c)  # matriz pré-alocada: view, sem cópia por iteração
+    n_keep = 0
     for i in range(len(clean)):
         v = vecs_c[i]
-        if keep_vecs:
-            sims = np.asarray(keep_vecs) @ v
+        if n_keep:
+            sims = buf[:n_keep] @ v
             if float(sims.max()) >= args.semantic_threshold and clean[i][0] not in gold_all:
                 continue
+        buf[n_keep] = v
+        n_keep += 1
         keep_idx.append(i)
-        keep_vecs.append(v)
     vecs_cc = vecs_c[keep_idx]
     hashes_cc = [clean[i][0] for i in keep_idx]
     contents_cc = [clean[i][1] for i in keep_idx]
