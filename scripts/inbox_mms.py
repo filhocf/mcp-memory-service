@@ -81,8 +81,11 @@ def send(para: str, corpo: str, de: str, thread: str | None, sessao_alvo: str = 
         f"para:{para}", f"para_agente:{alvo_agente}", f"para_host:{alvo_host}",
         f"de_agente:{de.split('@')[0]}", f"sessao:{SESSAO or 'desconhecida'}",
     ]
-    r = mcp("memory_store", {"content": conteudo, "tags": tags,
-                             "memory_type": "message", "store": STORE})
+    # Contrato do memory_store: tags e tipo vão DENTRO de `metadata` (o schema não
+    # tem `tags` de topo; argumento desconhecido é ignorado em silêncio).
+    r = mcp("memory_store", {"content": conteudo,
+                             "metadata": {"tags": tags, "type": "message"},
+                             "store": STORE})
     return {"msg_id": msg_id, "thread": thread, "ok": "Memory stored" in texto(r) or "success" in texto(r)}
 
 
