@@ -1,0 +1,36 @@
+{
+ "referencias": [
+  1039,
+  1095,
+  1097,
+  1100,
+  1286,
+  1287,
+  1304,
+  1312,
+  1345,
+  1393,
+  1401,
+  1402,
+  1465,
+  1466,
+  1470,
+  1471,
+  1474,
+  1478,
+  1489,
+  1516,
+  1518,
+  1522,
+  1551,
+  1562,
+  1564
+ ],
+ "perguntas": [
+  "tem https://github.com/doobidoo/mcp-memory-service/pull/1489",
+  "isso impacta em alguma issue aberta?",
+  "digo a doc do upstream. Temos q fazer atualizações lá?",
+  "péra... quer dizer q desenvolvemos a parte de harvest e não erguemos as mudanças para o upstream. é isso?",
+  "tem 2 pontos do greptile: antigo: https://github.com/doobidoo/mcp-memory-service/pull/1562#discussion_r4295138345 novo: https://github.com/doobidoo/mcp-memory-service/pull/1562#discussion_r4302312738 entendo q o antigo marcamos como resolvido e o novo atacamos?"
+ ]
+}
