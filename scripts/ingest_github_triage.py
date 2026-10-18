@@ -26,6 +26,7 @@ import hashlib
 import json
 import os
 import subprocess
+import re
 import sys
 from pathlib import Path
 
@@ -49,8 +50,37 @@ def gh_api(path: str, per_page: int = 100) -> list[dict]:
     return out
 
 
-def item_hash(repo: str, kind: str, number: int) -> str:
+def item_hash(repo: str, kind: str, number) -> str:
     return hashlib.sha256(f"gh:{repo}:{kind}:{number}".encode()).hexdigest()
+
+
+def gh_graphql(query: str, variables: dict) -> dict:
+    cmd = ["gh", "api", "graphql", "-f", f"query={query}"]
+    for k, v in variables.items():
+        cmd += ["-f", f"{k}={v}"]
+    raw = subprocess.run(cmd, capture_output=True, text=True)
+    if raw.returncode != 0:
+        raise RuntimeError(f"gh graphql falhou: {raw.stderr.strip()[:200]}")
+    return json.loads(raw.stdout or "{}")
+
+
+def build_review_comment(rc: dict, repo: str) -> str:
+    body = (rc.get("body") or "").strip()
+    ctx = rc.get("path") or ""
+    if rc.get("line") or rc.get("original_line"):
+        ctx = f"{ctx}:{rc.get('line') or rc.get('original_line')}"
+    prn = None
+    url = rc.get("html_url") or ""
+    m = re.search(r"/pull/(\d+)", url)
+    if m:
+        prn = m.group(1)
+    return (
+        f"[REVIEW-COMMENT] {repo} PR #{prn} — comentário de review"
+        f"{(' em ' + ctx) if ctx else ''}\n"
+        f"Autor: {(rc.get('user') or {}).get('login')} · Criado: {rc.get('created_at')}"
+        f" · Em resposta a: {rc.get('in_reply_to_id') or '—'}\n"
+        f"URL: {url}\n\n{body[:2000]}"
+    )
 
 
 def build_content(item: dict, repo: str, kind: str, body_limit: int) -> str:
@@ -132,11 +162,77 @@ async def run(args) -> int:
         if not ok:
             print(f"  falha em #{number}: {msg}", file=sys.stderr)
 
+    async def _store(kind: str, key, content: str, tags: list[str], meta: dict) -> bool:
+        h = item_hash(args.repo, kind, key)
+        existente = await storage.get_by_hash(h, store=args.store)
+        if existente is not None:
+            if (existente.metadata or {}).get("gh_updated_at") == meta.get("gh_updated_at") and not args.force:
+                return False
+            await storage.delete(h, store=args.store)
+        mem = Memory(
+            content=content, content_hash=h,
+            tags=["triagem", f"repo:{args.repo}", f"kind:{kind}", *tags],
+            memory_type="reference",
+            metadata={"gh_repo": args.repo, "gh_kind": kind, **meta},
+        )
+        ok, _ = await storage.store(mem, store=args.store, skip_semantic_dedup=True)
+        return ok
+
+    rc_n = disc_n = 0
+    if args.with_review_comments:
+        rcs = gh_api(f"/repos/{args.repo}/pulls/comments?sort=created&direction=desc")
+        print(f"comentarios de review coletados: {len(rcs)}", flush=True)
+        for rc in rcs:
+            pr_url = rc.get("html_url") or ""
+            m = re.search(r"/pull/(\d+)", pr_url)
+            prn = m.group(1) if m else "0"
+            ok = await _store(
+                "review_comment", rc["id"], build_review_comment(rc, args.repo),
+                [f"pr:{prn}", f"author:{(rc.get('user') or {}).get('login')}"],
+                {"gh_pr": int(prn), "gh_comment_id": rc["id"],
+                 "gh_path": rc.get("path"), "gh_line": rc.get("line") or rc.get("original_line"),
+                 "gh_author": (rc.get("user") or {}).get("login"),
+                 "gh_updated_at": rc.get("updated_at") or rc.get("created_at"),
+                 "gh_url": pr_url},
+            )
+            rc_n += 1 if ok else 0
+
+    if args.with_discussions:
+        q = ("query($owner:String!,$name:String!,$cursor:String){repository(owner:$owner,name:$name){"
+             "discussions(first:50,after:$cursor){pageInfo{hasNextPage endCursor}"
+             "nodes{number title body createdAt updatedAt url category{name} author{login}}}}}")
+        owner, name = args.repo.split("/")
+        cursor = ""
+        while True:
+            data = gh_graphql(q, {"owner": owner, "name": name, "cursor": cursor})
+            d = ((data.get("data") or {}).get("repository") or {}).get("discussions") or {}
+            nodes = d.get("nodes") or []
+            for node in nodes:
+                content = (
+                    f"[DISCUSSION] {args.repo}#{node['number']} — {node.get('title')}\n"
+                    f"Categoria: {(node.get('category') or {}).get('name')} · "
+                    f"Autor: {(node.get('author') or {}).get('login')}\n"
+                    f"Criado: {node.get('createdAt')} · Atualizado: {node.get('updatedAt')}\n"
+                    f"URL: {node.get('url')}\n\n{(node.get('body') or '')[:2500]}"
+                )
+                ok = await _store(
+                    "discussion", node["number"], content,
+                    [f"number:{node['number']}", "discussion"],
+                    {"gh_number": node["number"],
+                     "gh_author": (node.get("author") or {}).get("login"),
+                     "gh_updated_at": node.get("updatedAt"), "gh_url": node.get("url")},
+                )
+                disc_n += 1 if ok else 0
+            if not d.get("pageInfo", {}).get("hasNextPage"):
+                break
+            cursor = d["pageInfo"]["endCursor"]
+
     await storage.close()
     print(
         json.dumps(
             {"repo": args.repo, "novos": novos, "atualizados": atualizados,
-             "ignorados_sem_mudanca": ignorados, "store": args.store},
+             "ignorados_sem_mudanca": ignorados, "review_comments_novos": rc_n,
+             "discussions_novas": disc_n, "store": args.store},
             ensure_ascii=False,
         ),
         flush=True,
@@ -154,6 +250,8 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--body-limit", type=int, default=2000)
     ap.add_argument("--force", action="store_true")
+    ap.add_argument("--with-review-comments", action="store_true")
+    ap.add_argument("--with-discussions", action="store_true")
     return asyncio.run(run(ap.parse_args()))
 
 
