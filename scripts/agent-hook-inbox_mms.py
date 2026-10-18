@@ -10,7 +10,7 @@ import sys
 import socket
 
 PY = "/home/claudio/git/mcp-memory-service/.venv/bin/python"
-SCRIPT = "/home/claudio/git/mms-lab-precisao/scripts/a3_inbox.py"
+SCRIPT = "/home/claudio/git/mms-lab-precisao/scripts/inbox_mms.py"
 
 try:
     out = subprocess.run(

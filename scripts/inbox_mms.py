@@ -10,10 +10,10 @@ Mensagens são memórias no store `inbox` do acervo, com tags de endereçamento 
 porque o mesmo store pode ser lido por agentes diferentes.
 
 Uso:
-    python scripts/a3_inbox.py send --to tpol@sirdata --body "texto" [--thread T]
-    python scripts/a3_inbox.py list --agent tpol --host sirdata [--limit 10]
-    python scripts/a3_inbox.py ack --agent tpol --upto <ts>
-    python scripts/a3_inbox.py hook --agent tpol --host sirdata   # usado pelo hook
+    python scripts/inbox_mms.py send --to tpol@sirdata --body "texto" [--thread T]
+    python scripts/inbox_mms.py list --agent tpol --host sirdata [--limit 10]
+    python scripts/inbox_mms.py ack --agent tpol --upto <ts>
+    python scripts/inbox_mms.py hook --agent tpol --host sirdata   # usado pelo hook
 """
 
 from __future__ import annotations
@@ -29,6 +29,10 @@ import urllib.request
 from pathlib import Path
 
 PORT = int(os.environ.get("A3_PORT", "3202"))
+# Identidade completa: agente@host@sessão. A sessão vem do runtime do Hermes
+# (HERMES_SESSION_ID); sem ela, N sessões do mesmo agente são indistinguíveis —
+# exatamente o defeito que a RFC inter-agent-inbox aponta.
+SESSAO = os.environ.get("HERMES_SESSION_ID", "")
 STORE = "inbox"
 CURSOR_DIR = Path(os.environ.get("A3_CURSOR_DIR", str(Path.home() / ".hermes" / "a3")))
 
@@ -58,17 +62,24 @@ def texto(result: dict) -> str:
         return ""
 
 
-def send(para: str, corpo: str, de: str, thread: str | None) -> dict:
+def send(para: str, corpo: str, de: str, thread: str | None, sessao_alvo: str = "") -> dict:
     agora = time.time()
     msg_id = hashlib.sha256(f"{de}|{para}|{agora}|{corpo}".encode()).hexdigest()[:16]
-    alvo_agente, _, alvo_host = para.partition("@")
+    partes = para.split("@")
+    alvo_agente = partes[0]
+    alvo_host = partes[1] if len(partes) > 1 else socket.gethostname()
+    if len(partes) > 2:
+        sessao_alvo = partes[2]
     thread = thread or hashlib.sha256(f"{de}|{para}".encode()).hexdigest()[:8]
+    de_completo = de if de.count("@") >= 2 else f"{de}@{SESSAO}" if SESSAO else de
     conteudo = (
-        f"[A3] de={de} para={para} thread={thread} msg={msg_id} ts={agora:.0f}\n\n{corpo}"
+        f"[MSG] de={de_completo} para={para} sessao={sessao_alvo or '*'} "
+        f"thread={thread} msg={msg_id} ts={agora:.0f}\n\n{corpo}"
     )
     tags = [
-        "a3", "msg", f"thread:{thread}", f"msgid:{msg_id}", f"de:{de}",
-        f"para:{para}", f"para_agente:{alvo_agente}", f"para_host:{alvo_host or socket.gethostname()}",
+        "msg", f"thread:{thread}", f"msgid:{msg_id}", f"de:{de}",
+        f"para:{para}", f"para_agente:{alvo_agente}", f"para_host:{alvo_host}",
+        f"de_agente:{de.split('@')[0]}", f"sessao:{SESSAO or 'desconhecida'}",
     ]
     r = mcp("memory_store", {"content": conteudo, "tags": tags,
                              "memory_type": "message", "store": STORE})
@@ -90,7 +101,7 @@ def _gravar_cursor(agent: str, upto: float) -> None:
     (CURSOR_DIR / f"cursor-{agent}.json").write_text(json.dumps({"upto": upto, "at": time.time()}))
 
 
-def _mensagens(agent: str, host: str, limite: int) -> list[dict]:
+def _mensagens(agent: str, host: str, sessao: str, limite: int) -> list[dict]:
     """Lê direto do SQLite do acervo — as tags do MCP não são confiáveis para endereço,
     e busca semântica traz ruído. Aqui o endereço está no cabeçalho da mensagem."""
     import sqlite3
@@ -109,12 +120,15 @@ def _mensagens(agent: str, host: str, limite: int) -> list[dict]:
     saida = []
     for content, _criado in rows:
         cab = (content or "").split("\n", 1)[0]
-        if not cab.startswith("[A3]"):
+        if not cab.startswith("[MSG]"):
             continue
         campos = dict(part.split("=", 1) for part in cab.split()[1:] if "=" in part)
         if campos.get("para", "").split("@")[0] != agent:
             continue
-        if campos.get("para", "").split("@")[-1] not in (host, "", agent):
+        if campos.get("para", "").split("@")[1:2] and campos["para"].split("@")[1] != host:
+            continue
+        alvo_sessao = campos.get("sessao", "*")
+        if alvo_sessao not in ("*", "", sessao):
             continue
         try:
             ts = float(campos["ts"])
@@ -126,21 +140,21 @@ def _mensagens(agent: str, host: str, limite: int) -> list[dict]:
     return sorted(saida, key=lambda m: m["ts"])
 
 
-def listar(agent: str, host: str, limite: int) -> dict:
+def listar(agent: str, host: str, sessao: str, limite: int) -> dict:
     upto = _ler_cursor(agent)
-    msgs = [m for m in _mensagens(agent, host, limite) if m["ts"] > upto][:limite]
-    return {"agent": agent, "host": host, "nao_lidas": len(msgs), "mensagens": msgs}
+    msgs = [m for m in _mensagens(agent, host, sessao, limite) if m["ts"] > upto][:limite]
+    return {"endereco": f"{agent}@{host}@{sessao or '*'}", "nao_lidas": len(msgs), "mensagens": msgs}
 
 
-def hook(agent: str, host: str) -> int:
+def hook(agent: str, host: str, sessao: str) -> int:
     """Saída para o hook pre_llm_call: injeta contexto ou não imprime nada."""
     try:
-        d = listar(agent, host, limite=5)
+        d = listar(agent, host, sessao, limite=5)
     except Exception:
         return 0
     if not d["mensagens"]:
         return 0
-    linhas = [f"[A3 INBOX] {d['nao_lidas']} mensagem(ns) de outro agente:"]
+    linhas = [f"[INBOX-MMS] {d['nao_lidas']} mensagem(ns) de outro agente:"]
     for m in d["mensagens"]:
         linhas.append(f"- de {m['de']} (thread {m['thread']}, {m['msg']}): {m['corpo']}")
     print(json.dumps({"context": "\n".join(linhas)}, ensure_ascii=False))
@@ -162,6 +176,7 @@ def main() -> int:
     l.add_argument("--agent", default="tpol")
     l.add_argument("--host", default=socket.gethostname())
     l.add_argument("--limit", type=int, default=10)
+    l.add_argument("--session", default="", help="sessão alvo (padrão: HERMES_SESSION_ID)")
 
     a = sub.add_parser("ack")
     a.add_argument("--agent", default="tpol")
@@ -170,18 +185,20 @@ def main() -> int:
     h = sub.add_parser("hook")
     h.add_argument("--agent", default="tpol")
     h.add_argument("--host", default=socket.gethostname())
+    h.add_argument("--session", default="", help="sessão alvo (padrão: HERMES_SESSION_ID)")
 
     args = ap.parse_args()
     if args.cmd == "send":
         print(json.dumps(send(args.to, args.body, args.de, args.thread), ensure_ascii=False))
     elif args.cmd == "list":
-        print(json.dumps(listar(args.agent, args.host, args.limit), ensure_ascii=False, indent=1))
+        print(json.dumps(listar(args.agent, args.host, args.session or SESSAO, args.limit),
+                         ensure_ascii=False, indent=1))
     elif args.cmd == "ack":
         upto = args.upto or time.time()
         _gravar_cursor(args.agent, upto)
         print(json.dumps({"agent": args.agent, "cursor": upto}))
     elif args.cmd == "hook":
-        return hook(args.agent, args.host)
+        return hook(args.agent, args.host, args.session or SESSAO)
     return 0
 
 
