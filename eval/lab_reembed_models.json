@@ -1,0 +1,1242 @@
+{
+  "meta": {
+    "db": "/home/claudio/local-data/mcp/lab/snapshot-20261018.db",
+    "cases": "eval/recall_cases_v2.json",
+    "store": "default",
+    "corpus": 20310
+  },
+  "models": {
+    "all-MiniLM-L6-v2": {
+      "embed_seconds": 214.4,
+      "ms_por_documento": 10.56,
+      "documento": {
+        "recall@10": 0.4333,
+        "recall@30": 0.5083,
+        "recall@100": 0.6
+      },
+      "termo_all": {
+        "recall@10": 0.4917,
+        "recall@30": 0.5667,
+        "recall@100": 0.65
+      },
+      "casos": [
+        {
+          "id": "g01-001",
+          "hash": 6,
+          "term": 5
+        },
+        {
+          "id": "g01-002",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g01-003",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g01-004",
+          "hash": 16,
+          "term": 16
+        },
+        {
+          "id": "g01-005",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g01-006",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g01-007",
+          "hash": 13,
+          "term": 13
+        },
+        {
+          "id": "g01-008",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g01-009",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g01-010",
+          "hash": 3,
+          "term": 3
+        },
+        {
+          "id": "g01-011",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g01-012",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g01-013",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g01-014",
+          "hash": 4,
+          "term": 1
+        },
+        {
+          "id": "g01-015",
+          "hash": 2,
+          "term": 2
+        },
+        {
+          "id": "g01-016",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g01-017",
+          "hash": 2,
+          "term": 1
+        },
+        {
+          "id": "g01-018",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g01-019",
+          "hash": 40,
+          "term": 40
+        },
+        {
+          "id": "g01-020",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g01-021",
+          "hash": 4,
+          "term": 4
+        },
+        {
+          "id": "g01-022",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g01-023",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g01-024",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g01-025",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g01-026",
+          "hash": 5,
+          "term": 5
+        },
+        {
+          "id": "g01-027",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g01-028",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g01-029",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g01-030",
+          "hash": 79,
+          "term": 79
+        },
+        {
+          "id": "g02-001",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g02-002",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g02-003",
+          "hash": 15,
+          "term": 15
+        },
+        {
+          "id": "g02-004",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g02-005",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g02-006",
+          "hash": 2,
+          "term": 2
+        },
+        {
+          "id": "g02-007",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g02-008",
+          "hash": 20,
+          "term": 20
+        },
+        {
+          "id": "g02-009",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g02-010",
+          "hash": 68,
+          "term": 3
+        },
+        {
+          "id": "g02-011",
+          "hash": 4,
+          "term": 4
+        },
+        {
+          "id": "g02-012",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g02-013",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g02-014",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g02-015",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g02-016",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g02-017",
+          "hash": 12,
+          "term": 12
+        },
+        {
+          "id": "g02-018",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g02-019",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g02-020",
+          "hash": 4,
+          "term": 4
+        },
+        {
+          "id": "g02-021",
+          "hash": 3,
+          "term": 1
+        },
+        {
+          "id": "g02-022",
+          "hash": null,
+          "term": 10
+        },
+        {
+          "id": "g02-023",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g02-024",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g02-025",
+          "hash": 4,
+          "term": 4
+        },
+        {
+          "id": "g02-026",
+          "hash": 41,
+          "term": 41
+        },
+        {
+          "id": "g02-027",
+          "hash": 2,
+          "term": 2
+        },
+        {
+          "id": "g02-028",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g02-029",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g02-030",
+          "hash": 47,
+          "term": 47
+        },
+        {
+          "id": "g03-001",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g03-002",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g03-003",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g03-004",
+          "hash": null,
+          "term": 3
+        },
+        {
+          "id": "g03-005",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g03-006",
+          "hash": 4,
+          "term": 4
+        },
+        {
+          "id": "g03-007",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g03-008",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g03-009",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g03-010",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g03-011",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g03-012",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g03-013",
+          "hash": 6,
+          "term": 6
+        },
+        {
+          "id": "g03-014",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g03-015",
+          "hash": 98,
+          "term": 98
+        },
+        {
+          "id": "g03-016",
+          "hash": null,
+          "term": 94
+        },
+        {
+          "id": "g03-017",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g03-018",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g03-019",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g03-020",
+          "hash": null,
+          "term": 4
+        },
+        {
+          "id": "g03-021",
+          "hash": 41,
+          "term": 31
+        },
+        {
+          "id": "g03-022",
+          "hash": 2,
+          "term": 2
+        },
+        {
+          "id": "g03-023",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g03-024",
+          "hash": 70,
+          "term": 70
+        },
+        {
+          "id": "g03-025",
+          "hash": 33,
+          "term": 10
+        },
+        {
+          "id": "g03-026",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g03-027",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g03-028",
+          "hash": 5,
+          "term": 5
+        },
+        {
+          "id": "g03-029",
+          "hash": 90,
+          "term": 90
+        },
+        {
+          "id": "g03-030",
+          "hash": 2,
+          "term": 2
+        },
+        {
+          "id": "g04-001",
+          "hash": 96,
+          "term": 96
+        },
+        {
+          "id": "g04-002",
+          "hash": 2,
+          "term": 1
+        },
+        {
+          "id": "g04-003",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g04-004",
+          "hash": 10,
+          "term": 10
+        },
+        {
+          "id": "g04-005",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g04-006",
+          "hash": null,
+          "term": 8
+        },
+        {
+          "id": "g04-007",
+          "hash": null,
+          "term": 2
+        },
+        {
+          "id": "g04-008",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g04-009",
+          "hash": 2,
+          "term": 1
+        },
+        {
+          "id": "g04-010",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g04-011",
+          "hash": 8,
+          "term": 4
+        },
+        {
+          "id": "g04-012",
+          "hash": 30,
+          "term": 30
+        },
+        {
+          "id": "g04-013",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g04-014",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g04-015",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g04-016",
+          "hash": 9,
+          "term": 9
+        },
+        {
+          "id": "g04-017",
+          "hash": 25,
+          "term": 25
+        },
+        {
+          "id": "g04-018",
+          "hash": 2,
+          "term": 2
+        },
+        {
+          "id": "g04-019",
+          "hash": 16,
+          "term": 16
+        },
+        {
+          "id": "g04-020",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g04-021",
+          "hash": 24,
+          "term": 24
+        },
+        {
+          "id": "g04-022",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g04-023",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g04-024",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g04-025",
+          "hash": 7,
+          "term": 5
+        },
+        {
+          "id": "g04-026",
+          "hash": 3,
+          "term": 3
+        },
+        {
+          "id": "g04-027",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g04-028",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g04-029",
+          "hash": 2,
+          "term": 2
+        },
+        {
+          "id": "g04-030",
+          "hash": 1,
+          "term": 1
+        }
+      ]
+    },
+    "paraphrase-multilingual-MiniLM-L12-v2": {
+      "embed_seconds": 366.5,
+      "ms_por_documento": 18.05,
+      "documento": {
+        "recall@10": 0.5917,
+        "recall@30": 0.7083,
+        "recall@100": 0.7667
+      },
+      "termo_all": {
+        "recall@10": 0.6833,
+        "recall@30": 0.7917,
+        "recall@100": 0.8417
+      },
+      "casos": [
+        {
+          "id": "g01-001",
+          "hash": 10,
+          "term": 10
+        },
+        {
+          "id": "g01-002",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g01-003",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g01-004",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g01-005",
+          "hash": 6,
+          "term": 5
+        },
+        {
+          "id": "g01-006",
+          "hash": 2,
+          "term": 2
+        },
+        {
+          "id": "g01-007",
+          "hash": 3,
+          "term": 3
+        },
+        {
+          "id": "g01-008",
+          "hash": 7,
+          "term": 6
+        },
+        {
+          "id": "g01-009",
+          "hash": 11,
+          "term": 11
+        },
+        {
+          "id": "g01-010",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g01-011",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g01-012",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g01-013",
+          "hash": 3,
+          "term": 3
+        },
+        {
+          "id": "g01-014",
+          "hash": null,
+          "term": 3
+        },
+        {
+          "id": "g01-015",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g01-016",
+          "hash": 2,
+          "term": 2
+        },
+        {
+          "id": "g01-017",
+          "hash": 2,
+          "term": 1
+        },
+        {
+          "id": "g01-018",
+          "hash": 5,
+          "term": 5
+        },
+        {
+          "id": "g01-019",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g01-020",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g01-021",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g01-022",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g01-023",
+          "hash": 5,
+          "term": 5
+        },
+        {
+          "id": "g01-024",
+          "hash": 18,
+          "term": 18
+        },
+        {
+          "id": "g01-025",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g01-026",
+          "hash": 23,
+          "term": 23
+        },
+        {
+          "id": "g01-027",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g01-028",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g01-029",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g01-030",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g02-001",
+          "hash": 3,
+          "term": 3
+        },
+        {
+          "id": "g02-002",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g02-003",
+          "hash": 49,
+          "term": 49
+        },
+        {
+          "id": "g02-004",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g02-005",
+          "hash": null,
+          "term": 36
+        },
+        {
+          "id": "g02-006",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g02-007",
+          "hash": 18,
+          "term": 18
+        },
+        {
+          "id": "g02-008",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g02-009",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g02-010",
+          "hash": 66,
+          "term": 2
+        },
+        {
+          "id": "g02-011",
+          "hash": 60,
+          "term": 10
+        },
+        {
+          "id": "g02-012",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g02-013",
+          "hash": 30,
+          "term": 30
+        },
+        {
+          "id": "g02-014",
+          "hash": 4,
+          "term": 4
+        },
+        {
+          "id": "g02-015",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g02-016",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g02-017",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g02-018",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g02-019",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g02-020",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g02-021",
+          "hash": null,
+          "term": 12
+        },
+        {
+          "id": "g02-022",
+          "hash": null,
+          "term": 4
+        },
+        {
+          "id": "g02-023",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g02-024",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g02-025",
+          "hash": 2,
+          "term": 2
+        },
+        {
+          "id": "g02-026",
+          "hash": 10,
+          "term": 10
+        },
+        {
+          "id": "g02-027",
+          "hash": 15,
+          "term": 15
+        },
+        {
+          "id": "g02-028",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g02-029",
+          "hash": 3,
+          "term": 3
+        },
+        {
+          "id": "g02-030",
+          "hash": 9,
+          "term": 9
+        },
+        {
+          "id": "g03-001",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g03-002",
+          "hash": 2,
+          "term": 2
+        },
+        {
+          "id": "g03-003",
+          "hash": 6,
+          "term": 6
+        },
+        {
+          "id": "g03-004",
+          "hash": null,
+          "term": 8
+        },
+        {
+          "id": "g03-005",
+          "hash": 47,
+          "term": 34
+        },
+        {
+          "id": "g03-006",
+          "hash": 13,
+          "term": 13
+        },
+        {
+          "id": "g03-007",
+          "hash": 7,
+          "term": 7
+        },
+        {
+          "id": "g03-008",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g03-009",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g03-010",
+          "hash": 3,
+          "term": 2
+        },
+        {
+          "id": "g03-011",
+          "hash": 5,
+          "term": 2
+        },
+        {
+          "id": "g03-012",
+          "hash": 4,
+          "term": 4
+        },
+        {
+          "id": "g03-013",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g03-014",
+          "hash": 2,
+          "term": 2
+        },
+        {
+          "id": "g03-015",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g03-016",
+          "hash": 20,
+          "term": 1
+        },
+        {
+          "id": "g03-017",
+          "hash": null,
+          "term": 3
+        },
+        {
+          "id": "g03-018",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g03-019",
+          "hash": null,
+          "term": 28
+        },
+        {
+          "id": "g03-020",
+          "hash": 23,
+          "term": 2
+        },
+        {
+          "id": "g03-021",
+          "hash": null,
+          "term": 67
+        },
+        {
+          "id": "g03-022",
+          "hash": 2,
+          "term": 1
+        },
+        {
+          "id": "g03-023",
+          "hash": 4,
+          "term": 2
+        },
+        {
+          "id": "g03-024",
+          "hash": 4,
+          "term": 4
+        },
+        {
+          "id": "g03-025",
+          "hash": 80,
+          "term": 12
+        },
+        {
+          "id": "g03-026",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g03-027",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g03-028",
+          "hash": 29,
+          "term": 2
+        },
+        {
+          "id": "g03-029",
+          "hash": 14,
+          "term": 14
+        },
+        {
+          "id": "g03-030",
+          "hash": 7,
+          "term": 7
+        },
+        {
+          "id": "g04-001",
+          "hash": 2,
+          "term": 2
+        },
+        {
+          "id": "g04-002",
+          "hash": 7,
+          "term": 1
+        },
+        {
+          "id": "g04-003",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g04-004",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g04-005",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g04-006",
+          "hash": 7,
+          "term": 4
+        },
+        {
+          "id": "g04-007",
+          "hash": null,
+          "term": 4
+        },
+        {
+          "id": "g04-008",
+          "hash": 53,
+          "term": 53
+        },
+        {
+          "id": "g04-009",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g04-010",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g04-011",
+          "hash": 2,
+          "term": 1
+        },
+        {
+          "id": "g04-012",
+          "hash": 62,
+          "term": 62
+        },
+        {
+          "id": "g04-013",
+          "hash": 2,
+          "term": 2
+        },
+        {
+          "id": "g04-014",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g04-015",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g04-016",
+          "hash": 6,
+          "term": 6
+        },
+        {
+          "id": "g04-017",
+          "hash": 3,
+          "term": 2
+        },
+        {
+          "id": "g04-018",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g04-019",
+          "hash": 16,
+          "term": 16
+        },
+        {
+          "id": "g04-020",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g04-021",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g04-022",
+          "hash": 27,
+          "term": 27
+        },
+        {
+          "id": "g04-023",
+          "hash": 4,
+          "term": 4
+        },
+        {
+          "id": "g04-024",
+          "hash": 3,
+          "term": 2
+        },
+        {
+          "id": "g04-025",
+          "hash": 14,
+          "term": 2
+        },
+        {
+          "id": "g04-026",
+          "hash": null,
+          "term": null
+        },
+        {
+          "id": "g04-027",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g04-028",
+          "hash": 1,
+          "term": 1
+        },
+        {
+          "id": "g04-029",
+          "hash": 8,
+          "term": 8
+        },
+        {
+          "id": "g04-030",
+          "hash": 1,
+          "term": 1
+        }
+      ]
+    }
+  }
+}
