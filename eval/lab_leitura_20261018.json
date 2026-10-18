@@ -1,0 +1,23 @@
+{
+  "data": "2026-10-18",
+  "snapshot": "~/local-data/mcp/lab/snapshot-20261018.db",
+  "dataset": "eval/recall_cases_v2.json (120 casos)",
+  "reproducao_baseline": {
+    "exact": 0.0,
+    "hybrid": 0.2916666666666667,
+    "ranked": 0.275,
+    "semantic": 0.2916666666666667
+  },
+  "recall@100": {
+    "exact": 0.0,
+    "hybrid": 0.475,
+    "ranked": 0.48333333333333334,
+    "semantic": 0.475
+  },
+  "distribuicao_semantic": {
+    "top10": 35,
+    "fora_top100": 63,
+    "11_100": 22
+  },
+  "leitura": "29,2% (35/120) e recall@100 = 47,5% (57/120). 22 dos 85 erros ficam entre 11 e 100 (resgatáveis por reranking); 63 ficam fora do top-100 — falha de representação, não de ordenação. Teto de qualquer reranker sobre o índice atual: 47,5%."
+}
