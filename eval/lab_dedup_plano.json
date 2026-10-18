@@ -1,0 +1,98 @@
+{
+  "plano": {
+    "gerado_em": "2026-10-18T10:17:21",
+    "db": "/home/claudio/local-data/mcp/lab/snapshot-pos-migracao-20261018.db",
+    "vivas": 28509,
+    "grupos_duplicados": 2372,
+    "linhas_a_tombar": 2468,
+    "stores_corrompidos": [
+      {
+        "rowid": 9573,
+        "hash": "4da23b2477a0a9add6f8fc185c1ed8ff1a1fdfac1b40a1333689c5b6d9240f2b",
+        "store": "'\\x08\\t\\n\\t\\n\\x08\\n'"
+      },
+      {
+        "rowid": 9574,
+        "hash": "b7fea4880e7f0b65cbdc8f54c7f8334159f176f6408568fdc15f3734ec8f7b71",
+        "store": "'\\x0b\\x08\\t\\x08\\x08\\x08\\x0b'"
+      },
+      {
+        "rowid": 9575,
+        "hash": "0f854f0f79579a91aa72ae3021da341b171f49f8d410d923861377690e1584f7",
+        "store": "'\\x0b\\x12\\x0b\\t\\r\\r\\n'"
+      },
+      {
+        "rowid": 9576,
+        "hash": "55e60a34faa08c07bfe0c6a3334bad88eb2f6da326ff0061a0c4899ab0683ce9",
+        "store": "'\\n\\x08\\x08\\n\\x08\\t\\x0c'"
+      }
+    ],
+    "exemplos": [
+      {
+        "sobrevivente": {
+          "rowid": 46152,
+          "hash": "54448413f355e40417fdc9375b45e57410482f97cfca4f2056755cdabd1a22e6"
+        },
+        "tombar": [
+          {
+            "rowid": 2,
+            "hash": "aada1b0b57f2f781e7e68a08ab0339d609042d85b86ce11cfe2a5cf770b031ed"
+          }
+        ],
+        "store": "default"
+      },
+      {
+        "sobrevivente": {
+          "rowid": 46581,
+          "hash": "86f9231c9ac58bb17a31140a4733730ff90845e18765ff7e0b6f29492d20ee14"
+        },
+        "tombar": [
+          {
+            "rowid": 3,
+            "hash": "810f4c96f7c55185e558950824aed5f1cfe06131e912926ea2cea3c2919bc511"
+          }
+        ],
+        "store": "default"
+      },
+      {
+        "sobrevivente": {
+          "rowid": 46419,
+          "hash": "9aa32c4368d8c17b205fcf79e2f2ba39951d9996d7406c60e94b2d68d14736a3"
+        },
+        "tombar": [
+          {
+            "rowid": 4,
+            "hash": "f6c7d090c4151443ca64c128d7f67e2987768e3ed4fb87a2ad99251adb6819b4"
+          }
+        ],
+        "store": "default"
+      },
+      {
+        "sobrevivente": {
+          "rowid": 46257,
+          "hash": "c7a1c4c4838cd8eeaac74200c36cebfc1c5df5a909409447ae3b9869b6b8d145"
+        },
+        "tombar": [
+          {
+            "rowid": 5,
+            "hash": "1d4ea653cce88d272bd3ec0e7fef011b7f9da96d0d8f342b0c313e10bcff92f8"
+          }
+        ],
+        "store": "default"
+      },
+      {
+        "sobrevivente": {
+          "rowid": 6,
+          "hash": "bb3d061a9ad9a683fdcdd471631cfe7efaf7f4adacea848e1af46de539bee083"
+        },
+        "tombar": [
+          {
+            "rowid": 46221,
+            "hash": "322ea250cc75e43c48bec48b94e0f102524f7654784261fa4fa12798b30f58cb"
+          }
+        ],
+        "store": "default"
+      }
+    ]
+  }
+}
