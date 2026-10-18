@@ -1,0 +1,19 @@
+{
+  "meta": {
+    "db": "/home/claudio/local-data/mcp/lab/migracao/migrado2.db",
+    "cases": "eval/recall_cases_v2.json",
+    "model": "paraphrase-multilingual-MiniLM-L12-v2",
+    "kmax": 100
+  },
+  "default": {
+    "documento@10": 0.5917,
+    "documento@30": 0.7083,
+    "documento@100": 0.775
+  },
+  "todos_os_stores": {
+    "documento@10": 0.5667,
+    "documento@30": 0.675,
+    "documento@100": 0.75
+  },
+  "slots_top10_de_outros_stores": "254/1200"
+}
