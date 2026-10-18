@@ -1,0 +1,25 @@
+{
+ "meta": {
+  "dump": "/tmp/cands30.json",
+  "ranker": "BAAI/bge-reranker-v2-m3",
+  "device": "cpu"
+ },
+ "antes": {
+  "documento@10": 0.575,
+  "documento@30": 0.6917,
+  "documento@100": 0.6917
+ },
+ "depois": {
+  "documento@10": 0.6917,
+  "documento@30": 0.6917,
+  "documento@100": 0.6917
+ },
+ "mudancas": {
+  "subiu_para_top10": 14,
+  "saiu_do_top10": 0
+ },
+ "custo": {
+  "segundos": 1693.5,
+  "ms_por_consulta_p50": 14331
+ }
+}
