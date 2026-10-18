@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>mcp-memory-service — fluxo e bases (18/out/2026)</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#020617; --card:#0b1220; --line:#1e293b; --txt:#e2e8f0; --dim:#94a3b8; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:'JetBrains Mono',monospace; padding:32px; }
+  header { display:flex; align-items:center; gap:12px; margin-bottom:6px; }
+  .dot { width:9px; height:9px; border-radius:50%; background:#34d399; box-shadow:0 0 0 0 rgba(52,211,153,.7); animation:pulse 2.2s infinite; }
+  @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(52,211,153,.55);} 70%{box-shadow:0 0 0 12px rgba(52,211,153,0);} 100%{box-shadow:0 0 0 0 rgba(52,211,153,0);} }
+  h1 { font-size:16px; margin:0; letter-spacing:.02em; }
+  .sub { color:var(--dim); font-size:11px; margin:0 0 24px 21px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; overflow:auto; }
+  svg { display:block; }
+  .cards { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:20px; }
+  .c { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+  .c h3 { font-size:11px; margin:0 0 8px; display:flex; align-items:center; gap:8px; }
+  .cd { width:7px; height:7px; border-radius:50%; }
+  .c li { font-size:10.5px; color:var(--dim); line-height:1.65; list-style:none; margin-left:-16px; }
+  .cyan{background:#22d3ee}.emerald{background:#34d399}.violet{background:#a78bfa}.amber{background:#fbbf24}.rose{background:#fb7185}
+  footer { color:#475569; font-size:10px; margin-top:18px; }
+</style>
+</head>
+<body>
+<header><span class="dot"></span><h1>mcp-memory-service — como entra, o que acontece, o que sai</h1></header>
+<p class="sub">medido em 18/out/2026 · sirdata · régua de acerto por DOCUMENTO</p>
+
+<div class="card">
+<svg width="1320" height="880" viewBox="0 0 1320 880" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+    </pattern>
+    <marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 z" fill="#475569"/>
+    </marker>
+    <marker id="ac" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 z" fill="#22d3ee"/>
+    </marker>
+    <marker id="ag" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 z" fill="#34d399"/>
+    </marker>
+    <marker id="av" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 z" fill="#a78bfa"/>
+    </marker>
+    <marker id="aa" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 z" fill="#fbbf24"/>
+    </marker>
+    <marker id="ar" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 z" fill="#fb7185"/>
+    </marker>
+  </defs>
+  <rect width="1320" height="880" fill="url(#grid)"/>
+
+  <!-- faixas de fundo -->
+  <rect x="24" y="18" width="1272" height="120" fill="rgba(8,51,68,.12)" rx="12"/>
+  <rect x="24" y="150" width="1272" height="100" fill="rgba(6,78,59,.12)" rx="12"/>
+  <rect x="24" y="262" width="1272" height="100" fill="rgba(6,78,59,.18)" rx="12"/>
+  <rect x="24" y="374" width="1272" height="130" fill="rgba(76,29,149,.16)" rx="12"/>
+  <rect x="24" y="516" width="1272" height="150" fill="rgba(120,53,15,.14)" rx="12"/>
+  <rect x="24" y="680" width="1272" height="120" fill="rgba(136,19,55,.14)" rx="12"/>
+
+  <!-- labels de faixa -->
+  <text x="40" y="40" fill="#94a3b8" font-size="10" font-weight="700">1 · ENTRADAS</text>
+  <text x="40" y="172" fill="#94a3b8" font-size="10" font-weight="700">2 · INGESTÃO</text>
+  <text x="40" y="284" fill="#94a3b8" font-size="10" font-weight="700">3 · SERVIÇOS MCP</text>
+  <text x="40" y="396" fill="#94a3b8" font-size="10" font-weight="700">4 · BASES — um modelo de embedding por arquivo (regra dura)</text>
+  <text x="40" y="538" fill="#94a3b8" font-size="10" font-weight="700">5 · CAMINHOS DE BUSCA</text>
+  <text x="40" y="702" fill="#94a3b8" font-size="10" font-weight="700">6 · RÉGUA E GATES</text>
+
+  <!-- setas (atrás das caixas) -->
+  <path d="M170,108 L170,320" stroke="#22d3ee" stroke-width="1.4" fill="none" marker-end="url(#ac)"/>
+  <path d="M470,108 L470,208" stroke="#475569" stroke-width="1.2" fill="none" marker-end="url(#a)"/>
+  <path d="M610,108 L640,208" stroke="#475569" stroke-width="1.2" fill="none" marker-end="url(#a)"/>
+  <path d="M980,108 L960,208" stroke="#475569" stroke-width="1.2" fill="none" marker-end="url(#a)"/>
+  <path d="M470,244 L340,320" stroke="#34d399" stroke-width="1.4" fill="none" marker-end="url(#ag)"/>
+  <path d="M640,244 L670,320" stroke="#34d399" stroke-width="1.4" fill="none" marker-end="url(#ag)"/>
+  <path d="M960,244 L960,320" stroke="#34d399" stroke-width="1.4" fill="none" marker-end="url(#ag)" stroke-dasharray="4,4"/>
+  <path d="M290,362 L290,452" stroke="#a78bfa" stroke-width="1.4" fill="none" marker-end="url(#av)"/>
+  <path d="M670,362 L670,452" stroke="#a78bfa" stroke-width="1.4" fill="none" marker-end="url(#av)"/>
+  <path d="M960,362 L960,452" stroke="#a78bfa" stroke-width="1.4" fill="none" marker-end="url(#av)"/>
+  <path d="M250,516 L250,600" stroke="#22d3ee" stroke-width="1.4" fill="none" marker-end="url(#ac)"/>
+  <path d="M330,516 L480,600" stroke="#fbbf24" stroke-width="1.4" fill="none" marker-end="url(#aa)"/>
+  <path d="M370,516 L820,600" stroke="#fbbf24" stroke-width="1.4" fill="none" marker-end="url(#aa)"/>
+  <path d="M960,516 L960,676" stroke="#fb7185" stroke-width="1.2" fill="none" marker-end="url(#ar)" stroke-dasharray="5,4"/>
+
+  <!-- ENTRADAS -->
+  <g font-size="11" fill="#e2e8f0">
+    <rect x="60" y="50" width="220" height="58" rx="6" fill="#0f172a"/><rect x="60" y="50" width="220" height="58" rx="6" fill="rgba(8,51,68,.4)" stroke="#22d3ee" stroke-width="1.5"/>
+    <text x="76" y="74">Hermes CLI (T'Pol)</text><text x="76" y="92" font-size="9" fill="#94a3b8">pergunta em linguagem natural</text>
+
+    <rect x="360" y="50" width="220" height="58" rx="6" fill="#0f172a"/><rect x="360" y="50" width="220" height="58" rx="6" fill="rgba(8,51,68,.4)" stroke="#22d3ee" stroke-width="1.5"/>
+    <text x="376" y="74">Kiro CLI</text><text x="376" y="92" font-size="9" fill="#94a3b8">921 sessões .jsonl / 14 dias</text>
+
+    <rect x="640" y="50" width="260" height="58" rx="6" fill="#0f172a"/><rect x="640" y="50" width="260" height="58" rx="6" fill="rgba(30,41,59,.5)" stroke="#94a3b8" stroke-width="1.5"/>
+    <text x="656" y="74">GitHub upstream</text><text x="656" y="92" font-size="9" fill="#94a3b8">issues · PRs · review comments · discussions</text>
+
+    <rect x="940" y="50" width="260" height="58" rx="6" fill="#0f172a"/><rect x="940" y="50" width="260" height="58" rx="6" fill="rgba(30,41,59,.5)" stroke="#94a3b8" stroke-width="1.5"/>
+    <text x="956" y="74">Repo upstream (pinned 0a46bf9a)</text><text x="956" y="92" font-size="9" fill="#94a3b8">docs/**/*.md → corpus congelado</text>
+  </g>
+
+  <!-- INGESTAO -->
+  <g font-size="11" fill="#e2e8f0">
+    <rect x="360" y="188" width="220" height="56" rx="6" fill="#0f172a"/><rect x="360" y="188" width="220" height="56" rx="6" fill="rgba(6,78,59,.4)" stroke="#34d399" stroke-width="1.5"/>
+    <text x="376" y="212">harvest</text><text x="376" y="230" font-size="9" fill="#94a3b8">sessões → memória operacional</text>
+
+    <rect x="600" y="188" width="260" height="56" rx="6" fill="#0f172a"/><rect x="600" y="188" width="260" height="56" rx="6" fill="rgba(6,78,59,.4)" stroke="#34d399" stroke-width="1.5"/>
+    <text x="616" y="210">ingest_github_triage.py</text><text x="616" y="228" font-size="9" fill="#94a3b8">idempotente · timer horário</text>
+
+    <rect x="880" y="188" width="260" height="56" rx="6" fill="#0f172a"/><rect x="880" y="188" width="260" height="56" rx="6" fill="rgba(6,78,59,.4)" stroke="#34d399" stroke-width="1.5"/>
+    <text x="896" y="210">build_bench_corpus.py</text><text x="896" y="228" font-size="9" fill="#94a3b8">chunk por seção · somente inglês</text>
+  </g>
+
+  <!-- SERVICOS -->
+  <g font-size="11" fill="#e2e8f0">
+    <rect x="150" y="300" width="280" height="62" rx="6" fill="#0f172a"/><rect x="150" y="300" width="280" height="62" rx="6" fill="rgba(6,78,59,.4)" stroke="#34d399" stroke-width="1.5"/>
+    <text x="166" y="324">memory-service :3202</text><text x="166" y="342" font-size="9" fill="#94a3b8">paraphrase-multilingual · PT · uso diário</text>
+
+    <rect x="540" y="300" width="260" height="62" rx="6" fill="#0f172a"/><rect x="540" y="300" width="260" height="62" rx="6" fill="rgba(6,78,59,.4)" stroke="#34d399" stroke-width="1.5"/>
+    <text x="556" y="322">memory-service-triagem :3205</text><text x="556" y="338" font-size="9" fill="#94a3b8">all-MiniLM-L6-v2 · EN</text><text x="556" y="352" font-size="9" fill="#fb7185">consolidação/harvest DESLIGADOS</text>
+
+    <rect x="880" y="300" width="260" height="62" rx="6" fill="#0f172a"/><rect x="880" y="300" width="260" height="62" rx="6" fill="rgba(30,41,59,.5)" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,4"/>
+    <text x="896" y="324">bancada: SEM serviço</text><text x="896" y="342" font-size="9" fill="#94a3b8">arquivo lido direto pelo harness</text>
+  </g>
+
+  <!-- BASES -->
+  <g font-size="11" fill="#e2e8f0">
+    <rect x="150" y="420" width="280" height="86" rx="4" fill="#0f172a"/><rect x="150" y="420" width="280" height="86" rx="4" fill="rgba(76,29,149,.4)" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="166" y="442" font-weight="700">sqlite_vec.db</text><text x="166" y="460" font-size="9" fill="#94a3b8">26.045 memórias · 855 MB</text>
+    <text x="166" y="476" font-size="9" fill="#94a3b8">default · mir · docs-shared · hackathon · mms</text>
+    <text x="166" y="492" font-size="9" fill="#34d399">uso diário + material de trabalho (PT)</text>
+
+    <rect x="540" y="420" width="260" height="86" rx="4" fill="#0f172a"/><rect x="540" y="420" width="260" height="86" rx="4" fill="rgba(76,29,149,.4)" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="556" y="442" font-weight="700">triagem-upstream.db</text><text x="556" y="460" font-size="9" fill="#94a3b8">5.177 memórias · store triage</text>
+    <text x="556" y="476" font-size="9" fill="#94a3b8">1.013 PRs · 518 issues</text>
+    <text x="556" y="492" font-size="9" fill="#94a3b8">3.596 review comments · 50 discussions</text>
+
+    <rect x="880" y="420" width="260" height="86" rx="4" fill="#0f172a"/><rect x="880" y="420" width="260" height="86" rx="4" fill="rgba(76,29,149,.4)" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="896" y="442" font-weight="700">bench-upstream.db</text><text x="896" y="460" font-size="9" fill="#94a3b8">4.838 memórias · congelado</text>
+    <text x="896" y="476" font-size="9" fill="#94a3b8">inglês · all-MiniLM-L6-v2</text>
+    <text x="896" y="492" font-size="9" fill="#fbbf24">régua: 100 casos · baseline 0,81</text>
+  </g>
+
+  <!-- CAMINHOS -->
+  <g font-size="11" fill="#e2e8f0">
+    <rect x="140" y="600" width="290" height="72" rx="6" fill="#0f172a"/><rect x="140" y="600" width="290" height="72" rx="6" fill="rgba(8,51,68,.4)" stroke="#22d3ee" stroke-width="1.5"/>
+    <text x="156" y="622" font-weight="700">INTERATIVO (padrão)</text><text x="156" y="640" font-size="9" fill="#94a3b8">semantic · top-10 · 155 ms</text>
+    <text x="156" y="656" font-size="9" fill="#22d3ee">doc@10 = 0,575</text>
+
+    <rect x="460" y="600" width="300" height="72" rx="6" fill="#0f172a"/><rect x="460" y="600" width="300" height="72" rx="6" fill="rgba(120,53,15,.3)" stroke="#fbbf24" stroke-width="1.5"/>
+    <text x="476" y="622" font-weight="700">BUSCA PROFUNDA (opt-in)</text><text x="476" y="640" font-size="9" fill="#94a3b8">30 candidatos + reranker bge-base int8</text>
+    <text x="476" y="656" font-size="9" fill="#fbbf24">2,5 s · doc@10 = 0,70 (+12,5 p.p.)</text>
+
+    <rect x="790" y="600" width="330" height="72" rx="6" fill="#0f172a"/><rect x="790" y="600" width="330" height="72" rx="6" fill="rgba(120,53,15,.3)" stroke="#fbbf24" stroke-width="1.5"/>
+    <text x="806" y="622" font-weight="700">LOTE (noturno)</text><text x="806" y="640" font-size="9" fill="#94a3b8">consolidação · relatórios</text>
+    <text x="806" y="656" font-size="9" fill="#94a3b8">ranking pré-computado de consultas frequentes</text>
+  </g>
+
+  <!-- REGUA -->
+  <g font-size="10.5" fill="#e2e8f0">
+    <rect x="140" y="712" width="700" height="66" rx="6" fill="#0f172a"/><rect x="140" y="712" width="700" height="66" rx="6" fill="rgba(136,19,55,.35)" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="4,4"/>
+    <text x="156" y="734" font-weight="700">Régua de decisão — acerto por DOCUMENTO (gold_hashes), nunca por termo solto</text>
+    <text x="156" y="752" font-size="9" fill="#94a3b8">medir sempre @10 e @100 · hypothesis testada = intervenção declarada · número sem artefato versionado é auto-relato</text>
+    <text x="156" y="768" font-size="9" fill="#fb7185">dedup tombou 9 golds → régua remapeia por superseded_by antes de medir</text>
+  </g>
+  <g font-size="9" fill="#94a3b8">
+    <text x="880" y="734">refutados por medição:</text>
+    <text x="880" y="750">chunking (56,7% &lt; 59,2%) · limiar de cosseno</text>
+    <text x="880" y="766">para ausência (precisão 0,45) · modo ranked (−26,7 p.p.)</text>
+  </g>
+
+  <!-- legenda -->
+  <text x="40" y="826" font-size="9" fill="#64748b">linha sólida = fluxo ativo · linha tracejada = caminho opcional/lote · caixa tracejada = sem serviço dedicado</text>
+  <text x="40" y="844" font-size="9" fill="#64748b">eixos: entrada → ingestão → serviço → base → caminho de busca · nada de produção é tocado sem backup e rollback declarado</text>
+</svg>
+</div>
+
+<div class="cards">
+  <div class="c">
+    <h3><span class="cd cyan"></span>O que existe hoje</h3>
+    <ul>
+      <li>• 3 bases isoladas por modelo de embedding</li>
+      <li>• 2 serviços MCP (3202 pessoal, 3205 triagem)</li>
+      <li>• bancada sem serviço: arquivo congelado</li>
+      <li>• importador idempotente horário</li>
+      <li>• 36.060 memórias no total</li>
+    </ul>
+  </div>
+  <div class="c">
+    <h3><span class="cd violet"></span>O que a medição decidiu</h3>
+    <ul>
+      <li>• índice uniforme: 0,008 → 0,592 doc@10</li>
+      <li>• chunking refutado; higiene não move recall</li>
+      <li>• reranker +12,5 p.p. a 2,5 s: lote, não interativo</li>
+      <li>• triagem: 25/25 identificadores, 155 ms</li>
+      <li>• acerto por documento é a régua</li>
+    </ul>
+  </div>
+  <div class="c">
+    <h3><span class="cd amber"></span>O que falta</h3>
+    <ul>
+      <li>• pré-computar ranking de consultas frequentes</li>
+      <li>• sinal de ausência (sem solução medida)</li>
+      <li>• PR upstream: migrador + doc</li>
+      <li>• decisão de visibilidade cross-store (RAG v3)</li>
+      <li>• arco UIAA no orc</li>
+    </ul>
+  </div>
+</div>
+
+<footer>gerado por T'Pol · fontes: eval/lab_*.json, docs/_fork/diario-de-gates.md §E6–E10 · arquivo editável: docs/lab/mms-fluxo.drawio</footer>
+</body>
+</html>
