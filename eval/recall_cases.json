@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "created": "2026-10-18",
+  "note": "Casos do diagnostico docs/_fork/diagnostico-precisao-recuperacao.md. Acerto = gold_terms presente no conteudo do resultado (case-insensitive). gold_hashes e informativo (o mesmo fato pode viver em varias memorias).",
+  "k_default": 10,
+  "cases": [
+    {
+      "id": "importador-orcamento",
+      "pergunta": "quanto de texto por sessao o importador manda de cada vez",
+      "categoria": "decisao-tecnica",
+      "gold_terms": ["MAX_SESSION_CHARS", "15.000"],
+      "gold_hashes": ["8fa00a94f5de197dd19fba0877f0b707b79a53ecee42ff4272f93964db5bff6b"]
+    },
+    {
+      "id": "modelo-subagentes",
+      "pergunta": "qual modelo de linguagem escolhemos para os subagentes",
+      "categoria": "benchmark-modelos",
+      "gold_terms": ["Qwen3.8-27B", "Qwen/Qwen3.8"],
+      "gold_hashes": ["f5979129df9e209c15e96e39c4aa468955d78f81a2941f158cda99020828953a"]
+    },
+    {
+      "id": "reviewer-bloqueador",
+      "pergunta": "que falha o revisor apontou quando a sessao encolhe",
+      "categoria": "review",
+      "gold_terms": ["delta vazio", "turns=[]"],
+      "gold_hashes": ["9e16e7ad1acda31bc47ce15177481b33a0b36da0f668e3bff6f04401aca9c2f8"]
+    },
+    {
+      "id": "sync-hotdb-aposentado",
+      "pergunta": "quando deixamos de copiar o banco de memorias entre maquinas",
+      "categoria": "decisao-arquitetura",
+      "gold_terms": [".hot.db", "delta-sync"],
+      "gold_hashes": ["9dada2dd5933842bf794e01bc6e312fcfc93ae7a38634dc04c79e498c331b87c"]
+    },
+    {
+      "id": "belief-verbatim",
+      "pergunta": "o que esta errado na forma como os beliefs sao criados",
+      "categoria": "learning-loop",
+      "gold_terms": ["verbatim", "copia"],
+      "gold_hashes": ["63104646066dc1a599c72b9b69d488de2ca990c927e81602f2b5e4f71f5f3779"]
+    },
+    {
+      "id": "builder-one-mapelites",
+      "pergunta": "qual algoritmo de busca de arquitetura usamos no agente cientista",
+      "categoria": "projeto",
+      "gold_terms": ["MAP-Elites"],
+      "gold_hashes": ["e43c878ed5e3919f96023a1169cb0032b31765e2301248495f4bcfacbb9d4756"]
+    },
+    {
+      "id": "injection-coverage",
+      "pergunta": "como medimos se a injecao de contexto foi realmente usada",
+      "categoria": "learning-loop",
+      "gold_terms": ["injection_coverage"],
+      "gold_hashes": ["95f417d5f220e87e397dae5504f598d611f24c883725f6f137260fef2161b05a"]
+    },
+    {
+      "id": "recall-pool",
+      "pergunta": "que metrica mede se existe memoria que responde a um tema",
+      "categoria": "learning-loop",
+      "gold_terms": ["Recall@pool", "recall@pool"],
+      "gold_hashes": ["12699e27988f4ca3e6f5ef15118236ea4d2b666f1245bb58eb52031e4d8740b3"]
+    },
+    {
+      "id": "rer-elb-vip",
+      "pergunta": "qual endereco virtual do balanceador do RER de homologacao",
+      "categoria": "infra-hcso",
+      "gold_terms": ["10.100.0.18"],
+      "gold_hashes": ["a4bd936a6eee3500ef56b9b4a4b1984558df1688f707efa3efd1f26d6c7af9e9"]
+    },
+    {
+      "id": "lia-provedor",
+      "pergunta": "qual a plataforma de IA da Dataprev usada como provedor",
+      "categoria": "infra-dtp",
+      "gold_terms": ["LIA", "lia.oci.dataprev.gov.br"],
+      "gold_hashes": ["0eb12d61914fa3f93f5c8b9eaab8dde43c7a89636983ed433ea17375a73e2f1b"]
+    }
+  ]
+}
