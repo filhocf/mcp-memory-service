@@ -1,0 +1,42 @@
+{
+ "casos": 30,
+ "base": {
+  "documento@5": 0.5333,
+  "documento@10": 0.6,
+  "documento@30": 0.7
+ },
+ "modelos": {
+  "Xenova/ms-marco-MiniLM-L-6-v2:onnx/model_int8": {
+   "documento@5": 0.5,
+   "documento@10": 0.5333,
+   "documento@30": 0.7,
+   "ganho_top10": -0.0667,
+   "latencia_p50_ms": 631,
+   "ms_por_par": 21.0
+  },
+  "Xenova/bge-reranker-base:onnx/model_int8": {
+   "documento@5": 0.6667,
+   "documento@10": 0.7,
+   "documento@30": 0.7,
+   "ganho_top10": 0.1,
+   "latencia_p50_ms": 2503,
+   "ms_por_par": 83.4
+  },
+  "onnx-community/bge-reranker-v2-m3-ONNX:onnx/model_int8": {
+   "documento@5": 0.7,
+   "documento@10": 0.7,
+   "documento@30": 0.7,
+   "ganho_top10": 0.1,
+   "latencia_p50_ms": 7300,
+   "ms_por_par": 243.3
+  },
+  "onnx-community/bge-reranker-v2-m3-ONNX:onnx/model_q4": {
+   "documento@5": 0.7,
+   "documento@10": 0.7,
+   "documento@30": 0.7,
+   "ganho_top10": 0.1,
+   "latencia_p50_ms": 8568,
+   "ms_por_par": 285.6
+  }
+ }
+}

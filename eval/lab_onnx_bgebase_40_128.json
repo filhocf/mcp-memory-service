@@ -1,0 +1,18 @@
+{
+ "casos": 40,
+ "base": {
+  "documento@5": 0.475,
+  "documento@10": 0.525,
+  "documento@30": 0.625
+ },
+ "modelos": {
+  "Xenova/bge-reranker-base:onnx/model_int8": {
+   "documento@5": 0.55,
+   "documento@10": 0.6,
+   "documento@30": 0.625,
+   "ganho_top10": 0.075,
+   "latencia_p50_ms": 1256,
+   "ms_por_par": 31.4
+  }
+ }
+}
