@@ -1,0 +1,161 @@
+{
+  "meta": {
+    "db": "/home/claudio/local-data/mcp/lab/migracao/migrado2.db",
+    "cases": "eval/recall_cases_v2.json",
+    "model": "paraphrase-multilingual-MiniLM-L12-v2",
+    "kmax": 100,
+    "ranker": "ms-marco-MiniLM-L-6-v2"
+  },
+  "antes": {
+    "documento@10": 0.5917,
+    "documento@30": 0.7083,
+    "documento@100": 0.775
+  },
+  "ausencia": {
+    "top1_sim_acertos": {
+      "n": 71,
+      "media": 0.8413,
+      "p10": 0.791
+    },
+    "top1_sim_erros": {
+      "n": 49,
+      "media": 0.8224,
+      "p90": 0.8669
+    },
+    "varredura": [
+      {
+        "limiar": 0.05,
+        "erros_detectados": "0/49",
+        "acertos_perdidos": "0/71",
+        "precisao_da_abstencao": null,
+        "cobertura_dos_erros": 0.0
+      },
+      {
+        "limiar": 0.1,
+        "erros_detectados": "0/49",
+        "acertos_perdidos": "0/71",
+        "precisao_da_abstencao": null,
+        "cobertura_dos_erros": 0.0
+      },
+      {
+        "limiar": 0.15,
+        "erros_detectados": "0/49",
+        "acertos_perdidos": "0/71",
+        "precisao_da_abstencao": null,
+        "cobertura_dos_erros": 0.0
+      },
+      {
+        "limiar": 0.2,
+        "erros_detectados": "0/49",
+        "acertos_perdidos": "0/71",
+        "precisao_da_abstencao": null,
+        "cobertura_dos_erros": 0.0
+      },
+      {
+        "limiar": 0.25,
+        "erros_detectados": "0/49",
+        "acertos_perdidos": "0/71",
+        "precisao_da_abstencao": null,
+        "cobertura_dos_erros": 0.0
+      },
+      {
+        "limiar": 0.3,
+        "erros_detectados": "0/49",
+        "acertos_perdidos": "0/71",
+        "precisao_da_abstencao": null,
+        "cobertura_dos_erros": 0.0
+      },
+      {
+        "limiar": 0.35,
+        "erros_detectados": "0/49",
+        "acertos_perdidos": "0/71",
+        "precisao_da_abstencao": null,
+        "cobertura_dos_erros": 0.0
+      },
+      {
+        "limiar": 0.4,
+        "erros_detectados": "0/49",
+        "acertos_perdidos": "0/71",
+        "precisao_da_abstencao": null,
+        "cobertura_dos_erros": 0.0
+      },
+      {
+        "limiar": 0.45,
+        "erros_detectados": "0/49",
+        "acertos_perdidos": "0/71",
+        "precisao_da_abstencao": null,
+        "cobertura_dos_erros": 0.0
+      },
+      {
+        "limiar": 0.5,
+        "erros_detectados": "0/49",
+        "acertos_perdidos": "0/71",
+        "precisao_da_abstencao": null,
+        "cobertura_dos_erros": 0.0
+      },
+      {
+        "limiar": 0.55,
+        "erros_detectados": "0/49",
+        "acertos_perdidos": "0/71",
+        "precisao_da_abstencao": null,
+        "cobertura_dos_erros": 0.0
+      },
+      {
+        "limiar": 0.6,
+        "erros_detectados": "0/49",
+        "acertos_perdidos": "0/71",
+        "precisao_da_abstencao": null,
+        "cobertura_dos_erros": 0.0
+      },
+      {
+        "limiar": 0.65,
+        "erros_detectados": "0/49",
+        "acertos_perdidos": "0/71",
+        "precisao_da_abstencao": null,
+        "cobertura_dos_erros": 0.0
+      },
+      {
+        "limiar": 0.7,
+        "erros_detectados": "0/49",
+        "acertos_perdidos": "0/71",
+        "precisao_da_abstencao": null,
+        "cobertura_dos_erros": 0.0
+      },
+      {
+        "limiar": 0.75,
+        "erros_detectados": "1/49",
+        "acertos_perdidos": "0/71",
+        "precisao_da_abstencao": 1.0,
+        "cobertura_dos_erros": 0.02
+      },
+      {
+        "limiar": 0.8,
+        "erros_detectados": "17/49",
+        "acertos_perdidos": "13/71",
+        "precisao_da_abstencao": 0.567,
+        "cobertura_dos_erros": 0.347
+      },
+      {
+        "limiar": 0.85,
+        "erros_detectados": "34/49",
+        "acertos_perdidos": "42/71",
+        "precisao_da_abstencao": 0.447,
+        "cobertura_dos_erros": 0.694
+      },
+      {
+        "limiar": 0.9,
+        "erros_detectados": "49/49",
+        "acertos_perdidos": "65/71",
+        "precisao_da_abstencao": 0.43,
+        "cobertura_dos_erros": 1.0
+      },
+      {
+        "limiar": 0.95,
+        "erros_detectados": "49/49",
+        "acertos_perdidos": "71/71",
+        "precisao_da_abstencao": 0.408,
+        "cobertura_dos_erros": 1.0
+      }
+    ]
+  }
+}

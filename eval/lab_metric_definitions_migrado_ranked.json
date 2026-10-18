@@ -1,0 +1,869 @@
+{
+  "meta": {
+    "mode": "ranked",
+    "kmax": 100,
+    "db": "/home/claudio/local-data/mcp/lab/migracao/migrado2.db",
+    "cases": "eval/recall_cases_v2.json",
+    "embedding_model": "paraphrase-multilingual-MiniLM-L12-v2"
+  },
+  "10": {
+    "recall_por_termo": 0.4417,
+    "recall_por_documento": 0.325,
+    "divergentes": 14
+  },
+  "30": {
+    "recall_por_termo": 0.5583,
+    "recall_por_documento": 0.3833,
+    "divergentes": 21
+  },
+  "100": {
+    "recall_por_termo": 0.6333,
+    "recall_por_documento": 0.475,
+    "divergentes": 19
+  },
+  "so_termo": 19,
+  "so_documento": 0,
+  "ambos_no_topo100": 57,
+  "casos": [
+    {
+      "id": "g01-001",
+      "categoria": "decisao",
+      "idioma": "pt",
+      "term": 2,
+      "hash": null
+    },
+    {
+      "id": "g01-002",
+      "categoria": "decisao",
+      "idioma": "pt",
+      "term": 59,
+      "hash": null
+    },
+    {
+      "id": "g01-003",
+      "categoria": "decisao",
+      "idioma": "en",
+      "term": 1,
+      "hash": 42
+    },
+    {
+      "id": "g01-004",
+      "categoria": "decisao",
+      "idioma": "pt",
+      "term": 2,
+      "hash": 2
+    },
+    {
+      "id": "g01-005",
+      "categoria": "decisao",
+      "idioma": "en",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g01-006",
+      "categoria": "bug",
+      "idioma": "pt",
+      "term": 3,
+      "hash": 3
+    },
+    {
+      "id": "g01-007",
+      "categoria": "bug",
+      "idioma": "en",
+      "term": 26,
+      "hash": 26
+    },
+    {
+      "id": "g01-008",
+      "categoria": "bug",
+      "idioma": "pt",
+      "term": 2,
+      "hash": 4
+    },
+    {
+      "id": "g01-009",
+      "categoria": "bug",
+      "idioma": "en",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g01-010",
+      "categoria": "bug",
+      "idioma": "pt",
+      "term": 5,
+      "hash": 5
+    },
+    {
+      "id": "g01-011",
+      "categoria": "bug",
+      "idioma": "en",
+      "term": 1,
+      "hash": 1
+    },
+    {
+      "id": "g01-012",
+      "categoria": "infra",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g01-013",
+      "categoria": "infra",
+      "idioma": "pt",
+      "term": 3,
+      "hash": 3
+    },
+    {
+      "id": "g01-014",
+      "categoria": "infra",
+      "idioma": "pt",
+      "term": 2,
+      "hash": null
+    },
+    {
+      "id": "g01-015",
+      "categoria": "infra",
+      "idioma": "en",
+      "term": 64,
+      "hash": 64
+    },
+    {
+      "id": "g01-016",
+      "categoria": "infra",
+      "idioma": "pt",
+      "term": 77,
+      "hash": 77
+    },
+    {
+      "id": "g01-017",
+      "categoria": "metodo",
+      "idioma": "pt",
+      "term": 1,
+      "hash": 1
+    },
+    {
+      "id": "g01-018",
+      "categoria": "metodo",
+      "idioma": "pt",
+      "term": 1,
+      "hash": null
+    },
+    {
+      "id": "g01-019",
+      "categoria": "metodo",
+      "idioma": "en",
+      "term": 8,
+      "hash": 8
+    },
+    {
+      "id": "g01-020",
+      "categoria": "metodo",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g01-021",
+      "categoria": "metodo",
+      "idioma": "pt",
+      "term": 3,
+      "hash": 3
+    },
+    {
+      "id": "g01-022",
+      "categoria": "produto",
+      "idioma": "en",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g01-023",
+      "categoria": "produto",
+      "idioma": "pt",
+      "term": 5,
+      "hash": 5
+    },
+    {
+      "id": "g01-024",
+      "categoria": "produto",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g01-025",
+      "categoria": "produto",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g01-026",
+      "categoria": "produto",
+      "idioma": "en",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g01-027",
+      "categoria": "dados",
+      "idioma": "pt",
+      "term": 6,
+      "hash": 6
+    },
+    {
+      "id": "g01-028",
+      "categoria": "dados",
+      "idioma": "en",
+      "term": 1,
+      "hash": 1
+    },
+    {
+      "id": "g01-029",
+      "categoria": "dados",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g01-030",
+      "categoria": "dados",
+      "idioma": "pt",
+      "term": 1,
+      "hash": 1
+    },
+    {
+      "id": "g02-001",
+      "categoria": "dados",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g02-002",
+      "categoria": "bug",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g02-003",
+      "categoria": "decisao",
+      "idioma": "pt",
+      "term": 9,
+      "hash": 9
+    },
+    {
+      "id": "g02-004",
+      "categoria": "infra",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g02-005",
+      "categoria": "infra",
+      "idioma": "pt",
+      "term": 22,
+      "hash": null
+    },
+    {
+      "id": "g02-006",
+      "categoria": "produto",
+      "idioma": "pt",
+      "term": 3,
+      "hash": 11
+    },
+    {
+      "id": "g02-007",
+      "categoria": "decisao",
+      "idioma": "pt",
+      "term": 14,
+      "hash": 14
+    },
+    {
+      "id": "g02-008",
+      "categoria": "decisao",
+      "idioma": "pt",
+      "term": 23,
+      "hash": 23
+    },
+    {
+      "id": "g02-009",
+      "categoria": "produto",
+      "idioma": "pt",
+      "term": 60,
+      "hash": 60
+    },
+    {
+      "id": "g02-010",
+      "categoria": "dados",
+      "idioma": "pt",
+      "term": 3,
+      "hash": 31
+    },
+    {
+      "id": "g02-011",
+      "categoria": "infra",
+      "idioma": "pt",
+      "term": 5,
+      "hash": null
+    },
+    {
+      "id": "g02-012",
+      "categoria": "bug",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g02-013",
+      "categoria": "metodo",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g02-014",
+      "categoria": "bug",
+      "idioma": "pt",
+      "term": 2,
+      "hash": 2
+    },
+    {
+      "id": "g02-015",
+      "categoria": "metodo",
+      "idioma": "pt",
+      "term": 1,
+      "hash": 1
+    },
+    {
+      "id": "g02-016",
+      "categoria": "bug",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g02-017",
+      "categoria": "metodo",
+      "idioma": "pt",
+      "term": 6,
+      "hash": 6
+    },
+    {
+      "id": "g02-018",
+      "categoria": "decisao",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g02-019",
+      "categoria": "produto",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g02-020",
+      "categoria": "decisao",
+      "idioma": "pt",
+      "term": 1,
+      "hash": 1
+    },
+    {
+      "id": "g02-021",
+      "categoria": "dados",
+      "idioma": "en",
+      "term": 6,
+      "hash": null
+    },
+    {
+      "id": "g02-022",
+      "categoria": "produto",
+      "idioma": "en",
+      "term": 3,
+      "hash": null
+    },
+    {
+      "id": "g02-023",
+      "categoria": "decisao",
+      "idioma": "en",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g02-024",
+      "categoria": "infra",
+      "idioma": "en",
+      "term": 1,
+      "hash": 1
+    },
+    {
+      "id": "g02-025",
+      "categoria": "infra",
+      "idioma": "en",
+      "term": 1,
+      "hash": 40
+    },
+    {
+      "id": "g02-026",
+      "categoria": "bug",
+      "idioma": "en",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g02-027",
+      "categoria": "infra",
+      "idioma": "en",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g02-028",
+      "categoria": "infra",
+      "idioma": "en",
+      "term": 1,
+      "hash": 1
+    },
+    {
+      "id": "g02-029",
+      "categoria": "bug",
+      "idioma": "en",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g02-030",
+      "categoria": "bug",
+      "idioma": "en",
+      "term": 4,
+      "hash": 4
+    },
+    {
+      "id": "g03-001",
+      "categoria": "bug",
+      "idioma": "pt",
+      "term": 1,
+      "hash": 1
+    },
+    {
+      "id": "g03-002",
+      "categoria": "produto",
+      "idioma": "pt",
+      "term": 2,
+      "hash": 2
+    },
+    {
+      "id": "g03-003",
+      "categoria": "decisao",
+      "idioma": "pt",
+      "term": 3,
+      "hash": 3
+    },
+    {
+      "id": "g03-004",
+      "categoria": "decisao",
+      "idioma": "pt",
+      "term": 25,
+      "hash": null
+    },
+    {
+      "id": "g03-005",
+      "categoria": "produto",
+      "idioma": "pt",
+      "term": 24,
+      "hash": null
+    },
+    {
+      "id": "g03-006",
+      "categoria": "produto",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g03-007",
+      "categoria": "metodo",
+      "idioma": "pt",
+      "term": 3,
+      "hash": 3
+    },
+    {
+      "id": "g03-008",
+      "categoria": "infra",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g03-009",
+      "categoria": "infra",
+      "idioma": "pt",
+      "term": 1,
+      "hash": 1
+    },
+    {
+      "id": "g03-010",
+      "categoria": "produto",
+      "idioma": "pt",
+      "term": 1,
+      "hash": 1
+    },
+    {
+      "id": "g03-011",
+      "categoria": "infra",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g03-012",
+      "categoria": "decisao",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g03-013",
+      "categoria": "decisao",
+      "idioma": "pt",
+      "term": 16,
+      "hash": 16
+    },
+    {
+      "id": "g03-014",
+      "categoria": "decisao",
+      "idioma": "pt",
+      "term": 5,
+      "hash": 5
+    },
+    {
+      "id": "g03-015",
+      "categoria": "bug",
+      "idioma": "pt",
+      "term": 3,
+      "hash": 3
+    },
+    {
+      "id": "g03-016",
+      "categoria": "bug",
+      "idioma": "pt",
+      "term": 12,
+      "hash": null
+    },
+    {
+      "id": "g03-017",
+      "categoria": "dados",
+      "idioma": "pt",
+      "term": 24,
+      "hash": null
+    },
+    {
+      "id": "g03-018",
+      "categoria": "produto",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g03-019",
+      "categoria": "dados",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g03-020",
+      "categoria": "bug",
+      "idioma": "pt",
+      "term": 17,
+      "hash": null
+    },
+    {
+      "id": "g03-021",
+      "categoria": "bug",
+      "idioma": "en",
+      "term": 27,
+      "hash": null
+    },
+    {
+      "id": "g03-022",
+      "categoria": "bug",
+      "idioma": "en",
+      "term": 1,
+      "hash": 1
+    },
+    {
+      "id": "g03-023",
+      "categoria": "infra",
+      "idioma": "en",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g03-024",
+      "categoria": "infra",
+      "idioma": "en",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g03-025",
+      "categoria": "bug",
+      "idioma": "en",
+      "term": 8,
+      "hash": null
+    },
+    {
+      "id": "g03-026",
+      "categoria": "metodo",
+      "idioma": "en",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g03-027",
+      "categoria": "infra",
+      "idioma": "en",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g03-028",
+      "categoria": "bug",
+      "idioma": "en",
+      "term": 1,
+      "hash": 7
+    },
+    {
+      "id": "g03-029",
+      "categoria": "infra",
+      "idioma": "en",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g03-030",
+      "categoria": "dados",
+      "idioma": "en",
+      "term": 88,
+      "hash": 88
+    },
+    {
+      "id": "g04-001",
+      "categoria": "decisao",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g04-002",
+      "categoria": "bug",
+      "idioma": "pt",
+      "term": 4,
+      "hash": 68
+    },
+    {
+      "id": "g04-003",
+      "categoria": "infra",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g04-004",
+      "categoria": "infra",
+      "idioma": "pt",
+      "term": 53,
+      "hash": 53
+    },
+    {
+      "id": "g04-005",
+      "categoria": "produto",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g04-006",
+      "categoria": "infra",
+      "idioma": "pt",
+      "term": 29,
+      "hash": null
+    },
+    {
+      "id": "g04-007",
+      "categoria": "infra",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g04-008",
+      "categoria": "infra",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g04-009",
+      "categoria": "metodo",
+      "idioma": "pt",
+      "term": 1,
+      "hash": 1
+    },
+    {
+      "id": "g04-010",
+      "categoria": "decisao",
+      "idioma": "pt",
+      "term": 69,
+      "hash": null
+    },
+    {
+      "id": "g04-011",
+      "categoria": "metodo",
+      "idioma": "pt",
+      "term": 19,
+      "hash": 19
+    },
+    {
+      "id": "g04-012",
+      "categoria": "bug",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g04-013",
+      "categoria": "bug",
+      "idioma": "pt",
+      "term": 1,
+      "hash": 1
+    },
+    {
+      "id": "g04-014",
+      "categoria": "decisao",
+      "idioma": "pt",
+      "term": 1,
+      "hash": 1
+    },
+    {
+      "id": "g04-015",
+      "categoria": "bug",
+      "idioma": "pt",
+      "term": 18,
+      "hash": 18
+    },
+    {
+      "id": "g04-016",
+      "categoria": "infra",
+      "idioma": "pt",
+      "term": 8,
+      "hash": null
+    },
+    {
+      "id": "g04-017",
+      "categoria": "bug",
+      "idioma": "pt",
+      "term": 45,
+      "hash": 98
+    },
+    {
+      "id": "g04-018",
+      "categoria": "infra",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g04-019",
+      "categoria": "dados",
+      "idioma": "pt",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g04-020",
+      "categoria": "bug",
+      "idioma": "pt",
+      "term": 4,
+      "hash": 4
+    },
+    {
+      "id": "g04-021",
+      "categoria": "metodo",
+      "idioma": "en",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g04-022",
+      "categoria": "metodo",
+      "idioma": "en",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g04-023",
+      "categoria": "bug",
+      "idioma": "en",
+      "term": 94,
+      "hash": 94
+    },
+    {
+      "id": "g04-024",
+      "categoria": "produto",
+      "idioma": "en",
+      "term": 2,
+      "hash": 2
+    },
+    {
+      "id": "g04-025",
+      "categoria": "infra",
+      "idioma": "en",
+      "term": 9,
+      "hash": null
+    },
+    {
+      "id": "g04-026",
+      "categoria": "bug",
+      "idioma": "en",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g04-027",
+      "categoria": "bug",
+      "idioma": "en",
+      "term": 4,
+      "hash": 4
+    },
+    {
+      "id": "g04-028",
+      "categoria": "decisao",
+      "idioma": "en",
+      "term": 4,
+      "hash": 4
+    },
+    {
+      "id": "g04-029",
+      "categoria": "bug",
+      "idioma": "en",
+      "term": null,
+      "hash": null
+    },
+    {
+      "id": "g04-030",
+      "categoria": "bug",
+      "idioma": "en",
+      "term": 7,
+      "hash": 7
+    }
+  ]
+}
