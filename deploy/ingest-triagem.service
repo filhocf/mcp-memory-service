@@ -5,4 +5,4 @@ Description=Reingestao horaria de issues/PRs do upstream na base de triagem
 Type=oneshot
 WorkingDirectory=/home/claudio/git/mms-lab-precisao
 Environment=PYTHONPATH=/home/claudio/git/mms-lab-precisao/src
-ExecStart=/home/claudio/git/mcp-memory-service/.venv/bin/python scripts/ingest_github_triage.py --repo doobidoo/mcp-memory-service --db /home/claudio/local-data/mcp/bench/triagem-upstream.db
+ExecStart=/home/claudio/git/mcp-memory-service/.venv/bin/python scripts/ingest_github_triage.py --repo doobidoo/mcp-memory-service --db /home/claudio/local-data/mcp/bench/triagem-upstream.db --with-review-comments --with-discussions
