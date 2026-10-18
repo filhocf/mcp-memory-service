@@ -1,0 +1,19 @@
+{
+  "meta": {
+    "db": "/home/claudio/local-data/mcp/bench/bench-upstream.db",
+    "cases": "eval/recall_cases_bench_v1.json",
+    "model": "all-MiniLM-L6-v2",
+    "kmax": 100
+  },
+  "default": {
+    "documento@10": 0.0,
+    "documento@30": 0.0,
+    "documento@100": 0.0
+  },
+  "todos_os_stores": {
+    "documento@10": 0.81,
+    "documento@30": 0.95,
+    "documento@100": 0.97
+  },
+  "slots_top10_de_outros_stores": "1000/1000"
+}

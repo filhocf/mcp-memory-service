@@ -1,0 +1,464 @@
+[
+  {
+    "id": "bench-c-001",
+    "pergunta": "When deploying the memory service as a container stack sized to three instances with per-container CPU and memory limits, how is the compose definition applied and which restart policy is configured?",
+    "categoria": "infra",
+    "idioma": "en",
+    "gold_terms": [
+      "Docker Swarm",
+      "docker-stack.yml",
+      "replicas"
+    ],
+    "gold_hashes": [
+      "cf7b8c06282d5821446cfcf51840e81c222895bcf8f1a404e4478646f7614705"
+    ]
+  },
+  {
+    "id": "bench-c-002",
+    "pergunta": "When sharing a single memory database across several machines on a local network, what is the recommended way to restrict which network interface the server listens on and which clients may connect?",
+    "categoria": "infra",
+    "idioma": "en",
+    "gold_terms": [
+      "MCP_SSE_HOST",
+      "0.0.0.0",
+      "MCP_SSE_PORT"
+    ],
+    "gold_hashes": [
+      "629a92984d1215e4ae4159ebc242d265e2c6ed5d6bd7ba0ed223cd15dcbbcdbb"
+    ]
+  },
+  {
+    "id": "bench-c-003",
+    "pergunta": "For a Linux host that must serve both MCP clients and the web dashboard as two separate system services, which two unit files are installed and what are the exact commands to activate and launch them?",
+    "categoria": "infra",
+    "idioma": "en",
+    "gold_terms": [
+      "mcp-http-dashboard.service",
+      "mcp-memory.service",
+      "systemctl daemon-reload"
+    ],
+    "gold_hashes": [
+      "db4c53f64b3022d465004dc6c1bafb1fc71c759e332cd9dcc7261251f4173c06"
+    ]
+  },
+  {
+    "id": "bench-c-004",
+    "pergunta": "Why would a user who configured an external embedding endpoint on a hybrid or Cloudflare backend find that their custom API is silently never called, and what single backend is actually required for it to take effect?",
+    "categoria": "infra",
+    "idioma": "en",
+    "gold_terms": [
+      "sqlite_vec",
+      "MCP_EXTERNAL_EMBEDDING_URL",
+      "Workers AI"
+    ],
+    "gold_hashes": [
+      "3b601f0a1611c595f6526e2fdadcb90d665bff9b04facafbb8003aa5c6d5b344"
+    ]
+  },
+  {
+    "id": "bench-c-005",
+    "pergunta": "When deciding how to offload embedding generation to a separate endpoint rather than computing it locally, which third-party serving options does the topology guide name as compatible targets?",
+    "categoria": "decisao",
+    "idioma": "en",
+    "gold_terms": [
+      "vLLM",
+      "Ollama",
+      "TEI"
+    ],
+    "gold_hashes": [
+      "a9264b076773bb0c267efdf20d536db4b5cdc0ae9caf70fc8f0741b422084f15"
+    ]
+  },
+  {
+    "id": "bench-c-006",
+    "pergunta": "During the graph migration, how do you run the read-only preview of which associations will be migrated, and what counts does the expected output report for total, skipped, and ready records?",
+    "categoria": "metodo",
+    "idioma": "en",
+    "gold_terms": [
+      "backfill_graph_table.py",
+      "--dry-run",
+      "bidirectional edges"
+    ],
+    "gold_hashes": [
+      "56d49c0c78eb55437d8b8fc326da1c659b49cf440a241de6a1d251829c28197f"
+    ]
+  },
+  {
+    "id": "bench-c-007",
+    "pergunta": "When justifying the switch to the new code execution interface to a cost-conscious team, what quantitative token savings and latency advantage does the quick-start cite, and what safety net keeps existing workflows running if it fails?",
+    "categoria": "decisao",
+    "idioma": "en",
+    "gold_terms": [
+      "token reduction",
+      "cold start",
+      "fallback"
+    ],
+    "gold_hashes": [
+      "eff0e6afeb7393dc1d523c2b5b7a3c6084294712038a199a1fc221fac63037cc"
+    ]
+  },
+  {
+    "id": "bench-c-008",
+    "pergunta": "How do you verify that an asymmetric 'causes' edge is queryable both ways after applying migration 010, and what method plus arguments do you call to retrieve the outgoing versus incoming edges of a stored association?",
+    "categoria": "dados",
+    "idioma": "en",
+    "gold_terms": [
+      "relationship_type",
+      "find_connected",
+      "direction"
+    ],
+    "gold_hashes": [
+      "6ddc4780930c7f2a870da21de082a6fd84f427e4604d20a1c798194a99529ecb"
+    ]
+  },
+  {
+    "id": "bench-c-009",
+    "pergunta": "When SessionEnd memories stop being created after a Claude session, what are the four checks on the quick-diagnosis checklist, and specifically how does ending the session with Ctrl+C instead of the proper command break the flow?",
+    "categoria": "bug",
+    "idioma": "en",
+    "gold_terms": [
+      "/exit",
+      "config.json",
+      "api/health"
+    ],
+    "gold_hashes": [
+      "42d47bffc4e862f064647e8766a90d8fa9bea3ba8cd7808d0c23c0a079a4893f"
+    ]
+  },
+  {
+    "id": "bench-c-010",
+    "pergunta": "When the distributed sync staging database starts throwing lock errors and fails an integrity check, what is the exact recovery sequence to attempt repair, and what command do you run to reinitialize it if the repair still fails?",
+    "categoria": "bug",
+    "idioma": "en",
+    "gold_terms": [
+      ".recover",
+      "integrity_check",
+      "staging.db"
+    ],
+    "gold_hashes": [
+      "db0954cf50541f19b5cb6ff8ed22bc66925f1f92a746043f6b441604cd9bd4f6"
+    ]
+  },
+  {
+    "id": "bench-c-011",
+    "pergunta": "To move a memory database from one machine to another without corrupting the write-ahead log, how do you archive, transfer, and then verify the copy before placing it into the per-OS application data directory?",
+    "categoria": "metodo",
+    "idioma": "en",
+    "gold_terms": [
+      "tar czf",
+      "scp",
+      "PRAGMA integrity_check"
+    ],
+    "gold_hashes": [
+      "6782b952abd16cd45d954ff0d0c87d96076dddb1686b935dfdca41faf26875c1"
+    ]
+  },
+  {
+    "id": "bench-c-012",
+    "pergunta": "When several leftover server processes each eat about a gigabyte of RAM because the coding agent failed to clean them up at session end, how do you find and kill them, and what systemd limit can you add to cap future memory use?",
+    "categoria": "bug",
+    "idioma": "en",
+    "gold_terms": [
+      "pkill",
+      "MemoryMax",
+      "orphaned"
+    ],
+    "gold_hashes": [
+      "50fa706202dadd08b568dbc4270d5e23c40c05a8d03b2fa8636722181f75288d"
+    ]
+  },
+  {
+    "id": "bench-c-013",
+    "pergunta": "Even after pulling the merged fix for comma-separated tags, why could the old validation error keep appearing, and which two mechanisms each independently preserve the stale behavior?",
+    "categoria": "bug",
+    "idioma": "en",
+    "gold_terms": [
+      "schema caching",
+      "JSONSchema",
+      "client-side"
+    ],
+    "gold_hashes": [
+      "f40423889855707efd964502e1cefabfceb21ce294e9b99b8f6efcc5c76372ab"
+    ]
+  },
+  {
+    "id": "bench-c-014",
+    "pergunta": "When the Cloudflare-backed service returns an unauthorized error, what script do you run to check whether environment variables are loading, and how do you manually confirm both the API token and D1 database access from the command line?",
+    "categoria": "bug",
+    "idioma": "en",
+    "gold_terms": [
+      "tokens/verify",
+      "diagnose_backend_config.py",
+      "401"
+    ],
+    "gold_hashes": [
+      "df6c7034ff04ea130fe00cda33a5dcab14c75ceedbe9d8a2ae4d03b62d5091bd"
+    ]
+  },
+  {
+    "id": "bench-c-015",
+    "pergunta": "If every new session prints several fallback notices followed by a message saying no memory context was found, even though git analysis works fine, what underlying configuration discrepancy is responsible?",
+    "categoria": "bug",
+    "idioma": "en",
+    "gold_terms": [
+      "MCP Fallback",
+      "protocol mismatch",
+      "No relevant memories found"
+    ],
+    "gold_hashes": [
+      "8b320bbda13c0978541ecf4467d9b9d7d9276cbad6de9e381bc327013e171f2c"
+    ]
+  },
+  {
+    "id": "bench-c-016",
+    "pergunta": "Given a short note describing a production Cloudflare database timeout that you fixed during a debugging session, what is the complete set of recommended tags to attach, spanning primary context, activity, content, status and temporal dimensions?",
+    "categoria": "metodo",
+    "idioma": "en",
+    "gold_terms": [
+      "connection-timeout",
+      "hotfix",
+      "mcp-memory-service"
+    ],
+    "gold_hashes": [
+      "d9c079f5bcc077ac10dba6104b1c101c7f910716b6436e5c93ef3d53f4b2e9e7"
+    ]
+  },
+  {
+    "id": "bench-c-017",
+    "pergunta": "What does the store() function return when it successfully records a new memory, roughly how many tokens does one call cost, and what are its three parameters including the default classification type?",
+    "categoria": "produto",
+    "idioma": "en",
+    "gold_terms": [
+      "8-character content hash",
+      "15 tokens",
+      "memory_type"
+    ],
+    "gold_hashes": [
+      "7adb10567b99d9a443b16c8ab03adcdb8fa8d9b2e0a91fe5d1f4af4f7c50eedf"
+    ]
+  },
+  {
+    "id": "bench-c-018",
+    "pergunta": "Which API lets you change a memory's metadata while keeping the original text, its embeddings, and by default its original creation timestamp intact, and what two values does it return to indicate the outcome?",
+    "categoria": "produto",
+    "idioma": "en",
+    "gold_terms": [
+      "update_memory_metadata",
+      "preserve_timestamps",
+      "content_hash"
+    ],
+    "gold_hashes": [
+      "66fcb93abdb46582c42491cdd9e23201f4660e1f85a9ebb6d019dbde7f039d63"
+    ]
+  },
+  {
+    "id": "bench-c-019",
+    "pergunta": "In the interactive graph visualization, what JavaScript library and simulation drive the automatic node layout, what does node color encode versus edge color, and which mouse gestures let you explore connections?",
+    "categoria": "produto",
+    "idioma": "en",
+    "gold_terms": [
+      "D3.js",
+      "force simulation",
+      "hover tooltips"
+    ],
+    "gold_hashes": [
+      "d2293c39dcaba9bbe0c9b0f072b1e17764019e470bf47c97b8ad670e7c69fab9"
+    ]
+  },
+  {
+    "id": "bench-c-020",
+    "pergunta": "When a memory's quality score gets raised because of its graph connections, what metadata fields are written so the boost is auditable and reversible, and which reason value records why it happened?",
+    "categoria": "produto",
+    "idioma": "en",
+    "gold_terms": [
+      "quality_boost_applied",
+      "original_quality_before_boost",
+      "association_connections"
+    ],
+    "gold_hashes": [
+      "f08623adf843a0f43cf6c6a21fbfc53231a03dd1d1aa79bdb3680dec4f8cb13c"
+    ]
+  },
+  {
+    "id": "bench-c-021",
+    "pergunta": "When multiple clients hit a 'database is locked' error against the local vector store, which environment variable do you set to tune SQLite pragma values, and what specific timeout and cache values does the guide recommend as the starting point and the escalation?",
+    "categoria": "bug",
+    "idioma": "en",
+    "gold_terms": [
+      "MCP_MEMORY_SQLITE_PRAGMAS",
+      "busy_timeout",
+      "cache_size"
+    ],
+    "gold_hashes": [
+      "460f902b698fe2b630d66a1018ae0ea6153bbd2056d1cb194191b72d6e2d0e76"
+    ]
+  },
+  {
+    "id": "bench-c-022",
+    "pergunta": "Compared to the local vector store, why is a normal deletion on this backend permanent, why is the duplicate-cleanup function a no-op here, and what do you need to do to recognize explicitly-removed entries for multi-device soft-delete?",
+    "categoria": "infra",
+    "idioma": "en",
+    "gold_terms": [
+      "cleanup_duplicates",
+      "tombstones",
+      "Milvus Lite"
+    ],
+    "gold_hashes": [
+      "7250f4d27ed85fc073015d60d9e69460af5ebc76ebc488c3c5a21c8f42ce3081"
+    ]
+  },
+  {
+    "id": "bench-c-023",
+    "pergunta": "To wire a Gemini-based IDE into the memory service, what are the two transport approaches shown, and for a client that only accepts a command-based server entry, which wrapper and which environment variable must you use?",
+    "categoria": "infra",
+    "idioma": "en",
+    "gold_terms": [
+      "streamablehttp",
+      "mcp-proxy",
+      "API_ACCESS_TOKEN"
+    ],
+    "gold_hashes": [
+      "975f7a08fc39050d81632662e9f81d39e37cd6a9e4530350acbce6389888df7f"
+    ]
+  },
+  {
+    "id": "bench-c-024",
+    "pergunta": "To make sentence-transformer embeddings work under Homebrew-installed Python without breaking the main interpreter, what isolation pattern does the guide show, and which environment is passed to the spawned child process?",
+    "categoria": "infra",
+    "idioma": "en",
+    "gold_terms": [
+      "subprocess",
+      "SentenceTransformer",
+      "homebrew_env"
+    ],
+    "gold_hashes": [
+      "52b212822cc9f12b9eebb8ad14a2e57b2f64417f72d70d9edad0bb695387c4ab"
+    ]
+  },
+  {
+    "id": "bench-c-025",
+    "pergunta": "Between the two invalidation strategies for handling contradictory memories, which one keeps the read path fast by filtering only current rows, and which one instead walks the graph to mark every dependent entry stale at write time?",
+    "categoria": "metodo",
+    "idioma": "en",
+    "gold_terms": [
+      "bi-temporal",
+      "invalid_at",
+      "transitive closure"
+    ],
+    "gold_hashes": [
+      "31ff21c2be6a702f9d196ab8224fdf1ca2213fa52724f71c5569ad4eeafc5df4"
+    ]
+  },
+  {
+    "id": "bench-c-026",
+    "pergunta": "In the LoCoMo benchmark dataset, what identifies the two participants in a multi-session conversation, which generated field holds per-session observations, and what does the annotated question-answer list store as its grounding reference?",
+    "categoria": "dados",
+    "idioma": "en",
+    "gold_terms": [
+      "speaker_a",
+      "session_summary",
+      "evidence"
+    ],
+    "gold_hashes": [
+      "9c0069d19c821112362f2b22adc94e65cb52f66e5c34c7c70cf5a43ed1d2fd73"
+    ]
+  },
+  {
+    "id": "bench-c-027",
+    "pergunta": "According to the pull request review guide, what three principles make feedback effective, and how does it distinguish a mandatory change from an optional nitpick in an example?",
+    "categoria": "metodo",
+    "idioma": "en",
+    "gold_terms": [
+      "busy_timeout",
+      "transaction",
+      "Required"
+    ],
+    "gold_hashes": [
+      "f3b456a473ab05577e5ccc8db43a751053c0d5b93653969afdead36a9b88aa65"
+    ]
+  },
+  {
+    "id": "bench-c-028",
+    "pergunta": "What quality gates must a release CHANGELOG pass for formatting, how must non-backward-compatible changes and bug fixes be flagged, and what three items of migration guidance are required when a release is incompatible with older versions?",
+    "categoria": "metodo",
+    "idioma": "en",
+    "gold_terms": [
+      "Keep a Changelog",
+      "BREAKING",
+      "deprecation timeline"
+    ],
+    "gold_hashes": [
+      "5ad976f26b2d9ecc445e4c0dc264e3b9115f1ab76c8924c40abb59ea6eec0f6a"
+    ]
+  },
+  {
+    "id": "bench-c-029",
+    "pergunta": "What do the closure-comment templates for a successfully fixed issue and for a newly implemented feature each include, and what exact command example does the feature template show for demonstrating usage?",
+    "categoria": "metodo",
+    "idioma": "en",
+    "gold_terms": [
+      "PR_NUMBER",
+      "CHANGELOG Entry",
+      "uv run memory"
+    ],
+    "gold_hashes": [
+      "983b607b67d1fd10f6238194527a50ca06e0b4a1f0c60adda55f8d2f698c78e3"
+    ]
+  },
+  {
+    "id": "bench-c-030",
+    "pergunta": "In the regression test that proves tag matching is exact rather than substring-based, what single tag is attached to the stored sample memory, and how many memories must a search for the plain 'python' tag return for the test to pass?",
+    "categoria": "bug",
+    "idioma": "en",
+    "gold_terms": [
+      "127.0.0.1:8000",
+      "by-tag",
+      "jq"
+    ],
+    "gold_hashes": [
+      "b35f2564b8488ff28c5b687fdc6d2e11f190315b91535c57b8eb1ded7aa54503"
+    ]
+  },
+  {
+    "id": "bench-c-031",
+    "pergunta": "When re-tagging an existing memory that was stored without proper tags, what are the five steps of the process, and in the example, what type and tags does the new memory get before the old untagged one is removed?",
+    "categoria": "metodo",
+    "idioma": "en",
+    "gold_terms": [
+      "store_memory",
+      "delete_memory",
+      "issue-7"
+    ],
+    "gold_hashes": [
+      "f1b6b9de8f80e89db342d4fcb08d2af64ac165f6f79396469404aa887e0c11c9"
+    ]
+  },
+  {
+    "id": "bench-c-032",
+    "pergunta": "During v9.0.0 verification of typed relationships, which database table gains the new relationship_type column, what function classifies a relationship as symmetric versus asymmetric, and which storage object is used with an in-memory database for the tests?",
+    "categoria": "produto",
+    "idioma": "en",
+    "gold_terms": [
+      "memory_graph",
+      "is_symmetric_relationship",
+      ":memory:"
+    ],
+    "gold_hashes": [
+      "713ad92a310268f659e62a1df1d080a2d3984fe7f174f3ed18e5cdadf4f65316"
+    ]
+  },
+  {
+    "id": "bench-c-033",
+    "pergunta": "After setting up the Cloudflare backend, what are the three options the guide offers for testing basic operations, and which script does each of the comprehensive and automated-resource-setup options invoke?",
+    "categoria": "infra",
+    "idioma": "en",
+    "gold_terms": [
+      "test_cloudflare_backend.py",
+      "setup_cloudflare_resources.py",
+      "memory-stats"
+    ],
+    "gold_hashes": [
+      "25f8e831c476091b602e47af4607b2df584db654baaf57d09c9b6032e26ad5fa"
+    ]
+  }
+]

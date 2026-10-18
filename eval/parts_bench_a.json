@@ -1,0 +1,475 @@
+[
+  {
+    "id": "bench-a-001",
+    "pergunta": "Where does the amp-bridge agent place a concise prompt so the user can run it inside their free Amp session, and where does Amp later write the response?",
+    "categoria": "metodo",
+    "idioma": "en",
+    "gold_terms": [
+      "pending",
+      "uuid"
+    ],
+    "gold_hashes": [
+      "b00ede2b50885b2a9c7d5a8307cd3dd7f8495753ebf2e1c36e4f6362c54d49ef"
+    ]
+  },
+  {
+    "id": "bench-a-002",
+    "pergunta": "What naming conventions does the project mandate for functions, classes, and constants, and which docstring style should be used?",
+    "categoria": "metodo",
+    "idioma": "en",
+    "gold_terms": [
+      "snake_case",
+      "PascalCase",
+      "NumPy"
+    ],
+    "gold_hashes": [
+      "f07fc72eea2ccb3463291ecd4e50dfa0c6b6eccc770836e079ba40e268e3bddb"
+    ]
+  },
+  {
+    "id": "bench-a-003",
+    "pergunta": "When is the storage backend built for cloud-only workers the right choice, and what makes it suited to teams sharing one source of truth without a local cache?",
+    "categoria": "decisao",
+    "idioma": "en",
+    "gold_terms": [
+      "serverless",
+      "Cloudflare",
+      "edge"
+    ],
+    "gold_hashes": [
+      "b5041ef21370579f4bf263f6b644e5dcf8b737b10137da72a70103c0d9069349"
+    ]
+  },
+  {
+    "id": "bench-a-004",
+    "pergunta": "Which deployment scenarios justify moving past the local vector store's ~100K-1M comfort zone, and which option offers a single local file with zero external dependencies?",
+    "categoria": "decisao",
+    "idioma": "en",
+    "gold_terms": [
+      "Milvus",
+      "Zilliz",
+      "SQLite-vec"
+    ],
+    "gold_hashes": [
+      "a356ec3369dc164fcd6314c20ba132072223ca1a3fced4db094d44f4e67cd5bd"
+    ]
+  },
+  {
+    "id": "bench-a-005",
+    "pergunta": "What capabilities do all three storage backends expose through their shared interface, and which version added knowledge graph associations?",
+    "categoria": "produto",
+    "idioma": "en",
+    "gold_terms": [
+      "BaseStorage",
+      "FTS5",
+      "KNN"
+    ],
+    "gold_hashes": [
+      "e342ea456c995769a3aa231a6c01110def910809d6374e06188dcdc18ab85862"
+    ]
+  },
+  {
+    "id": "bench-a-006",
+    "pergunta": "How do you configure Claude Desktop to run the memory server with the URI pointing at a local milvus.db file?",
+    "categoria": "infra",
+    "idioma": "en",
+    "gold_terms": [
+      "MCP_MEMORY_STORAGE_BACKEND",
+      "MCP_MILVUS_URI",
+      "mcp_memory_service"
+    ],
+    "gold_hashes": [
+      "39f20d11c32fe09548d45102c0c4b9a15c0f786aee2d8dd71e23b61329851e1b"
+    ]
+  },
+  {
+    "id": "bench-a-007",
+    "pergunta": "What did the environment detection log show after the fix for detecting a custom-named memory server, and what was the result?",
+    "categoria": "bug",
+    "idioma": "en",
+    "gold_terms": [
+      "memory-service",
+      "http://mcp-memory:8000/mcp",
+      "Claude Code"
+    ],
+    "gold_hashes": [
+      "2ffa97b1b1bdd3ef9d0f5f26743c006b29f9093fc6cc11a4e1d2b2d0625f63eb"
+    ]
+  },
+  {
+    "id": "bench-a-008",
+    "pergunta": "In the full-stack authentication session example, how are architecture decisions and the user table schema captured during development?",
+    "categoria": "metodo",
+    "idioma": "en",
+    "gold_terms": [
+      "PKCE",
+      "useReducer",
+      "REFRESH_TOKEN"
+    ],
+    "gold_hashes": [
+      "066666663b8f3a74eb59239057cb5b464b7f7d798a7101bfd134acba720f5efe"
+    ]
+  },
+  {
+    "id": "bench-a-009",
+    "pergunta": "What CSS trick for expanding a middle item, and what Clean Code principle about splitting functions, does the learning-journal example record?",
+    "categoria": "metodo",
+    "idioma": "en",
+    "gold_terms": [
+      "allSettled",
+      "flex-grow",
+      "useLocalStorage"
+    ],
+    "gold_hashes": [
+      "05a54892236db24e65eee73eb9a0aee6d962bcae3da85bf761c93bf58d33867c"
+    ]
+  },
+  {
+    "id": "bench-a-010",
+    "pergunta": "What five categories of tagging strategies does the guide recommend, and what examples does it give for hierarchical and priority tags?",
+    "categoria": "metodo",
+    "idioma": "en",
+    "gold_terms": [
+      "team-frontend-react",
+      "nice-to-have",
+      "sprint"
+    ],
+    "gold_hashes": [
+      "cbc818b9cb88cb521dd0e46768d4af478ad18f69f3a8069079e649e94034114e"
+    ]
+  },
+  {
+    "id": "bench-a-011",
+    "pergunta": "Which backend does the comparison table mark as REMOVED, and how do the recommended and local options differ on performance, multi-device support, and setup?",
+    "categoria": "decisao",
+    "idioma": "en",
+    "gold_terms": [
+      "ChromaDB",
+      "SQLite-vec"
+    ],
+    "gold_hashes": [
+      "fd2a508e507dc042ad8e8bb8f66e803bc91819ea452005f8ca27a02f20c5d71d"
+    ]
+  },
+  {
+    "id": "bench-a-012",
+    "pergunta": "What are the three dynamic resource URI patterns the service exposes for fetching recent items, tagged items, and query results?",
+    "categoria": "infra",
+    "idioma": "en",
+    "gold_terms": [
+      "uriTemplate",
+      "memory://recent",
+      "memory://search"
+    ],
+    "gold_hashes": [
+      "d9af03d5444ecdab1011a3017784b037595011d771acf245051fd223466abe85"
+    ]
+  },
+  {
+    "id": "bench-a-013",
+    "pergunta": "What percentage milestones are reported while bulk deletion by tags runs, and how many memories were deleted in the example run?",
+    "categoria": "produto",
+    "idioma": "en",
+    "gold_terms": [
+      "delete_by_tags",
+      "Searching for memories to delete",
+      "45 memories"
+    ],
+    "gold_hashes": [
+      "800cb84bf29ea586e41e5beac3606938d0adf5cc3ddec7c43957a51e2504b996"
+    ]
+  },
+  {
+    "id": "bench-a-014",
+    "pergunta": "How do you enable automatic self-signed certificate generation at launch, and where is the certificate written?",
+    "categoria": "infra",
+    "idioma": "en",
+    "gold_terms": [
+      "MCP_HTTPS_ENABLED",
+      "cert.pem",
+      "mDNS"
+    ],
+    "gold_hashes": [
+      "af33c116a45bf5d2eac485e436534e5d9271a72805ae70b3e417710ef2c73670"
+    ]
+  },
+  {
+    "id": "bench-a-015",
+    "pergunta": "How can you run development and staging instances on different ports so that clients discover both and pick one?",
+    "categoria": "infra",
+    "idioma": "en",
+    "gold_terms": [
+      "MCP_MDNS_SERVICE_NAME",
+      "MCP_HTTP_PORT",
+      "Staging Memory Service"
+    ],
+    "gold_hashes": [
+      "610e80783489d9409960f82ce523dbfd9f2fa54707b8809320b839dd04c7c8d0"
+    ]
+  },
+  {
+    "id": "bench-a-016",
+    "pergunta": "What input formats does the mem0 importer accept, and in what order are timestamps resolved when a record lacks created_at?",
+    "categoria": "dados",
+    "idioma": "en",
+    "gold_terms": [
+      "mem0_oss_qdrant_export",
+      "mem0_timestamp_source",
+      "conversion_warnings"
+    ],
+    "gold_hashes": [
+      "7736b12a5fd819939061c6a3058cd558c408a05085a99a9a480838722064d2f8"
+    ]
+  },
+  {
+    "id": "bench-a-017",
+    "pergunta": "Under what circumstances does the report file get created, and what naming pattern does it follow?",
+    "categoria": "infra",
+    "idioma": "en",
+    "gold_terms": [
+      "consolidation_{horizon}_{timestamp}.json",
+      "killed curl"
+    ],
+    "gold_hashes": [
+      "de5c46c97119f2bc8f8576b80b369417cd82e43a9b739130285b29e8df257eda"
+    ]
+  },
+  {
+    "id": "bench-a-018",
+    "pergunta": "Why does v8.50.0 discourage fallback mode, and what is the quality system inspired by?",
+    "categoria": "decisao",
+    "idioma": "en",
+    "gold_terms": [
+      "Memento-Inspired",
+      "MS-MARCO",
+      "Issue #260"
+    ],
+    "gold_hashes": [
+      "8ddd33c13bb16001658c6d7ad429b637d80cb0ca5d376c75382dd046b0fd53f4"
+    ]
+  },
+  {
+    "id": "bench-a-019",
+    "pergunta": "What improvement in retrieval precision does the quality system deliver, and why is the local scoring option cost-free?",
+    "categoria": "produto",
+    "idioma": "en",
+    "gold_terms": [
+      "top-5",
+      "SLM",
+      "70-85%"
+    ],
+    "gold_hashes": [
+      "f850bfec21229c4e2951344fda6c3cc66edb9a7c356db61bb438ce1cc04f37af"
+    ]
+  },
+  {
+    "id": "bench-a-020",
+    "pergunta": "How does the hybrid fallback scoring decide between the two models, and when does the second model actually run?",
+    "categoria": "metodo",
+    "idioma": "en",
+    "gold_terms": [
+      "score_with_ms_marco",
+      "MS_MARCO_THRESHOLD",
+      "self-matching bias"
+    ],
+    "gold_hashes": [
+      "46f6bc190f855a8f2083e2f2b37b05dbec2ac3a8aa2df3cc6176a487aca0ad5b"
+    ]
+  },
+  {
+    "id": "bench-a-021",
+    "pergunta": "Which two cloud scoring providers can be enabled as an opt-in, and which environment variables must be set for each?",
+    "categoria": "infra",
+    "idioma": "en",
+    "gold_terms": [
+      "GROQ_API_KEY",
+      "MCP_QUALITY_AI_PROVIDER",
+      "GEMINI_API_KEY"
+    ],
+    "gold_hashes": [
+      "44002c674068ec54bfc524e2c9b75a90e56f4a354edd5b7ca2e67c9425ae2879"
+    ]
+  },
+  {
+    "id": "bench-a-022",
+    "pergunta": "When are quality scores computed for a stored memory, and how is the update applied so retrieval is not slowed down?",
+    "categoria": "metodo",
+    "idioma": "en",
+    "gold_terms": [
+      "memory-recall",
+      "non-blocking",
+      "metadata"
+    ],
+    "gold_hashes": [
+      "f4974e3f4fc9fcdc16286d46971449bec4cb39cf366861e04ee324aea0fbca76"
+    ]
+  },
+  {
+    "id": "bench-a-023",
+    "pergunta": "What are the four privacy modes, and which of them avoid any external AI calls at zero cost?",
+    "categoria": "decisao",
+    "idioma": "en",
+    "gold_terms": [
+      "MCP_QUALITY_AI_PROVIDER",
+      "Implicit Only",
+      "$0.30/mo"
+    ],
+    "gold_hashes": [
+      "da95039932089187928d410471d4988d470a242f46c78d11aba5add27070c084"
+    ]
+  },
+  {
+    "id": "bench-a-024",
+    "pergunta": "Why is the default local scoring recommended to start with, and what should its scores be combined with for best results?",
+    "categoria": "decisao",
+    "idioma": "en",
+    "gold_terms": [
+      "ONNX",
+      "implicit signals",
+      "recency"
+    ],
+    "gold_hashes": [
+      "3d27e8dd2194c7f200954f551448f9ff2b14bc9808192a0705860028835d0f94"
+    ]
+  },
+  {
+    "id": "bench-a-025",
+    "pergunta": "What is the exact order of fallback tiers when the hybrid strategy is enabled, and what is the final last resort?",
+    "categoria": "infra",
+    "idioma": "en",
+    "gold_terms": [
+      "99% success rate",
+      "Tier 2",
+      "Gemini API"
+    ],
+    "gold_hashes": [
+      "f74c4c1df41fb4be3903ff51658dafba9821bd2057cf922e250e104efab1222f"
+    ]
+  },
+  {
+    "id": "bench-a-026",
+    "pergunta": "What problem does Issue 1 of the migration guide describe, and what two ways are provided to point the script at custom locations?",
+    "categoria": "bug",
+    "idioma": "en",
+    "gold_terms": [
+      "migrate_chroma_to_sqlite.py",
+      "MCP_MEMORY_CHROMA_PATH",
+      "hardcoded"
+    ],
+    "gold_hashes": [
+      "c0c389eab127be37ba2564ab0c5e9760d5689a7219c280fb65cf7257f6cd0c00"
+    ]
+  },
+  {
+    "id": "bench-a-027",
+    "pergunta": "Which scripts are provided for validating, repairing, and listing stored memory collections, and what does each one do?",
+    "categoria": "infra",
+    "idioma": "en",
+    "gold_terms": [
+      "validate_memories.py",
+      "repair_memories.py",
+      "list-collections.py"
+    ],
+    "gold_hashes": [
+      "350e97e0dcda8237218b721ed115a1573cc5116015d0c13b9c1778a8e27ef6ea"
+    ]
+  },
+  {
+    "id": "bench-a-028",
+    "pergunta": "Which hub endpoints do clients call for the startup embedding-model check, delta-sync pull, and delta-sync push, and what scopes apply?",
+    "categoria": "infra",
+    "idioma": "en",
+    "gold_terms": [
+      "/api/health/model",
+      "/api/sync/baseline",
+      "allow-list"
+    ],
+    "gold_hashes": [
+      "d718d712375773ce3d44aef893b78ae6433ae7beb511b33f2e1595eed45a8e40"
+    ]
+  },
+  {
+    "id": "bench-a-029",
+    "pergunta": "Which environment variables configure a node to participate in periodic delta-sync with a remote hub, including the schedule and peer URL?",
+    "categoria": "infra",
+    "idioma": "en",
+    "gold_terms": [
+      "MCP_SYNC_SCHEDULE",
+      "MCP_SYNC_PEER_URL",
+      "auth_basic"
+    ],
+    "gold_hashes": [
+      "fd1f97add5e26a1a6b2c5024c5dc79edcabef22d6616ee01e7b9fe84aacbad2a"
+    ]
+  },
+  {
+    "id": "bench-a-030",
+    "pergunta": "How are concurrent write conflicts resolved between synced clients, and what should you do about clock skew?",
+    "categoria": "decisao",
+    "idioma": "en",
+    "gold_terms": [
+      "hybrid logical clock",
+      "resolver.py",
+      "NTP"
+    ],
+    "gold_hashes": [
+      "0645371f7f4c39934f955a95b7b854c49fdc417a794c737915293149b43b9b0e"
+    ]
+  },
+  {
+    "id": "bench-a-031",
+    "pergunta": "What does the re-embedding export/import process do with the store each memory belongs to, and what should you verify before deleting the old database?",
+    "categoria": "infra",
+    "idioma": "en",
+    "gold_terms": [
+      "semantic deduplication",
+      "Rejected by storage",
+      "exact-hash"
+    ],
+    "gold_hashes": [
+      "21592de213297a7c196c0eb00ef3a4d6993b0e78b6cd1de23c966c2692b76673"
+    ]
+  },
+  {
+    "id": "bench-a-032",
+    "pergunta": "How can you cap the total size of a search response so no record is cut mid-content, and what starting range is recommended?",
+    "categoria": "infra",
+    "idioma": "en",
+    "gold_terms": [
+      "max_response_chars",
+      "memory_search",
+      "10k+"
+    ],
+    "gold_hashes": [
+      "2bb7ec8ed8e2536947e3617f20fe85f616ac6f6c16fe1a836edb05b9b1fd8fad"
+    ]
+  },
+  {
+    "id": "bench-a-033",
+    "pergunta": "Which fields does the response include when a search result is summarized, and how does the payload show what was omitted?",
+    "categoria": "dados",
+    "idioma": "en",
+    "gold_terms": [
+      "source_hashes",
+      "omitted_count",
+      "summarized_count"
+    ],
+    "gold_hashes": [
+      "4b80cb4a0bfad7c4e219b6bd562a311da03709f261e4238f56195160f198ca57"
+    ]
+  },
+  {
+    "id": "bench-a-034",
+    "pergunta": "What three ways are there to populate the entity graph for existing, future, and single memories, and which backend lacks graph storage?",
+    "categoria": "infra",
+    "idioma": "en",
+    "gold_terms": [
+      "MCP_ENTITY_LINKING_ENABLED",
+      "dry_run",
+      "extract_entities"
+    ],
+    "gold_hashes": [
+      "695e255a9db9827b8be50a36093b6ea3abdee1d29533761b3c60dd52986b32f2"
+    ]
+  }
+]
