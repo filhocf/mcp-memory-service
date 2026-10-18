@@ -347,6 +347,9 @@ _MODEL_CANDIDATES = (
 #: Amostra de memorias usada nos probe queries de deteccao.
 _DETECT_SAMPLE_SIZE = 16
 
+#: Composicao por coorte da ultima deteccao (diagnostico: corpus misto).
+_LAST_COHORTS: dict = {}
+
 #: Cosine medio minimo para concluir que o candidato produziu o corpus.
 #: O modelo correto re-produz o vetor (cosine ~= 1.0); modelos errados dao
 #: ~0.3-0.5 — a margem e larga o suficiente para nao confundir.
@@ -379,13 +382,29 @@ def _detect_corpus_model(db_path: str):
 
     conn = _ro_vec_conn()
     try:
-        sample = conn.execute(
-            "SELECT m.rowid, m.content FROM memories m "
+        # Amostra ESTRATIFICADA, não as N mais recentes: o corpus pode estar
+        # partido em coortes (memórias antigas vetorizadas por um modelo, novas
+        # por outro). Amostrar a cauda faz a detecção enxergar só a coorte nova
+        # e escolher o modelo errado para o acervo inteiro.
+        total = conn.execute(
+            "SELECT COUNT(*) FROM memories m "
             "WHERE m.deleted_at IS NULL AND m.store = 'default' "
-            "AND (m.embedding_pending IS NULL OR m.embedding_pending = 0) "
-            "ORDER BY m.rowid DESC LIMIT ?",
-            (_DETECT_SAMPLE_SIZE,),
-        ).fetchall()
+            "AND (m.embedding_pending IS NULL OR m.embedding_pending = 0)"
+        ).fetchone()[0]
+        sample = []
+        if total:
+            step = max(total // _DETECT_SAMPLE_SIZE, 1)
+            offsets = list(range(0, total, step))[:_DETECT_SAMPLE_SIZE]
+            for off in offsets:
+                row = conn.execute(
+                    "SELECT m.rowid, m.content FROM memories m "
+                    "WHERE m.deleted_at IS NULL AND m.store = 'default' "
+                    "AND (m.embedding_pending IS NULL OR m.embedding_pending = 0) "
+                    "ORDER BY m.rowid LIMIT 1 OFFSET ?",
+                    (off,),
+                ).fetchone()
+                if row is not None:
+                    sample.append(row)
     finally:
         conn.close()
     if not sample:
@@ -414,6 +433,7 @@ def _detect_corpus_model(db_path: str):
     texts = [content for _rowid, content in sample]
     scores: dict[str, float] = {}
     instances: dict[str, object] = {}
+    sim_matrix: dict[str, list[float]] = {}
     for name in candidates:
         model = get_onnx_embedding_model(name)
         if model is None:
@@ -430,10 +450,44 @@ def _detect_corpus_model(db_path: str):
             nb = float(np.linalg.norm(stored))
             sims.append(float(np.dot(emb[i], stored) / (na * nb)) if na and nb else 0.0)
         scores[name] = float(np.mean(sims))
+        sim_matrix[name] = sims
         instances[name] = model
 
     if not scores:
         return None, {}, None
+
+    # Composição por coorte: quantas memórias da amostra cada modelo reproduz
+    # EXATAMENTE (cosine >= 0.99) e quantas nenhum reproduz (vetor órfão, de
+    # modelo fora da lista). Com corpus misto a média engana; a contagem não.
+    names = list(sim_matrix)
+    cohorts: dict[str, int] = {n: 0 for n in names}
+    cohorts["nenhum"] = 0
+    for i in range(len(texts)):
+        exact = [n for n in names if sim_matrix[n][i] >= 0.99]
+        if not exact:
+            cohorts["nenhum"] += 1
+            continue
+        winner = max(exact, key=lambda n: sim_matrix[n][i])
+        cohorts[winner] += 1
+    _LAST_COHORTS.clear()
+    _LAST_COHORTS.update({"amostra": len(texts), "coortes": cohorts})
+
+    # Decisão por maioria de coorte (não pela média): com 64%/36% de corpus
+    # misto a média pode eleger o modelo minoritário-tardio. A média do corpus
+    # inteiro nunca chega a 0.90 quando há mistura, então o critério de aceitação
+    # é a média DENTRO da coorte do candidato.
+    best = max(
+        [n for n in names] + ["nenhum"],
+        key=lambda k: cohorts.get(k, 0),
+    )
+    if best in sim_matrix and cohorts.get(best, 0) / max(len(texts), 1) >= 0.5:
+        own = [
+            sim_matrix[best][i]
+            for i in range(len(texts))
+            if sim_matrix[best][i] >= 0.99
+        ]
+        if own and float(np.mean(own)) >= _DETECT_MIN_MEAN_COSINE:
+            return best, scores, instances[best]
     best = max(scores.items(), key=lambda kv: kv[1])[0]
     if scores[best] < _DETECT_MIN_MEAN_COSINE:
         return None, scores, None
@@ -617,6 +671,9 @@ def make_runner(db_path: str, embedding_model: str | None = None):
             config["detection_scores"] = {
                 k: v for k, v in sorted(model_info["detection_scores"].items())
             }
+        if _LAST_COHORTS:
+            config["detection_cohorts"] = dict(_LAST_COHORTS.get("coortes") or {})
+            config["detection_sample"] = _LAST_COHORTS.get("amostra")
         try:
             from mcp_memory_service.config import search as _cfg_search
 
@@ -760,6 +817,23 @@ def main(argv: list[str] | None = None) -> int:
             "n_invalid": len(invalidos_sorted),
         }
     )
+
+    # Corpus misto: cada coorte vive num espaço vetorial. Sem aviso, o número
+    # medido parece do sistema inteiro quando é da coorte majoritária.
+    cohorts = dict(_LAST_COHORTS.get("coortes") or {})
+    amostra = _LAST_COHORTS.get("amostra") or 0
+    if amostra:
+        dominante = max(cohorts.values()) if cohorts else 0
+        if dominante < amostra:
+            minoritarias = {
+                k: v for k, v in cohorts.items() if v and k != "nenhum" and v < dominante
+            }
+            if minoritarias or cohorts.get("nenhum"):
+                report.setdefault("warnings", []).append(
+                    f"corpus misto na amostra de {amostra}: "
+                    + ", ".join(f"{k}={v}" for k, v in sorted(cohorts.items()))
+                    + " — a métrica reflete a coorte escolhida; re-embede antes de concluir"
+                )
     effective_config = getattr(runner, "effective_config", None)
     if effective_config:
         report["meta"]["effective_config"] = effective_config
