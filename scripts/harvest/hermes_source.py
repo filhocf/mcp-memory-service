@@ -28,7 +28,7 @@ DEFAULT_DB = str(Path.home() / ".hermes" / "state.db")
 DEFAULT_STATE = str(Path.home() / ".hermes" / "cache" / "mms-hermes-import.json")
 DEFAULT_ENDPOINT = "http://127.0.0.1:3202/mcp"
 MAX_TURN_CHARS = 2000
-MAX_SESSION_CHARS = 15_000
+MAX_SESSION_CHARS = 60_000
 # Teto do RESUMO de mensagens role='tool' (D1): independente de haver
 # quebra de linha — saidas de tool (ex.: JSON de uma linha de read_file)
 # nao podem vazar para alem disso.

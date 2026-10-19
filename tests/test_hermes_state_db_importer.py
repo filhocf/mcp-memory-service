@@ -654,12 +654,12 @@ def test_volume_enviado_max_10_percent_do_lido(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 
 def test_orcamento_por_sessao(tmp_path, monkeypatch):
-    """G3.1: o payload de uma sessao fica limitado a 15.000 chars de
+    """G3.1: o payload de uma sessao fica limitado a ``MAX_SESSION_CHARS`` de
     conteudo, preservando o inicio (head 40%) e o fim (tail 60%).
 
     Fixture: 1 sessao com 200 mensagens uteis de exatamente 1.000 chars
     cada (~200.000 chars lidos). Comportamento travado: o payload gravado
-    tem no maximo 15.000 chars somados nos turns; o PRIMEIRO e o ULTIMO
+    tem no maximo ``MAX_SESSION_CHARS`` somados nos turns; o PRIMEIRO e o ULTIMO
     conteudo util aparecem integrais; o MEIO da sessao e cortado.
     """
     hs = _hs()
@@ -680,8 +680,8 @@ def test_orcamento_por_sessao(tmp_path, monkeypatch):
     _run_main(hs, ["--apply", "--db", str(db), "--state", str(tmp_path / "state.json")])
     assert len(spy.payloads) == 1, "sessao elegivel deveria ter sido gravada"
     total = _sent_chars(spy.payloads)
-    assert total <= 15_000, \
-        f"payload da sessao excedeu o orcamento de 15.000 chars: {total} (G3.1/CA3)"
+    assert total <= hs.MAX_SESSION_CHARS, \
+        f"payload da sessao excedeu o orcamento de {hs.MAX_SESSION_CHARS} chars: {total} (G3.1/CA3)"
     blob = json.dumps(spy.payloads[0]["turns"], ensure_ascii=False)
     assert contents[0] in blob, \
         "PRIMEIRO conteudo util nao aparece inteiro no payload (head 40%)"
