@@ -121,48 +121,112 @@ sys.path.insert(0, str(_REPO_ROOT / "scripts" / "harvest"))
 # Schema minimo e builders de fixture sintetica
 # ---------------------------------------------------------------------------
 
+# Schema REAL do ~/.hermes/state.db (copiado verbatim de `.schema`, 2026-10-19).
+# NAO inventar colunas: a identidade do agente vem de `source` (NOT NULL),
+# nao existe `profile_name`. Indices/triggers FTS omitidos (irrelevantes ao
+# importador, que so LE colunas de sessions/messages).
 _SCHEMA = """
 CREATE TABLE sessions (
     id TEXT PRIMARY KEY,
-    profile_name TEXT,
-    cwd TEXT,
-    git_repo_root TEXT,
-    git_branch TEXT,
-    title TEXT,
-    started_at REAL,
-    message_count INTEGER,
+    source TEXT NOT NULL,
+    user_id TEXT,
+    session_key TEXT,
+    chat_id TEXT,
+    chat_type TEXT,
+    thread_id TEXT,
+    display_name TEXT,
+    origin_json TEXT,
+    expiry_finalized INTEGER DEFAULT 0,
     model TEXT,
-    source TEXT
+    model_config TEXT,
+    system_prompt TEXT,
+    parent_session_id TEXT,
+    started_at REAL NOT NULL,
+    ended_at REAL,
+    end_reason TEXT,
+    message_count INTEGER DEFAULT 0,
+    tool_call_count INTEGER DEFAULT 0,
+    input_tokens INTEGER DEFAULT 0,
+    output_tokens INTEGER DEFAULT 0,
+    cache_read_tokens INTEGER DEFAULT 0,
+    cache_write_tokens INTEGER DEFAULT 0,
+    reasoning_tokens INTEGER DEFAULT 0,
+    cwd TEXT,
+    git_branch TEXT,
+    git_repo_root TEXT,
+    billing_provider TEXT,
+    billing_base_url TEXT,
+    billing_mode TEXT,
+    estimated_cost_usd REAL,
+    actual_cost_usd REAL,
+    cost_status TEXT,
+    cost_source TEXT,
+    pricing_version TEXT,
+    title TEXT,
+    api_call_count INTEGER DEFAULT 0,
+    handoff_state TEXT,
+    handoff_platform TEXT,
+    handoff_error TEXT,
+    compression_failure_cooldown_until REAL,
+    compression_failure_error TEXT,
+    rewind_count INTEGER NOT NULL DEFAULT 0,
+    archived INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (parent_session_id) REFERENCES sessions(id)
 );
 CREATE TABLE messages (
-    id INTEGER PRIMARY KEY,
-    session_id TEXT,
-    role TEXT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL REFERENCES sessions(id),
+    role TEXT NOT NULL,
     content TEXT,
+    tool_call_id TEXT,
+    tool_calls TEXT,
     tool_name TEXT,
-    active INTEGER,
-    compacted INTEGER,
-    timestamp REAL
+    timestamp REAL NOT NULL,
+    token_count INTEGER,
+    finish_reason TEXT,
+    reasoning TEXT,
+    reasoning_content TEXT,
+    reasoning_details TEXT,
+    codex_reasoning_items TEXT,
+    codex_message_items TEXT,
+    platform_message_id TEXT,
+    observed INTEGER DEFAULT 0,
+    active INTEGER NOT NULL DEFAULT 1,
+    compacted INTEGER NOT NULL DEFAULT 0
 );
 """
 
 _TS = itertools.count(1000.0)
 
 
-def S(sess_id, profile=None, cwd=None, model="test-model", source="hermes"):
-    """Linha de sessions (message_count e preenchido pelo _make_state_db)."""
-    return (sess_id, profile, cwd, None, None, f"title-{sess_id}",
-            1000.0, None, model, source)
+def S(sess_id, source="hermes", cwd=None, model="test-model"):
+    """Linha de sessions como dict de colunas REAIS.
+
+    A identidade do agente vem de ``source`` (coluna real, NOT NULL).
+    ``_make_state_db`` preenche ``message_count`` a partir das mensagens.
+    """
+    return {
+        "id": sess_id,
+        "source": source,
+        "cwd": cwd,
+        "model": model,
+        "title": f"title-{sess_id}",
+        "started_at": 1000.0,
+    }
 
 
 def M(sess_id, role, content, tool_name=None, active=1, compacted=0, ts=None):
-    """Linha de messages."""
+    """Linha de messages (tuplas posicionais para o INSERT nomeado)."""
     return (sess_id, role, content, tool_name, active, compacted,
             ts if ts is not None else next(_TS))
 
 
 def _make_state_db(tmp_path, sessions, messages):
-    """Cria um state.db sintetico em tmp_path e devolve o Path."""
+    """Cria um state.db sintetico (schema REAL) em tmp_path e devolve o Path.
+
+    ``sessions`` e uma lista de dicts coluna->valor (ver ``S``); so as
+    colunas presentes sao inseridas, o restante usa o DEFAULT do schema.
+    """
     db = tmp_path / "state.db"
     counts = {}
     for row in messages:
@@ -170,13 +234,16 @@ def _make_state_db(tmp_path, sessions, messages):
     conn = sqlite3.connect(str(db))
     try:
         conn.executescript(_SCHEMA)
-        conn.executemany(
-            "INSERT INTO sessions (id, profile_name, cwd, git_repo_root,"
-            " git_branch, title, started_at, message_count, model, source)"
-            " VALUES (?,?,?,?,?,?,?,?,?,?)",
-            [tuple(list(r[:7]) + [counts.get(r[0], 0)] + list(r[8:]))
-             for r in sessions],
-        )
+        for sess in sessions:
+            row = dict(sess)
+            row.setdefault("message_count", counts.get(row["id"], 0))
+            cols = list(row.keys())
+            conn.execute(
+                "INSERT INTO sessions ({}) VALUES ({})".format(
+                    ", ".join(cols), ", ".join("?" for _ in cols)
+                ),
+                [row[c] for c in cols],
+            )
         conn.executemany(
             "INSERT INTO messages (session_id, role, content, tool_name,"
             " active, compacted, timestamp) VALUES (?,?,?,?,?,?,?)",
@@ -342,16 +409,16 @@ def test_compactada_excluida():
 # ---------------------------------------------------------------------------
 
 def test_agent_id_from_profile(tmp_path, monkeypatch):
-    """R3/CA5: metadata.agent_id = profile_name quando presente, senao 'hermes'.
+    """R3/CA5: metadata.agent_id = source quando presente/nao-vazio, senao 'hermes'.
 
-    Fixture: sessao com profile_name='zero' e sessao sem profile.
+    Fixture: sessao com source='zero' e sessao com source='' (vazio).
     Comportamento travado: todo payload gravado tem metadata.agent_id
     correto (100% das gravadas, CA5) e a tag source:hermes.
     """
     hs = _hs()
     db = _make_state_db(
         tmp_path,
-        sessions=[S("s1", profile="zero"), S("s2", profile=None)],
+        sessions=[S("s1", source="zero"), S("s2", source="")],
         messages=[M("s1", "user", "ola"), M("s1", "assistant", "oi"),
                   M("s2", "user", "oi"), M("s2", "assistant", "ola")],
     )
@@ -362,16 +429,46 @@ def test_agent_id_from_profile(tmp_path, monkeypatch):
     assert set(by_session) == {"s1", "s2"}, \
         f"sessoes elegiveis nao gravadas: {sorted(by_session)}"
     assert by_session["s1"]["metadata"]["agent_id"] == "zero", \
-        "profile_name='zero' deve virar metadata.agent_id"
+        "source='zero' deve virar metadata.agent_id"
     assert by_session["s2"]["metadata"]["agent_id"] == "hermes", \
-        "sem profile_name o fallback e 'hermes'"
+        "source vazio -> fallback 'hermes'"
     for p in spy.payloads:
         assert "source:hermes" in p["tags"], "tag source:hermes obrigatoria (R3)"
 
 
 # ---------------------------------------------------------------------------
-# 4. R6/CA2 — idempotencia: 2o run sem novidade grava 0
+# 3b. Regressao de SCHEMA REAL — o importador le colunas que EXISTEM no
+#     ~/.hermes/state.db. HOJE (bug) ele consulta `profile_name`, que nao
+#     existe -> sqlite3.OperationalError: no such column: profile_name.
+#     Este teste usa o schema REAL (_SCHEMA) e exercita o caminho de
+#     leitura direto (select_sessions / _fetch_sessions / plan_import).
 # ---------------------------------------------------------------------------
+
+def test_le_schema_real_sem_coluna_inexistente(tmp_path):
+    """Falha hoje com 'no such column: profile_name'; GREEN quando o
+    importador consultar `source` (coluna real) em vez de `profile_name`.
+
+    Contra o schema REAL, as tres funcoes de leitura devem executar sem
+    erro de coluna e a identidade (agent_id) deve vir de `source`.
+    """
+    hs = _hs()
+    db = _make_state_db(
+        tmp_path,
+        sessions=[S("s1", source="zero", cwd="/home/u/proj")],
+        messages=[M("s1", "user", "ola"), M("s1", "assistant", "oi")],
+    )
+    conn = hs.open_db(str(db))
+    try:
+        # Caminhos de leitura que hoje embutem `profile_name` na query:
+        elegiveis = hs.select_sessions(conn)       # L92 (bug)
+        todas = hs._fetch_sessions(conn)           # L112 (bug)
+        report = hs.plan_import(conn, state={})    # usa _fetch_sessions
+    finally:
+        conn.close()
+    assert len(elegiveis) == 1 and elegiveis[0]["id"] == "s1"
+    assert len(todas) == 1 and todas[0]["id"] == "s1"
+    assert report["sessions"][0]["agent_id"] == "zero", \
+        "agent_id deve vir de source (schema real), nao de profile_name"
 
 def test_idempotencia(tmp_path, monkeypatch):
     """R6/CA2: reexecutar com o mesmo banco e sem novidade grava ZERO memorias.
@@ -1000,11 +1097,9 @@ def test_readonly_em_wal_le_dados_e_preserva_db(tmp_path):
         conn_a.execute("PRAGMA journal_mode=WAL")
         conn_a.executescript(_SCHEMA)
         conn_a.execute(
-            "INSERT INTO sessions (id, profile_name, cwd, git_repo_root,"
-            " git_branch, title, started_at, message_count, model, source)"
-            " VALUES (?,?,?,?,?,?,?,?,?,?)",
-            ("s1", None, None, None, None, "title-s1", 1000.0,
-             2, "test-model", "hermes"),
+            "INSERT INTO sessions (id, source, cwd, title, started_at,"
+            " message_count, model) VALUES (?,?,?,?,?,?,?)",
+            ("s1", "hermes", None, "title-s1", 1000.0, 2, "test-model"),
         )
         conn_a.executemany(
             "INSERT INTO messages (session_id, role, content, tool_name,"

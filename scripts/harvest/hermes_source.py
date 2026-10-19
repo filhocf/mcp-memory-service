@@ -89,7 +89,7 @@ def select_sessions(conn: sqlite3.Connection, min_useful: int = MIN_USEFUL) -> l
     """
     cur = conn.execute(
         """
-        SELECT s.id, s.profile_name, s.cwd, s.model, s.started_at,
+        SELECT s.id, s.source, s.cwd, s.model, s.started_at,
                (SELECT COUNT(*) FROM messages m
                  WHERE m.session_id = s.id
                    AND m.role IN ('user', 'assistant')
@@ -109,7 +109,7 @@ def select_sessions(conn: sqlite3.Connection, min_useful: int = MIN_USEFUL) -> l
 def _fetch_sessions(conn: sqlite3.Connection) -> list[dict]:
     """Todas as sessões (ordem estável por id)."""
     cur = conn.execute(
-        "SELECT id, profile_name, cwd, model, started_at FROM sessions ORDER BY id"
+        "SELECT id, source, cwd, model, started_at FROM sessions ORDER BY id"
     )
     return _rows_as_dicts(cur)
 
@@ -331,7 +331,7 @@ def _iso8601(epoch: float | None) -> str | None:
 def _metadata_for(session: dict) -> dict:
     """Metadados: agent_id, model, started_at (ISO-8601 UTC), hermes_session_id."""
     return {
-        "agent_id": session.get("profile_name") or "hermes",
+        "agent_id": session.get("source") or "hermes",
         "model": session.get("model"),
         "started_at": _iso8601(session.get("started_at")),
         "hermes_session_id": session.get("id"),
