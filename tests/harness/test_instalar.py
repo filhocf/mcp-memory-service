@@ -206,3 +206,54 @@ def test_dry_run_writes_nothing(tmp_path):
 
     assert rc == 0
     assert list(tmp_path.rglob("*")) == [], "dry-run nao pode escrever"
+
+
+# --- registration must be usable, not merely present -------------------------
+
+
+def test_entry_is_usable_rejects_wrong_port_and_disabled(tmp_path):
+    """The Greptile P1: name-only matching accepted a stale or disabled entry."""
+    instalar = _mod()
+
+    good = {"url": "http://localhost:8000/mcp"}
+    wrong_port = {"url": "http://localhost:9999/mcp"}
+    disabled = {"url": "http://localhost:8000/mcp", "disabled": True}
+
+    assert instalar.entry_is_usable(good, 8000) is True
+    assert instalar.entry_is_usable(wrong_port, 8000) is False
+    assert instalar.entry_is_usable(disabled, 8000) is False
+    assert instalar.entry_is_usable({}, 8000) is False
+
+
+def test_merge_sends_bearer_when_api_key_is_set(tmp_path, monkeypatch):
+    instalar = _mod()
+    config = tmp_path / "settings" / "mcp.json"
+    monkeypatch.setenv("MCP_API_KEY", "s3cret")
+
+    instalar.merge_mcp(config, 8000)
+
+    entry = json.loads(config.read_text())["mcpServers"]["mms"]
+    assert entry["headers"]["Authorization"] == "Bearer s3cret"
+
+
+def test_merge_omits_headers_without_a_key(tmp_path, monkeypatch):
+    instalar = _mod()
+    config = tmp_path / "settings" / "mcp.json"
+    monkeypatch.delenv("MCP_API_KEY", raising=False)
+
+    instalar.merge_mcp(config, 8000)
+
+    assert "headers" not in json.loads(config.read_text())["mcpServers"]["mms"]
+
+
+def test_uninstall_works_with_the_service_down(tmp_path):
+    """Uninstalling must not require a reachable server — often it is the reason."""
+    instalar = _mod()
+    instalar.main(["--harness", "kiro", "--root", str(tmp_path), "--skip-health"])
+    (tmp_path / "settings" / "mcp.json").is_file()
+
+    rc = instalar.main(
+        ["--harness", "kiro", "--root", str(tmp_path), "--port", "1", "--uninstall"]
+    )
+
+    assert rc == 0, "uninstall nao pode depender do servico no ar"

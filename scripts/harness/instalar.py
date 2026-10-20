@@ -29,7 +29,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 PAYLOAD = Path(__file__).resolve().parent / "payload"
-DEFAULT_PORT = 3202
+DEFAULT_PORT = 8000
 SERVER_NAME = "mms"
 MANIFEST_NAME = "mms-install-manifest.json"
 
@@ -99,6 +99,29 @@ def _mcp_url(port: int) -> str:
     return f"http://localhost:{port}/mcp"
 
 
+def api_key() -> str:
+    """Bearer token for a key-protected server, when the operator set one.
+
+    The streamable-http transport requires it on /mcp whenever MCP_API_KEY or
+    OAuth is configured; assuming an open loopback server breaks the moment
+    someone protects theirs.
+    """
+    return os.environ.get("MCP_API_KEY", "").strip()
+
+
+def read_mcp_entry(path: Path) -> dict:
+    """The `mms` entry from a harness JSON config, or {} when absent/unreadable."""
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+    servers = data.get("mcpServers") or data.get("mcp_servers") or {}
+    entry = servers.get(SERVER_NAME) if isinstance(servers, dict) else None
+    return entry if isinstance(entry, dict) else {}
+
+
 def read_mcp_names(path: Path) -> set[str]:
     """Server names registered in a harness JSON config (tolerates corruption)."""
     if not path.is_file():
@@ -109,6 +132,18 @@ def read_mcp_names(path: Path) -> set[str]:
         return set()
     servers = data.get("mcpServers") or data.get("mcp_servers") or {}
     return set(servers) if isinstance(servers, dict) else set()
+
+
+def entry_is_usable(entry: dict, port: int) -> bool:
+    """A registration counts only if it points at THIS port and is enabled.
+
+    Matching the name alone accepted a stale entry for another host on the same
+    port, and a disabled one.
+    """
+    if not entry or entry.get("disabled") is True:
+        return False
+    url = str(entry.get("url") or "")
+    return f":{port}/mcp" in url
 
 
 def cli_mcp_present(argv_prefix: tuple[str, ...], root: Path) -> bool:
@@ -137,7 +172,7 @@ def plan_for(
             actions.append(
                 Action(
                     kind="merge-mcp",
-                    description=f"registrar {SERVER_NAME} em {harness.mcp_file}",
+                    description=f"register {SERVER_NAME} in {harness.mcp_file}",
                     target=root / harness.mcp_file,
                 )
             )
@@ -145,7 +180,7 @@ def plan_for(
             actions.append(
                 Action(
                     kind="cli",
-                    description=f"registrar {SERVER_NAME} via CLI do harness",
+                    description=f"register {SERVER_NAME} via the harness CLI",
                     argv=[*harness.uses_cli, SERVER_NAME, "--url", _mcp_url(port)],
                 )
             )
@@ -159,7 +194,7 @@ def plan_for(
         target = root / rel
         if source.is_file() and not target.is_file():
             actions.append(
-                Action(kind="copy", description=f"depositar {surface}", source=source, target=target)
+                Action(kind="copy", description=f"deposit {surface}", source=source, target=target)
             )
 
     if harness.hooks is not None:
@@ -167,7 +202,7 @@ def plan_for(
         target = root / harness.hooks
         if source.is_file() and not target.is_file():
             actions.append(
-                Action(kind="copy", description="depositar hook", source=source, target=target)
+                Action(kind="copy", description="deposit hook", source=source, target=target)
             )
 
     return actions
@@ -183,9 +218,13 @@ def merge_mcp(path: Path, port: int) -> None:
         try:
             data = json.loads(path.read_text())
         except json.JSONDecodeError:
-            raise RuntimeError(f"{path} nao e JSON valido; abortando sem sobrescrever")
+            raise RuntimeError(f"{path} is not valid JSON; aborting without overwriting")
     servers = data.setdefault("mcpServers", {})
-    servers[SERVER_NAME] = {"url": _mcp_url(port), "autoApprove": _safe_autoapprove()}
+    entry: dict = {"url": _mcp_url(port), "autoApprove": _safe_autoapprove()}
+    key = api_key()
+    if key:
+        entry["headers"] = {"Authorization": f"Bearer {key}"}
+    servers[SERVER_NAME] = entry
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
 
@@ -216,7 +255,7 @@ def run_action(action: Action, port: int, dry_run: bool, root: Path) -> bool:
         )
         if proc.returncode != 0:
             print(
-                f"  falhou: {' '.join(action.argv)}: "
+                f"  failed: {' '.join(action.argv)}: "
                 f"{(proc.stdout + proc.stderr).strip()[:160]}",
                 file=sys.stderr,
             )
@@ -224,12 +263,12 @@ def run_action(action: Action, port: int, dry_run: bool, root: Path) -> bool:
         return True
     if action.kind == "merge-mcp":
         if action.target is None:
-            raise RuntimeError("merge-mcp sem target")
+            raise RuntimeError("merge-mcp action without a target")
         merge_mcp(action.target, port)
         return True
     if action.kind == "copy":
         if action.source is None or action.target is None:
-            raise RuntimeError("copy sem origem ou destino")
+            raise RuntimeError("copy action without source or target")
         action.target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(action.source, action.target)
         return True
@@ -244,18 +283,21 @@ def verify(harness: Harness, root: Path, port: int) -> list[str]:
     failures: list[str] = []
 
     if harness.mcp_file is not None:
-        if SERVER_NAME not in read_mcp_names(root / harness.mcp_file):
-            failures.append(f"{SERVER_NAME} ausente em {harness.mcp_file}")
+        if not entry_is_usable(read_mcp_entry(root / harness.mcp_file), port):
+            failures.append(
+                f"{SERVER_NAME} missing, disabled, or not pointing at :{port}/mcp "
+                f"in {harness.mcp_file}"
+            )
     elif harness.uses_cli:
         if not cli_mcp_present(harness.uses_cli, root):
-            failures.append(f"{SERVER_NAME} nao aparece no `hermes mcp list`")
+            failures.append(f"{SERVER_NAME} not listed by the harness CLI")
 
     for surface, rel in (("steering", harness.steering), ("skill", harness.skill)):
         if rel is not None and not (root / rel).is_file():
-            failures.append(f"{surface} nao depositado em {rel}")
+            failures.append(f"{surface} not deposited at {rel}")
 
     if harness.hooks is not None and not (root / harness.hooks).is_file():
-        failures.append(f"hook nao depositado em {harness.hooks}")
+        failures.append(f"hook not deposited at {harness.hooks}")
 
     return failures
 
@@ -341,16 +383,26 @@ def main(argv: list[str] | None = None) -> int:
 
     names = [args.harness] if args.harness != "auto" else detect()
     if not names:
-        print("nenhum harness detectado (procurando ~/.hermes e ~/.kiro)")
+        print("no harness detected (looked for ~/.hermes and ~/.kiro)")
         return 1
 
-    if not args.skip_health and not args.dry_run:
+    # Uninstalling must work with the service down: that is often why you are uninstalling.
+    if not args.skip_health and not args.dry_run and not args.uninstall:
         try:
+            import urllib.error
             import urllib.request
 
-            urllib.request.urlopen(f"http://localhost:{args.port}/health", timeout=5)
+            request = urllib.request.Request(f"http://localhost:{args.port}/health")
+            key = api_key()
+            if key:
+                request.add_header("Authorization", f"Bearer {key}")
+            urllib.request.urlopen(request, timeout=5)
+        except urllib.error.HTTPError as exc:
+            hint = " (the server requires a key: set MCP_API_KEY)" if exc.code == 401 else ""
+            print(f"error: /health returned {exc.code}{hint}; nothing was written")
+            return 1
         except Exception as exc:  # noqa: BLE001
-            print(f"erro: servico nao responde em :{args.port} ({exc}); nada foi escrito")
+            print(f"error: service not answering on :{args.port} ({exc}); nothing was written")
             return 1
 
     rc = 0
@@ -359,13 +411,13 @@ def main(argv: list[str] | None = None) -> int:
         root = Path(args.root) if args.root else harness.root_default
 
         if args.uninstall:
-            print(f"{name}: uninstall em {root}")
+            print(f"{name}: uninstall from {root}")
             for item in uninstall(harness, root) if not args.dry_run else []:
-                print(f"  removido: {item}")
+                print(f"  removed: {item}")
             continue
 
         installed = (
-            SERVER_NAME in read_mcp_names(root / harness.mcp_file)
+            entry_is_usable(read_mcp_entry(root / harness.mcp_file), args.port)
             if harness.mcp_file
             else False
         )
@@ -374,7 +426,7 @@ def main(argv: list[str] | None = None) -> int:
 
         print(f"\n{name} ({root})")
         if not actions:
-            print("  nada a fazer: instalacao ja completa")
+            print("  nothing to do: already installed")
             continue
         for action in actions:
             print(f"  {action.render()}")
@@ -395,7 +447,7 @@ def main(argv: list[str] | None = None) -> int:
             continue
 
         write_manifest(root, actions)
-        print(f"  OK: {len(actions)} acao(oes), efeito verificado")
+        print(f"  OK: {len(actions)} action(s), effect verified")
 
     return rc
 
