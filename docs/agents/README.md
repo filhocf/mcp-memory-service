@@ -11,6 +11,8 @@ mcp-memory-service provides persistent shared memory for multi-agent systems via
 | AutoGen | REST API via `httpx` | HTTP |
 | Any HTTP client | REST API | HTTP |
 | Claude Desktop / Code | MCP protocol | stdio / SSE |
+| Hermes Agent | MCP + one-command installer | streamable HTTP |
+| Kiro (CLI + IDE) | MCP + one-command installer | streamable HTTP |
 
 All guides below use the REST API (port 8000 by default). The MCP protocol is for Claude Desktop/Code only.
 
