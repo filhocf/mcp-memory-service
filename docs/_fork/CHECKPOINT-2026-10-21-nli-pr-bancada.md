@@ -89,3 +89,22 @@ systemctl --user restart memory-service && curl -s localhost:8000/health
 
 Esperado: gravação em ~0,6 s (era 27 s) com a verificação rodando em background; log mostra
 `NLI background belief check (<hash>): status=...`. Orçamento default 2 s; concorrência 2.
+
+## NLI ligado com a Lia como único provedor (21/out, pós-merge do #1633)
+
+Env por-host (`memory-service.DNBSCDC289.env`, backup `.bak-*`):
+`MCP_NLI_ON_STORE=true`, `MCP_NLI_ON_STORE_ASYNC=true`, `HARVEST_LLM_PROVIDERS=lia`,
+`HARVEST_LLM_LIA_BASE_URL=https://lia.oci.dataprev.gov.br/api/v1`,
+`HARVEST_LLM_LIA_MODEL=deepseek-v4.1-flash`, `HARVEST_LLM_LIA_API_KEY` (lida de
+`~/.hermes/.env`; nunca versionar).
+
+Container arbitrário é suportado por `HARVEST_LLM_<NOME>_BASE_URL/MODEL/API_KEY` — não precisa
+de código novo nem de Ollama. Latência da Lia medida: **1,23 s** por chamada (equivalente ao
+deepseek direto); o ganho é sair da API externa, não velocidade.
+
+Provas: `health` 1,3 ms; `memory_store` **0,471 s**; log `NLI on-store check truncated at 2.00s
+after 1 belief(s)` — a verificação roda em background via Lia. Sondas removidas do acervo.
+
+**Ajuste pendente:** com 2 s de orçamento a Lia cobre 1 crença de 625. Como no modo async o
+orçamento não custa latência de escrita, subir `MCP_NLI_ON_STORE_BUDGET_S` para 10 s (~8 crenças)
+é ganho direto de cobertura. A cura de fundo continua sendo ordenar crenças por similaridade.
