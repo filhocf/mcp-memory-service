@@ -76,3 +76,16 @@ Nota de leitura: a review do Greptile é `COMMENTED`, **não** `APPROVED` — o 
 12 testes; threads resolvidas (0 abertas). PR #1633 segue `REVIEW_REQUIRED` com auto-merge ON.
 Pendência declarada: se o CodeQL voltar a apontar o contador, trocar o objeto por uma fila com
 semáforo (`asyncio.Semaphore`) em vez de contador manual.
+
+## #1633 MERGEADO — 2601f088
+
+O fix do NLI on-store entrou no upstream. **Religar a instância (próxima sessão):**
+
+```bash
+cd ~/git/mms/mms && git fetch upstream && git merge upstream/main --no-edit && git push github main
+# no env por-host: MCP_NLI_ON_STORE=true e MCP_NLI_ON_STORE_ASYNC=true
+systemctl --user restart memory-service && curl -s localhost:8000/health
+```
+
+Esperado: gravação em ~0,6 s (era 27 s) com a verificação rodando em background; log mostra
+`NLI background belief check (<hash>): status=...`. Orçamento default 2 s; concorrência 2.
