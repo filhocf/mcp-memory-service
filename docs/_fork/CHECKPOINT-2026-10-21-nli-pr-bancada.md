@@ -44,3 +44,23 @@ de gravações gera rajada de tasks — limitar concorrência antes de usar com 
 
 1º **#1633** (aguardando Greptile). Depois **#1505** (capability handshake, livre). Fora: #1602 (outra
 sessão nossa), #1599/#1560/#1526/#1464/#1459/#1146 (com assignee), #1555 (`claim-pending`).
+
+## Atualização — review do Greptile no #1633 (18:43Z, COMMENTED, 4 achados)
+
+Todos aceitos, um com ressalva registrada no código:
+
+1. **orçamento não cobria o pós-contradição.** Ressalva: o orçamento governa a fase de
+   comparação (rede); quarentena iniciada é concluída, porque abortar deixaria metadata/edges
+   inconsistentes. Estouro agora loga WARNING explicando.
+2. **background sem limite.** `MCP_NLI_BACKGROUND_CONCURRENCY` (default 2), vaga reservada na
+   admissão (create_task só roda depois — sem isso duas chamadas seguidas furam o limite),
+   excesso descartado com WARNING.
+3. **resultado do background sumia.** Agora loga hash + status, inclusive `status="error"`.
+4. **stop reason mentia.** Estados: `completed`, `max-beliefs`, `budget`, `timeout`,
+   `contradiction`; cap por contagem emite WARNING nomeando `MCP_QUARANTINE_MAX_BELIEFS`.
+
+Prova: **12 testes novos, 12 falham no `main`, 12 passam com o fix**; suíte de consolidação
+**469 passed, 1 skipped, 7 xfailed**. 4 threads resolvidas (abertas = 0). Commit `f8eba0fc`.
+
+Nota de leitura: a review do Greptile é `COMMENTED`, **não** `APPROVED` — o PR segue
+`REVIEW_REQUIRED` até ele re-revisar o commit novo.
