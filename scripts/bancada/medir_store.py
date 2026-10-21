@@ -228,6 +228,10 @@ def main() -> int:
             "e depois o override do host). A bancada força porta, banco e MCP_NLI_ON_STORE."
         ),
     )
+    ap.add_argument("--settle", type=float, default=0.0,
+                    help="segundos de espera antes de encerrar o servidor (deixa tasks de background concluírem)")
+    ap.add_argument("--set", action="append", default=[], metavar="KEY=VALUE",
+                    help="define uma variável de ambiente para a instância (repetível)")
     ap.add_argument("--json", help="grava o resultado em JSON neste arquivo")
     ap.add_argument("--label", default="", help="rótulo da medição no relatório")
     args = ap.parse_args()
@@ -255,6 +259,10 @@ def main() -> int:
         "MCP_STREAMABLE_HTTP_MODE": "1",
         "MCP_NLI_ON_STORE": "true" if args.nli == "on" else "false",
     }
+    # Permite apontar a bancada para o código de um worktree (PYTHONPATH antes do
+    # pacote instalado em modo editable).
+    if os.environ.get("PYTHONPATH"):
+        env["PYTHONPATH"] = os.environ["PYTHONPATH"]
     if args.env_file:
         for path in args.env_file:
             env.update(load_env_file(path))
@@ -262,6 +270,10 @@ def main() -> int:
         env["MCP_MEMORY_SQLITE_PATH"] = work_db
         # O arquivo de env pode trazer a flag com outro valor: a bancada manda.
         env["MCP_NLI_ON_STORE"] = "true" if args.nli == "on" else "false"
+
+    for item in args.set:
+        key, _, value = item.partition("=")
+        env[key.strip()] = value.strip()
 
     log_path = f"/tmp/bancada-medir-store-{port}.log"
     times: list[float] = []
@@ -291,6 +303,9 @@ def main() -> int:
                 times.append(elapsed)
                 print(f"  [{len(times):2d}/{args.reps}] {elapsed:7.3f}s", flush=True)
         finally:
+            if args.settle:
+                print(f"  (aguardando {args.settle:g}s para o trabalho de background)", flush=True)
+                time.sleep(args.settle)
             try:
                 os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
             except ProcessLookupError:
