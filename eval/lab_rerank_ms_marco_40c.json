@@ -1,0 +1,27 @@
+{
+ "casos": 120,
+ "base": {
+  "documento@5": 0.4917,
+  "documento@10": 0.5667,
+  "documento@30": 0.675
+ },
+ "modelos": {
+  "Xenova/ms-marco-MiniLM-L-6-v2:onnx/model_int8": {
+   "documento@5": 0.4083,
+   "documento@10": 0.4833,
+   "documento@30": 0.6583,
+   "ganho_top10": -0.0834,
+   "latencia_p50_ms": 476,
+   "ms_por_par": 11.9
+  },
+  "Xenova/bge-reranker-base:onnx/model_int8.onnx": {
+   "erro": "KeyError: ('Xenova/bge-reranker-base', 'tokenizer.json')"
+  },
+  "onnx-community/bge-reranker-v2-m3-ONNX:onnx/model_int8.onnx": {
+   "erro": "KeyError: ('onnx-community/bge-reranker-v2-m3-ONNX', 'tokenizer.json')"
+  },
+  "onnx-community/bge-reranker-v2-m3-ONNX:onnx/model_q4.onnx": {
+   "erro": "KeyError: ('onnx-community/bge-reranker-v2-m3-ONNX', 'tokenizer.json')"
+  }
+ }
+}
