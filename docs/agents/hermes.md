@@ -8,10 +8,10 @@ Este documento descreve o que foi **medido**, não o que se pretende.
 
 ## 1. Instalação em um comando
 
-O instalador vive em `scripts/hermes/instalar.py` e é stdlib-only:
+O instalador vive em `scripts/hermes/install.py` e é stdlib-only:
 
 ```bash
-python scripts/hermes/instalar.py --port 3202
+python scripts/hermes/install.py --port 3202
 ```
 
 Com `HERMES_HOME` definido, instala naquele perfil; sem ele, em `~/.hermes`.
@@ -23,10 +23,12 @@ O que ele faz, nesta ordem:
    responder em `/health`;
 2. detecta o que já existe (`hermes mcp list`, `config.yaml`, health) e planeja só o que falta;
 3. registra o servidor via `hermes mcp add mms --url http://localhost:<porta>/mcp`;
-4. habilita a skill de doutrina e os hooks de convivência;
-5. grava uma **sonda** no acervo e busca de volta — a instalação só é declarada bem-sucedida se a
+4. grava uma **sonda** no acervo e busca de volta — a instalação só é declarada bem-sucedida se a
    busca devolver resultado (inclusive em banco zerado);
-6. grava um manifesto com os comandos de undo.
+5. grava um manifesto com os comandos de undo.
+
+Hooks de ciclo de vida e skill de uso **não** fazem parte do instalador: o docstring declara que são
+trabalho separado. O que existe hoje é registro + verificação.
 
 **Idempotência medida**: segunda execução imprime `nada a fazer: instalacao ja completa` e não roda
 nenhum comando. `--uninstall` remove o MCP e desabilita skill/hooks, sem tocar no que não criou.
@@ -97,8 +99,7 @@ Três comportamentos que custaram um E2E inteiro para descobrir:
 ## 6. Autoria
 
 O serviço em streamable-http honra `X-Agent-ID` (upstream #1598). Quem grava sem `agent_id`
-explícito cai no `MCP_AGENT_ID` do processo — por isso o hook `mms_agent_stamp.py` carimba as
-chamadas de escrita, e o doctor verifica a última gravação.
+explícito cai no `MCP_AGENT_ID` do processo. O doctor verifica a última gravação.
 
 ## 7. Windows (não validado)
 
