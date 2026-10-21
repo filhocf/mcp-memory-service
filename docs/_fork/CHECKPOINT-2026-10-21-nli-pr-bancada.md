@@ -64,3 +64,15 @@ Prova: **12 testes novos, 12 falham no `main`, 12 passam com o fix**; suíte de 
 
 Nota de leitura: a review do Greptile é `COMMENTED`, **não** `APPROVED` — o PR segue
 `REVIEW_REQUIRED` até ele re-revisar o commit novo.
+
+## Rodada 2 do Greptile (18:51Z e 18:53Z) — commit 6c0b8f13
+
+1. **CodeQL "unused global"** em `_background_active`: o contador virou objeto
+   `_BackgroundState` (atributo `active`), sem `global` mutável.
+2. **"Dropped checks look scheduled"**: `schedule_on_store_checks` agora retorna `bool`; o handler
+   mostra "skipped: background capacity is full" quando o trabalho é descartado, em vez de afirmar
+   que foi agendado. Aviso no log não chega ao caller — a resposta tinha de dizer a verdade.
+
+12 testes; threads resolvidas (0 abertas). PR #1633 segue `REVIEW_REQUIRED` com auto-merge ON.
+Pendência declarada: se o CodeQL voltar a apontar o contador, trocar o objeto por uma fila com
+semáforo (`asyncio.Semaphore`) em vez de contador manual.
