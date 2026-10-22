@@ -1,7 +1,8 @@
 # ESTADO — mcp-memory-service (Claudio)
 
-> **Atualizado: 21/out/2026** @ sirdata · fork/main 9d62f6d3 · chore/rfc-cleanup-20261021 @ d2466633 · 453 à frente / 17 atrás do upstream.
+> **Atualizado: 21/out/2026** @ sirdata · fork/main f517729a · 453 à frente / **0 atrás** do upstream.
 > **Feito embaixo, a fazer em cima.** Arquivos-irmãos: `ARCOS.md` (mapa denso do agente) · `LEDGER-feats.md` (invariante) · `diario-de-gates.md` (ciclos) · `AUDITORIA-rfcs-2026-10-21.md` (relatório fonte).
+> **Path novo do repo:** `~/git/mms/mms` (antes `~/git/mcp-memory-service`). Unit systemd → `/home/claudio/git/mms/mms/.venv/bin/memory-server`. Health 200 na 8000 após restart.
 
 ## ⚡ ATUALIZAÇÃO 21/out — limpeza da árvore de RFCs
 

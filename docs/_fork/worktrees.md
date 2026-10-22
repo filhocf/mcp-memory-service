@@ -3,19 +3,14 @@
 > Registro canônico. Worktree é área de trabalho **de uma sessão por vez** — trabalhar no
 > worktree de outra sessão causa colisão de branch e perda de estado. Antes de criar um novo,
 > verifique esta lista; ao criar, **adicione a linha aqui no mesmo commit**.
-> Atualizado: 19/out/2026.
+> Atualizado: 21/out/2026.
 
 ## Lista medida
 
 | caminho | branch | para quê | estado |
 |---|---|---|---|
 | `~/git/mms/mms` | `main` | **LINHA VIVA** — o serviço systemd roda daqui (venv editable ONNX) | ativo, serviço |
-| `~/git/mms/mms-dev` | `pr/delta-sync-phase3-upstream` | pilha de PRs para o upstream (sai de `upstream/main` limpo) | ativo |
-| `~/git/mms/mms-pr-recreate-of` | `fix/1522-recreate-of` | PR pontual de apoio ao Henry (#1522) | ativo |
-| `~/git/mms/_wt-fsspec-214` | `fix/fsspec-214-ssti` | correção fsspec/SSTI | ativo |
-| `~/git/mms/lab-recall` | `lab/precisao-recall-tpol` | **bancada de recall** (criado 19/out): harness, gabaritos, migração, ponte ONNX, deep_search | ativo — sessão T'Pol |
-| `~/lab-learning-loop/code/fork` | detached HEAD | laboratório de learning loop — cópia do fork | ativo |
-| `~/lab-learning-loop/code/upstream` | detached HEAD | laboratório de learning loop — cópia do upstream | ativo |
+| `~/git/mms/mms-dev` | — | removida 21/out (trabalho de tracker já entregue na main) | suprimida |
 
 Rastreio: `git -C ~/git/mms/mms worktree list --porcelain` é a fonte de verdade; esta tabela
 explica **para quê** cada um existe, o que o comando não diz.
@@ -35,8 +30,12 @@ explica **para quê** cada um existe, o que o comando não diz.
 
 ## Histórico
 
+- **21/out/2026** — reorganização do workspace (pedida pelo Claudio): repo principal movido
+  de `~/git/mcp-memory-service` para `~/git/mms/mms`; 15 worktrees de PR removidas, branches
+  fully merged deletados local + remoto; unit systemd (`~/.config/systemd/user/memory-service.service`)
+  atualizada para o novo caminho (WorkingDirectory + ExecStart). Health 200 na 8000 após restart.
 - **19/out/2026** — criado `~/git/mms/lab-recall` a partir de `github/lab/precisao-recall`
-  (branch local `lab/precisao-recall-tpol`), porque o laboratório de recall vivia apenas no
+  (branch local `lab/precisao-recall-t'pol`), porque o laboratório de recall vivia apenas no
   remoto e o diretório de bancada anterior (`~/local-data/mcp/lab/`) não existe mais neste host.
   Os artefatos estão versionados na branch: `eval/`, `scripts/lab/onnx_embeddings_api.py`,
   `scripts/maintenance/migrate_embeddings.py`, `scripts/deep_search.py`.
