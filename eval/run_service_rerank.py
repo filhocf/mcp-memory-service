@@ -174,7 +174,8 @@ def main() -> int:
     if args.probe_baseline:
         cmd += ["--probe-baseline", args.probe_baseline]
 
-    bench = subprocess.run(cmd, capture_output=True, text=True, timeout=3600, cwd=REPO)
+    bench = subprocess.run(cmd, capture_output=True, text=True, timeout=3600, cwd=REPO,
+                           env=bench_env)
     if bench.returncode != 0:
         print(bench.stdout[-2000:])
         print(bench.stderr[-2000:])
