@@ -41,7 +41,7 @@
 | spec-fase0-kiro-yaml-triagem | harvest | SPEC — Fase 0: perfil Kiro em YAML + triagem de sessão |
 | spec-store-visibility | backlog-ideias | spec-store-visibility — busca padrão enxerga todos os stores |
 
-## planned/ (39)
+## planned/ (38)
 
 | RFC | Arco | Evidencia / nota |
 |-----|------|------------------|
@@ -67,7 +67,6 @@
 | rfc-multimodal-memory | backlog-ideias | RFC: Multimodal Memory (imagem/vídeo/áudio → texto recalláve |
 | rfc-onboarding-discoverable | backlog-ideias | RFC: Onboarding Discovery Protocol — Agent-Native MCP Usage  |
 | rfc-persona-tier | backlog-ideias | RFC: Persona Tier (identidade portável auto-gerada) |
-| rfc-query-intent | backlog-ideias | RFC: Query Intent Classification (ajuste de pesos por intenç |
 | rfc-ranking-upgrades | backlog-ideias | RFC: Ranking — Weibull Decay + Polyphonic Recall |
 | rfc-s2-belief-store | belief | Spec: §2 Belief Store (Incremental Approach) |
 | rfc-server-side-lifecycle | learning-loop | RFC: Server-Side Lifecycle — Mover autolearn/autodream/harve |
@@ -85,7 +84,7 @@
 | spec-learning-loop-c-freshness | learning-loop | SPEC-C: Freshness — the newest version wins in injection |
 | spec-learning-loop-e-eval-mrr | learning-loop | SPEC-E: Adversarial eval set + continuous MRR |
 
-## archive/ (20) — absorvidas, superseded ou artefato de gate (historico)
+## archive/ (21) — absorvidas, superseded ou artes de processo (historico)
 
 | RFC | Arco | Motivo |
 |-----|------|--------|
@@ -102,6 +101,7 @@
 | rfc-memory-portability-memory-mem0 | portabilidade | anexo de sistema de terceiros |
 | rfc-memory-portability-memory-mnemosyne | portabilidade | anexo de sistema de terceiros |
 | rfc-memory-portability | portabilidade | absorvida pela portabilidade 5 camadas (#1364) |
+| rfc-query-intent | backlog-ideias | pausada (WorkItem 9fa7e0ef), valor marginal declarado — arquivada por decisao do Claudio |
 | rfc-s13-tool-registry-wiring | estrutura-refactor | refactor entregue |
 | rfc-s8-handler-extraction | estrutura-refactor | refactor entregue |
 | rfc-s8-tool-registry | estrutura-refactor | refactor entregue |

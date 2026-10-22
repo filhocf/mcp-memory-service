@@ -130,3 +130,9 @@ rfc-structural-improvements.md
 1. **Dois SHAs do LEDGER fora da `main`**: `4358c29b` (NER PT-BR/EN) e `d017a1d4` (harvest Kiro IDE). Marcados "VERIFICAR" desde 12/out, nunca resolvidos — definicao de risco de perda.
 2. **`_index.md` declara 47 RFCs** (23+24) contra **89 reais**: quem navega por ele nao encontra metade do acervo.
 3. **`ARCOS.md` (14/out) nao conhece** F2 store visibility, reranker medido, doctor, instalador, indice uniforme — seis mudancas de estado.
+
+
+## 6. Resolucao das pendencias (21/out, mesmo branch)
+
+- `rfc-query-intent` arquivada — decisao do Claudio.
+- Veredito das 2 linhas `VERIFICAR` do LEDGER: `4358c29b` (NER PT-BR/EN) e `d017a1d4` (harvest Kiro IDE) **ambas portadas ao upstream** (`upstream/main` tem `ner_patterns/pt_BR.yaml` e `messages.jsonl` em harvester.py/parser.py). Nenhuma perdida; LEDGER corrigido.
