@@ -1,17 +1,17 @@
 {
  "meta": {
-  "commit": "a3a5c048",
+  "commit": "e6892e4d",
   "dump": "/tmp/cands40.json",
   "dump_sha256": "fbe78c3c5b516fc8bc1cb5755b76cb761c29e2d8246e6252f3737939d6f1c454",
   "casos": 120,
   "limit": 30,
   "rerank_flag": "on",
-  "ran_at": "2026-10-22T18:49:50.243120+00:00"
+  "ran_at": "2026-10-22T20:15:02.044004+00:00"
  },
  "env": {
-  "rerank_enabled": null,
-  "model": null,
-  "candidates": null
+  "rerank_enabled": "true",
+  "model": "Xenova/bge-reranker-base",
+  "candidates": "40"
  },
  "recall": {
   "documento@5": 0.6333,
@@ -19,24 +19,24 @@
   "documento@30": 0.675
  },
  "latency": {
-  "p50_ms": 6526.9,
-  "p95_ms": 7387.3
+  "p50_ms": 6222.5,
+  "p95_ms": 8271.8
  },
  "rss": {
-  "start_kb": 943476,
-  "end_kb": 3943980,
-  "peak_hwm_kb": 3944672
+  "start_kb": 944224,
+  "end_kb": 3936224,
+  "peak_hwm_kb": 3945980
  },
  "machine_load": {
   "start": {
-   "l1": 14.59,
-   "l5": 15.34,
-   "l15": 9.36
+   "l1": 12.53,
+   "l5": 11.82,
+   "l15": 12.44
   },
   "end": {
-   "l1": 22.08,
-   "l5": 20.44,
-   "l15": 15.81
+   "l1": 12.81,
+   "l5": 13.72,
+   "l15": 14.0
   },
   "note": "serial, machine solo - one ephemeral instance at a time"
  },
@@ -76,7 +76,7 @@
     "c467dead9d6de574e4d906ddd7c669b9342f54cae9de03a63e4d1028824f348b",
     "b33e5cd920491ba1114c06216b9f76ffe4b65e8cbcb6ba62af730c57aba520ea"
    ],
-   "lat_ms": 13377.5,
+   "lat_ms": 11776.2,
    "round": 0,
    "erro": null
   },
@@ -115,7 +115,7 @@
     "fcbc490afcafccb1f52fa49dc972b58eb20d124e4b7f2925622f3bfb66c1b074",
     "2813df4e94452014170ad498c2883d8aeb2b5de5fcfdd44da543c12832d80814"
    ],
-   "lat_ms": 19005.0,
+   "lat_ms": 15013.4,
    "round": 0,
    "erro": null
   },
@@ -154,7 +154,7 @@
     "7b13a33f81023ccec85e384f2c42e5380d43413e1150a5bbfd0b46fae88c5e73",
     "9f7787a8a2bf8a28a9e4a31a509815e8cf5296a0c052a97346328bd4b85a519b"
    ],
-   "lat_ms": 9669.5,
+   "lat_ms": 8332.5,
    "round": 0,
    "erro": null
   },
@@ -193,7 +193,7 @@
     "569b5c77741a1467b6993e5eab482551f2eecb59b550f59f2c2b1f53e045471f",
     "876e2c8ec9b86644fcc126e787d77a4fe113ea2d323116ca4f934d9184d88510"
    ],
-   "lat_ms": 9656.5,
+   "lat_ms": 7200.7,
    "round": 0,
    "erro": null
   },
@@ -221,7 +221,7 @@
     "da1c2359dbabb693f1e6963832f9bb2ddf7ff47a555f90857227c9a58eb6e440",
     "199ae738fe6a3e2a8d73a1c134220e2ef550c96e043ef558ada59ff7fb1973dd"
    ],
-   "lat_ms": 4497.6,
+   "lat_ms": 4139.8,
    "round": 0,
    "erro": null
   },
@@ -260,7 +260,7 @@
     "c1bf42f7dfe575f6cb49a695c6e9b6f58847a58e7074cb66b97580ddd18eea95",
     "8f70a90f6faa7dd6c87b77934bf1b618f5ddfd41199f5df6ed6b2eda62f47c2b"
    ],
-   "lat_ms": 8330.1,
+   "lat_ms": 8010.0,
    "round": 0,
    "erro": null
   },
@@ -299,7 +299,7 @@
     "d7e24695a034220b79cc05ed1fa441116d09724b76d3e227137adfaf51433d12",
     "0123a2fade98c571ade4ab6fa352198b36df648bf03605d5287819d3a8e7eb11"
    ],
-   "lat_ms": 7360.1,
+   "lat_ms": 6834.6,
    "round": 0,
    "erro": null
   },
@@ -338,7 +338,7 @@
     "2f09f83eff55684d1db335e79b288e3b6fe0f7fc36fce7a6f8f1af29de06c896",
     "40b3054f231db1a2b899f6b48628566d3af2df31912ae069e8f71d4970eaa791"
    ],
-   "lat_ms": 7066.5,
+   "lat_ms": 7456.9,
    "round": 0,
    "erro": null
   },
@@ -377,7 +377,7 @@
     "b5f7f2d8bff064f2010435d24bbb973f7a893a836c10f1358dfc4f5d4e802f31",
     "fa9b2cfc6641544dcb0accb7ed7d00ec2ba6543eb780b3e04c5a71d85b06af52"
    ],
-   "lat_ms": 6401.1,
+   "lat_ms": 7432.5,
    "round": 0,
    "erro": null
   },
@@ -416,7 +416,7 @@
     "c6893b4cf8d95c2dc225c37fde371af19d26afb1debfa4e81174693d3dc5f06a",
     "9492b5fc8a341ffc5215f00c30097c43baf18aefe51fbff3fb963a67c5b50d9f"
    ],
-   "lat_ms": 6467.4,
+   "lat_ms": 7856.2,
    "round": 0,
    "erro": null
   },
@@ -455,7 +455,7 @@
     "5e5eb0139dd090f7cab1abd12cd032cdc84084f7f7c2e916da4001ceff2371f0",
     "c3cf27db1248da1050352c890a580cd791828e77d68308e69e02985c80feb43b"
    ],
-   "lat_ms": 6625.5,
+   "lat_ms": 7644.6,
    "round": 0,
    "erro": null
   },
@@ -494,7 +494,7 @@
     "8c49bf3fa3fd14d435cae4f16cccf1d14e8a9816d183f0b8fde780f8e04316e2",
     "e33e64700eba0977489085789beb025b91bb40b382636f25ebfa989cbeaa5b5a"
    ],
-   "lat_ms": 6573.2,
+   "lat_ms": 7836.6,
    "round": 0,
    "erro": null
   },
@@ -533,7 +533,7 @@
     "76d722c1d59cc472e12eda49ad14ce8cedd21dfcdb81a42042e25794e3edfc44",
     "58bcc47f3680769b8dbcb2288baa29424e5571cce9604ae4cae33a8f70f72590"
    ],
-   "lat_ms": 6618.4,
+   "lat_ms": 7754.2,
    "round": 0,
    "erro": null
   },
@@ -572,7 +572,7 @@
     "057892d043a6f89e69d1cd68dd7b6f8df28db0eeb338b5da1a70a012857e6b2e",
     "6c42b1fc8612f54177c4dde5feab5b578cf36344aa3d274bf9693a948ac198e4"
    ],
-   "lat_ms": 6778.6,
+   "lat_ms": 8050.8,
    "round": 0,
    "erro": null
   },
@@ -611,7 +611,7 @@
     "4eda1560b354c149bd1512fd7389f7331a3b99f57203961154842f148d32d076",
     "c5f0828f913225c887ae5240c17ae1c6b96c2ea8e955a44c42adbe11aac4e7e2"
    ],
-   "lat_ms": 6333.0,
+   "lat_ms": 7721.7,
    "round": 0,
    "erro": null
   },
@@ -650,7 +650,7 @@
     "fdd88d9950f72c9e8867a669b5e2309ada74d0ca97e5d66f2978d66bc22bd325",
     "d35ae26a98403d50f5263bf00671ea6de640fa3ec81c5f39ae893a7a0d9bc773"
    ],
-   "lat_ms": 6491.3,
+   "lat_ms": 8268.6,
    "round": 0,
    "erro": null
   },
@@ -689,7 +689,7 @@
     "e21d1d8622138ad2bf00a6b711b335b53c5e8a5db54c10aa56dba4a0cc357c8c",
     "3b0dd537804b47d9cbbb8fb3c76cd64b2b80156e12608e24ef4a394d5110b223"
    ],
-   "lat_ms": 6328.7,
+   "lat_ms": 9412.1,
    "round": 0,
    "erro": null
   },
@@ -728,7 +728,7 @@
     "7a2a9c42bde5f8b03f658d4d2d077aafa4463e87b31f6683b596ad3cda286814",
     "7d55b1f0fb3aca56e6c380c3e8df6dbad9bc1cc3d6a81c098245be42a81eb675"
    ],
-   "lat_ms": 5967.5,
+   "lat_ms": 6961.7,
    "round": 0,
    "erro": null
   },
@@ -767,7 +767,7 @@
     "0e762d6b5574836d5ecd7bf53e02937c526eba55a599df0befacf3dfe61b7f44",
     "9d34aee21dee9e702d7bb49db331ed8149b40aca230a473418909a6a1b113678"
    ],
-   "lat_ms": 6327.2,
+   "lat_ms": 7764.7,
    "round": 0,
    "erro": null
   },
@@ -806,7 +806,7 @@
     "947839e4393ff717d7f9705910e24d92da7e9464c10a21346e0da72fa4a8fa03",
     "e8cfc82c4111357c6619ce3793ce062a0c4e832cc6b54e148a161cd87311f508"
    ],
-   "lat_ms": 7902.9,
+   "lat_ms": 10713.5,
    "round": 0,
    "erro": null
   },
@@ -845,7 +845,7 @@
     "1cc7a6b16ceaf1d4c2d9c22d601677c19860690799f4cd79160f54be64c708ad",
     "08a16dda96ac3f341943772ca370c2daa8a12b3426734c5a9d2cc0e16279e5b4"
    ],
-   "lat_ms": 6407.6,
+   "lat_ms": 7512.3,
    "round": 0,
    "erro": null
   },
@@ -884,7 +884,7 @@
     "bf1a2b775b768ddda8d4785c907d62100c31f8cc28351d709f99d1908715e18c",
     "c9261c0f33eed1649bb3026a341c8c0584f80ab8e7efd28c4d763380b15010db"
    ],
-   "lat_ms": 6599.6,
+   "lat_ms": 7860.4,
    "round": 0,
    "erro": null
   },
@@ -923,7 +923,7 @@
     "d0157d65cabdd330987ff47291122455e60ac43506d9706dcfebf4058235f000",
     "f2b845bf03cab72d0f3bed7c4b002805ada76748af223524e883355d2cef1c2d"
    ],
-   "lat_ms": 6624.3,
+   "lat_ms": 7755.8,
    "round": 0,
    "erro": null
   },
@@ -962,7 +962,7 @@
     "a9a4ca7aa310bdd211636859ec54f183e587bfe041ad0ed63c1b70ed9461289e",
     "76e66fc389abf7e46265c101bc3b9b9d0586b208c8e5e8a1c1ddecd475956360"
    ],
-   "lat_ms": 6605.1,
+   "lat_ms": 8792.1,
    "round": 0,
    "erro": null
   },
@@ -1001,7 +1001,7 @@
     "6d49564f7b519a9518c01622b3744a1021b858f14fed13329fd75095c7b700b0",
     "975e1ed1312d0293fa202f0e2a730dd7cbbe4abc8918e0e05076e4ccc929a1d1"
    ],
-   "lat_ms": 6626.5,
+   "lat_ms": 8232.5,
    "round": 0,
    "erro": null
   },
@@ -1040,7 +1040,7 @@
     "3fd35703ec34d5ed528d9a7226f3deb6e26e51c8c613ff06d5810936bc5e123e",
     "99de23ccf586e3ad5104b3493a49d28c1524a4295a22ee2f173faac6f9661510"
    ],
-   "lat_ms": 5673.6,
+   "lat_ms": 6121.6,
    "round": 0,
    "erro": null
   },
@@ -1079,7 +1079,7 @@
     "e23800c0a610b854ea35e26676e75b546e4a62bdf77d0aebc930eb9844e2fa93",
     "3f35482dce63edac699922fd2750ffa659a2148e33ec77d6ae09e6274570c7ec"
    ],
-   "lat_ms": 5594.5,
+   "lat_ms": 5647.7,
    "round": 0,
    "erro": null
   },
@@ -1118,7 +1118,7 @@
     "3e0b5a8c6258d262bf991a0cc94fc22c2de6ad1bc4e518021ef0b084af6e5cf7",
     "45588b387e39f97325090ce6150ce99cbd17eaa274cbdb953a6d55ffa7be2ea2"
    ],
-   "lat_ms": 5729.6,
+   "lat_ms": 5760.7,
    "round": 0,
    "erro": null
   },
@@ -1157,7 +1157,7 @@
     "e0003952c9a078f459e9fbdb853d0f6077454e0840a3c421195c4a1a3ce7b57d",
     "da930f9a9ad759756553c36bd18c26db553549a5ccbac5e586b93214c5f27fed"
    ],
-   "lat_ms": 6599.5,
+   "lat_ms": 6217.2,
    "round": 0,
    "erro": null
   },
@@ -1196,7 +1196,7 @@
     "4f432ad07568f86996607f73a4bc52f75df6b3cd34cd8e4a1fab508d458fa6af",
     "3baf3b0b8a916c4a3bf30c6422b76c03013dd86e805160d65abcd54f2aa7bee2"
    ],
-   "lat_ms": 6731.2,
+   "lat_ms": 6312.9,
    "round": 0,
    "erro": null
   },
@@ -1235,7 +1235,7 @@
     "fb3349d209f5ed67528ba2cec6c30e3978a32f627159a4691691e9eaae269732",
     "f25dea665ab02080be59899a253b7fe8a4dede8a8678777e1694cef6e48b9d85"
    ],
-   "lat_ms": 6386.0,
+   "lat_ms": 6546.0,
    "round": 0,
    "erro": null
   },
@@ -1274,7 +1274,7 @@
     "febf37e2b549a5cfc5470e0f53113de1618cdf913e26103a0d5608f2398cb131",
     "dd06575ff4e0db8aa2048e9050eeaec88b7394756ebce82ef8dc07a9ae99b913"
    ],
-   "lat_ms": 6366.9,
+   "lat_ms": 6273.4,
    "round": 0,
    "erro": null
   },
@@ -1313,7 +1313,7 @@
     "aa608762a5ee146274dd14cff2d048242bfd5cebaf1010b648e53bb419f07423",
     "c3978342290ac1ce3657994e6cb610d7c42d31878338e30047d749d7dac542d7"
    ],
-   "lat_ms": 5138.0,
+   "lat_ms": 4868.4,
    "round": 0,
    "erro": null
   },
@@ -1352,7 +1352,7 @@
     "cef299996940e1b25fcefe57de272922948c9f88b19ac1498a6c8dffdb7b0e15",
     "fdb8841a5819b671153fd8c3c5da26dbb468e5eda785cd001ec3ee4bba3c063c"
    ],
-   "lat_ms": 4970.3,
+   "lat_ms": 4704.4,
    "round": 0,
    "erro": null
   },
@@ -1391,7 +1391,7 @@
     "884456796b19ae2b8548e05938fe0d2ba2ca4627dbb3686097fd42d30538983f",
     "5ec3876ee2709a163472c949e80923b44b6e831a3d74a2cf3c5572da16711b56"
    ],
-   "lat_ms": 6619.5,
+   "lat_ms": 6079.8,
    "round": 0,
    "erro": null
   },
@@ -1430,7 +1430,7 @@
     "19659319243df8d799ca09661f8266b9ecda3bb40fa6ab31fcb6f87bf9494499",
     "18976574c027beeaaa122cd5a9fec568da7f8f72f212a57737b23c1e70c23bd6"
    ],
-   "lat_ms": 6458.0,
+   "lat_ms": 6315.9,
    "round": 0,
    "erro": null
   },
@@ -1469,7 +1469,7 @@
     "ee0f93f0dad5b10a8113eb990fdd449c1df2b13d77727817c74eb977624792d0",
     "7ad13c73a18eb60afad0e1f101122675f1266df90a8dd7ba88ad404b80e49d6e"
    ],
-   "lat_ms": 6518.5,
+   "lat_ms": 6152.9,
    "round": 0,
    "erro": null
   },
@@ -1508,7 +1508,7 @@
     "19c4a655c876496830212af8cc652ef775d18e72cd932a9611cfe202292b327c",
     "3fc39717fa957f5fc34e1e866afc3329d2af52bf0a7b46af689b99bcd9d3632b"
    ],
-   "lat_ms": 6775.6,
+   "lat_ms": 6207.2,
    "round": 0,
    "erro": null
   },
@@ -1547,7 +1547,7 @@
     "6b6898e95f7616efc530b701b52e6607c591880807d1b6414723a912ba4d9970",
     "47eba6b3563359a683759443615b77910104e70e7053fc09677e1afd88485f59"
    ],
-   "lat_ms": 6511.7,
+   "lat_ms": 6068.5,
    "round": 0,
    "erro": null
   },
@@ -1586,7 +1586,7 @@
     "ead5e0b114d3c04f6c1249097fa86b8ab67af67f7e31c6713dc66d1989f2842c",
     "19030ef1c6cb8fb88154dca5b9d3c0e02af38418c12e301057b03390411ae79d"
    ],
-   "lat_ms": 6579.7,
+   "lat_ms": 6235.5,
    "round": 0,
    "erro": null
   },
@@ -1625,7 +1625,7 @@
     "95098faf4deb4ba20f35ab893793b1b54a732b74ed2eacc88725a216a299c040",
     "b23b18c0550eac8737825735d8af603d1e7e4481934e4c8bd9c8b1c7de8ed555"
    ],
-   "lat_ms": 6899.0,
+   "lat_ms": 6380.3,
    "round": 0,
    "erro": null
   },
@@ -1660,7 +1660,7 @@
     "d35ae26a98403d50f5263bf00671ea6de640fa3ec81c5f39ae893a7a0d9bc773",
     "bf38cca79cdd2bc98e8f8d7dec6bffbf3ca689a315fbf0f7e3e7f87861b1d857"
    ],
-   "lat_ms": 6756.4,
+   "lat_ms": 6242.9,
    "round": 0,
    "erro": null
   },
@@ -1699,7 +1699,7 @@
     "1362782a9293383654a4bbb8ef0f713bef3edabb54e33c95746ff1d3670dc878",
     "a322295a37a58eeed1b02a8ba8f804c8266f2b0dade33cbf82fb6811d08c3818"
    ],
-   "lat_ms": 5997.8,
+   "lat_ms": 5398.5,
    "round": 0,
    "erro": null
   },
@@ -1738,7 +1738,7 @@
     "bc793a4df0d4bc1b7e9ab7ef6a19e3334d16e5787aa8d7dd03e40521b20f4f16",
     "7f8cd28db690aa8ba65c80a2e6e34bb0d9189b07d67967fcb589154e07cf3c55"
    ],
-   "lat_ms": 6525.2,
+   "lat_ms": 6175.8,
    "round": 0,
    "erro": null
   },
@@ -1777,7 +1777,7 @@
     "8dc8a0f004e680a4f903749ee19089ef73dca9e2ab3590acc5e5f16777c20d42",
     "33e43aca40e820c9e5c2509fa5237865a7274e8ce5e7de6d13039c0e42d42774"
    ],
-   "lat_ms": 6611.6,
+   "lat_ms": 6137.9,
    "round": 0,
    "erro": null
   },
@@ -1816,7 +1816,7 @@
     "31b87c5e850fdf404b348f66a141c3282c04f3c0801df99aa2a2859a85a4f031",
     "ec8848d7e398ce2614ca4ddbcc616a454c89ec9c996dc1f3ddba8beeb0417a82"
    ],
-   "lat_ms": 6563.9,
+   "lat_ms": 6273.6,
    "round": 0,
    "erro": null
   },
@@ -1855,7 +1855,7 @@
     "c2d31f03085ed9ab34046d85fb5b4141c95018d80c25c0d04af92fc8b3238e2a",
     "50327dbe1d8471e086142e039a1ba762e67014ff9d09c6b69edcc411f7ee13ee"
    ],
-   "lat_ms": 6435.0,
+   "lat_ms": 6321.9,
    "round": 0,
    "erro": null
   },
@@ -1894,7 +1894,7 @@
     "ab05c4bf35c2c113c02dd449041bf67518295042618c2b78180ab6dd8fb9a102",
     "51e1d25ca4dc2b4ef7783c2987a7661d324e236ed82a0d4463ea97cee3e1f086"
    ],
-   "lat_ms": 6246.4,
+   "lat_ms": 7011.7,
    "round": 0,
    "erro": null
   },
@@ -1933,7 +1933,7 @@
     "e2310aeb470aafd6ed302ea04b1fec517a443196bff8d7d288651fff74cf2a07",
     "7ded3d9940db5159659248f84d15246998938e2e5f725337fa0ca1d45d3a9c5a"
    ],
-   "lat_ms": 6509.8,
+   "lat_ms": 6596.2,
    "round": 0,
    "erro": null
   },
@@ -1972,7 +1972,7 @@
     "e606a07453eb051b0bf868117233eabda86023b313c5abb682e7902e7f153b8a",
     "0a7e124d2fc2d9466827895564365940f0ea7057bd9d63ca47f0efadcd3a2bc5"
    ],
-   "lat_ms": 6568.3,
+   "lat_ms": 6189.2,
    "round": 0,
    "erro": null
   },
@@ -2011,7 +2011,7 @@
     "1300f8d435f275576034f1f63f9fb649e78285d84062c6ebaab6960864416870",
     "486266c0248206b5d7fbf4644e9d3370f5978f1f997e8a08fa718558a4053205"
    ],
-   "lat_ms": 6690.4,
+   "lat_ms": 6227.9,
    "round": 0,
    "erro": null
   },
@@ -2050,7 +2050,7 @@
     "ab298ea505b9ceb0a38b19a2add15b57533a9d38aac4cc20ccc1a963fb46ea5d",
     "8a360c12e7349ccadef5af59e3c59968e9d2a67867d68a6dcf5a6225c10780f1"
    ],
-   "lat_ms": 6534.1,
+   "lat_ms": 6247.8,
    "round": 0,
    "erro": null
   },
@@ -2089,7 +2089,7 @@
     "2249905f27193f12e271299df7403d2b96581df201fa6ded6fbb819c197444d8",
     "28021bb2985f17968b6e3dce20c596d1cf21bdb19ea748de18b79fd551bd0ad3"
    ],
-   "lat_ms": 6511.2,
+   "lat_ms": 6148.2,
    "round": 0,
    "erro": null
   },
@@ -2128,7 +2128,7 @@
     "b98162c172c6f8cd02ad5ae4cfa0dbf21fab80db4519b5f0684ab18e6bfe6cd9",
     "696adab2eb3a054d088b6e4719d180413ece84cfbac0fc84cf02a7581a86ab61"
    ],
-   "lat_ms": 6695.0,
+   "lat_ms": 6183.1,
    "round": 0,
    "erro": null
   },
@@ -2167,7 +2167,7 @@
     "6407d1b2efe9d91d273cdae53f29021ddc233873162deae7f7a1ea982b68fc0b",
     "bb63707886ad1a4e4800c9596b557afd917124a707a0811b95ceee5396b4c8f0"
    ],
-   "lat_ms": 6528.5,
+   "lat_ms": 6290.3,
    "round": 0,
    "erro": null
   },
@@ -2206,7 +2206,7 @@
     "072ca86e4f869135a84345261830a105b59597996297ecf1f1211e82e6c150d9",
     "e257f35369e96ffc3683211dfdd600071b781dd340cdec59a23ab80fa86ef4cd"
    ],
-   "lat_ms": 6627.0,
+   "lat_ms": 6097.4,
    "round": 0,
    "erro": null
   },
@@ -2245,7 +2245,7 @@
     "0e3cde5230ebfcf0fc1be808dccc00fff16062c11621565f7a712236450eeb83",
     "adce7baf6e66c84a0a746fc3d88bf275e8d83f1c766d9f33af4c645423120e7a"
    ],
-   "lat_ms": 6445.3,
+   "lat_ms": 6066.2,
    "round": 0,
    "erro": null
   },
@@ -2284,7 +2284,7 @@
     "83b16cdc6b42b432f2ffb8a782873bb79bfbc609853e84dd78b50b7c452b8b18",
     "76e66fc389abf7e46265c101bc3b9b9d0586b208c8e5e8a1c1ddecd475956360"
    ],
-   "lat_ms": 6610.2,
+   "lat_ms": 6170.2,
    "round": 0,
    "erro": null
   },
@@ -2323,7 +2323,7 @@
     "947a5c5aae0ebb18248473d2c36b9d1a3634a6526329647b8f07f3a1adf251c0",
     "8750aaabac8b6e9b62a7434634b9055aa4183b1f9f7636d372b649aea37793f0"
    ],
-   "lat_ms": 6873.5,
+   "lat_ms": 6159.1,
    "round": 0,
    "erro": null
   },
@@ -2362,7 +2362,7 @@
     "c088ea3a692735923587ab3bda2e4c7440c845de7e41a414886fe7243ed2686c",
     "5ddb265178cd8d58f1b904f4bfb06c2d9b197f55f3603cc78003f009d89b7912"
    ],
-   "lat_ms": 6043.1,
+   "lat_ms": 5481.0,
    "round": 0,
    "erro": null
   },
@@ -2401,7 +2401,7 @@
     "b23ac4da2b09973d12c76ed7e4a31b230547e823295c4e6280df427aba64047f",
     "e387085712f014eddc861ea20b80974236fd0b71be4e86668dbc9de3d81a59da"
    ],
-   "lat_ms": 7128.1,
+   "lat_ms": 6102.3,
    "round": 0,
    "erro": null
   },
@@ -2439,7 +2439,7 @@
     "c35821d04691d4d7876de72420789d23d244b08d8281e4df65996a4189f8c880",
     "58428e5af2415e89702b50591e5588a3ca283c62174b79f6deaf8cef52940c80"
    ],
-   "lat_ms": 6950.7,
+   "lat_ms": 6313.6,
    "round": 0,
    "erro": null
   },
@@ -2478,7 +2478,7 @@
     "5e99f71b05bd15b70d12437e275049f3d60fb978fdd0afee1a6cfa23ab748ee9",
     "5e09d515d71f1163bd5c282474cfc64ecc176629031c065b2f99a532b6c35d84"
    ],
-   "lat_ms": 6502.2,
+   "lat_ms": 6272.0,
    "round": 0,
    "erro": null
   },
@@ -2517,7 +2517,7 @@
     "be25d0b6e9671d6990fea0567ec40db35c9ccbd5b3069a9a17fe28bfbaf0b4c9",
     "ae2b48ef2eaa6c6daf82d5570e31ba756335c13ad789d646c0875e91c3320de4"
    ],
-   "lat_ms": 6738.8,
+   "lat_ms": 6956.4,
    "round": 0,
    "erro": null
   },
@@ -2556,7 +2556,7 @@
     "1ba0f519a89a5e5cbc8fc0a9d7e01d323439f91e4b9b43cac1a1d3f893021a6f",
     "5b55c126519bd47cbeed02e363811daea207bc6b6678fb25301ebc9037f0eb2f"
    ],
-   "lat_ms": 6573.8,
+   "lat_ms": 6264.7,
    "round": 0,
    "erro": null
   },
@@ -2595,7 +2595,7 @@
     "ff94a537869f59dab3d65d83c8ec336e5c9da5194cf9a82f59da1badff3d54a1",
     "3ca9f7b3bdf7093efaca8eea6e58d9d45ed20fbf29029538f02803d3a4e5aca0"
    ],
-   "lat_ms": 6607.6,
+   "lat_ms": 6192.0,
    "round": 0,
    "erro": null
   },
@@ -2634,7 +2634,7 @@
     "949c3ce7c60851de1056909af48bedc5524abe931eeaae35159a877a0cde0f24",
     "6c7d37bf7b229b70c7e7822afc3c2556bd1c5f094a8db448394a28b2f7c5058b"
    ],
-   "lat_ms": 6700.5,
+   "lat_ms": 6593.8,
    "round": 0,
    "erro": null
   },
@@ -2673,7 +2673,7 @@
     "a27444febd61431b0e6afcb95310136d1498a805e9a08cb51bc776456b32b53f",
     "7fae4c311953d036f91fe6fb54ba0887f10b3ee14a186f2e18d4af70e912ba82"
    ],
-   "lat_ms": 6634.0,
+   "lat_ms": 5960.0,
    "round": 0,
    "erro": null
   },
@@ -2712,7 +2712,7 @@
     "db24f0786f3139a106de1ea70e1a7fbe35eb2440cbb210aa9ec6606b0802a226",
     "703e8b5cdc7fc467170bbef36dc66c8e49ec7b93c58b9df89cfb3528c974a87e"
    ],
-   "lat_ms": 6328.4,
+   "lat_ms": 6261.7,
    "round": 0,
    "erro": null
   },
@@ -2751,7 +2751,7 @@
     "c7fc16feaca14c01318b08d6b4201f82d15e0383ef0a1f0900f83cfc588013bd",
     "f3722e34e146d4a1f4bc531281fed50a2f67a2549988eba79b59fe8c81b9c5b4"
    ],
-   "lat_ms": 5815.4,
+   "lat_ms": 5414.2,
    "round": 0,
    "erro": null
   },
@@ -2790,7 +2790,7 @@
     "5475a7d557e19f7c4d338d3a415637f3b2270a3a4d3334d9c43bdb120d731524",
     "ee6b513bae1c45df6e466704518dd5ea2b4c71ab7e9c297aa688f869cd8254bd"
    ],
-   "lat_ms": 6558.6,
+   "lat_ms": 6046.9,
    "round": 0,
    "erro": null
   },
@@ -2829,7 +2829,7 @@
     "5333d9f0e6d7072a65d11346221d2fe27c904e9e484bd70cbb4d2a4e92833766",
     "f20487d85c37a77f19e88d4932d80981775eed452c9307e4c0fd2d0c10dbc97c"
    ],
-   "lat_ms": 6990.2,
+   "lat_ms": 6014.8,
    "round": 0,
    "erro": null
   },
@@ -2868,7 +2868,7 @@
     "36b22d8dca7d501206ee42fa82742657067dcdc567c929b2b767e08faa1adc1e",
     "f6c5581aa4e2581a7697553a09fafce294604fcc042497c9c808e9aa73b9e2ab"
    ],
-   "lat_ms": 6688.6,
+   "lat_ms": 6158.9,
    "round": 0,
    "erro": null
   },
@@ -2907,7 +2907,7 @@
     "9f96ffad10e74995a8c03c8756aa0f8c6ffd31f387e5d96999e17183dda09223",
     "e6ebea2978ab7bb1dd41e14b7eee473a88cddace63e4d67f5a9d5280acaf6d60"
    ],
-   "lat_ms": 6556.1,
+   "lat_ms": 5954.4,
    "round": 0,
    "erro": null
   },
@@ -2946,7 +2946,7 @@
     "56838641b4971675eb6b0a73ccfe2e6da46009c0d218a5ebbfa2a54a12a6f32d",
     "7c6d5cb64c0f4f0856a174b01bcefceae915727e1ff2bfa41efeae7092eda6e3"
    ],
-   "lat_ms": 6517.3,
+   "lat_ms": 6097.7,
    "round": 0,
    "erro": null
   },
@@ -2985,7 +2985,7 @@
     "50766de83cb51e274a4368169f85b5c67866707049dd0c957a73db9258426b3a",
     "052b81959f06d24ccd7c60a881d4afd2e56a7e566649a7080797dd75b3a23e85"
    ],
-   "lat_ms": 6835.6,
+   "lat_ms": 6033.0,
    "round": 0,
    "erro": null
   },
@@ -3024,7 +3024,7 @@
     "78a753336fcae863a9bd9fb4336f34b37ae4cfc0aa2757f16b347d9e57dd39c0",
     "bedaf931769fa7e2ec41295ab9f6f0054f17d212e65e8d5389dba5891cbeb40e"
    ],
-   "lat_ms": 6888.3,
+   "lat_ms": 7561.4,
    "round": 0,
    "erro": null
   },
@@ -3063,7 +3063,7 @@
     "c78b860f7c77f7b833d0657317254e50545506990208cfa2a65603b1f57a106f",
     "6ff75c158cf10dadf1f9d0754b195c559d8023c1f3de1fdf3fd07157d6499842"
    ],
-   "lat_ms": 5924.9,
+   "lat_ms": 6230.5,
    "round": 0,
    "erro": null
   },
@@ -3102,7 +3102,7 @@
     "ca59a302ed415aacfdc1e0f2701574c38cc55398ca8229bfa4f2a0ccb157c3dc",
     "4b3254154ad69754366897fa522a291d06c8e27db88df3fe41725e21cd4d1565"
    ],
-   "lat_ms": 5990.6,
+   "lat_ms": 5481.5,
    "round": 0,
    "erro": null
   },
@@ -3141,7 +3141,7 @@
     "c79e9e6c17d6fcb27cc9da3f3768198d98a3648d528f9ae4fa94c4e19ccbc715",
     "1f577ad01cda81845cb521d64d1c8338f4db2fc528ca8c10aa4d31f91489cb24"
    ],
-   "lat_ms": 6530.9,
+   "lat_ms": 6071.7,
    "round": 0,
    "erro": null
   },
@@ -3180,7 +3180,7 @@
     "f18b926f729932122339b226c5225a6c9f2481aaf6b81761498db688b5554f24",
     "3eb1910db20f5b8d29f9e639fe3aafae1d47f49e7b575dfacd3fc98bccb7e90e"
    ],
-   "lat_ms": 6636.2,
+   "lat_ms": 6152.5,
    "round": 0,
    "erro": null
   },
@@ -3219,7 +3219,7 @@
     "70627328d67cf9fcddafc275f421ceff0431f353a47ff8b90f8983a47bfb27b4",
     "a1f76fa41d60036e41041d579b450e45792c043b686c86eac9890251a07f0109"
    ],
-   "lat_ms": 5335.3,
+   "lat_ms": 5057.7,
    "round": 0,
    "erro": null
   },
@@ -3258,7 +3258,7 @@
     "d313fe32e185f24474496e88ab024414d4f762d156935932d5f9fc9e5c254ff9",
     "56b3620057b28b2b665dbc4a2dfd1c225f0d14e22a2f84984852e5cef6bf05be"
    ],
-   "lat_ms": 6496.7,
+   "lat_ms": 6522.8,
    "round": 0,
    "erro": null
   },
@@ -3297,7 +3297,7 @@
     "56d0c7ae069f7ab0b61042fd33b890b32c3a5eb1c2df1ccfcbb9457daa433531",
     "ed5cf2819f42cdcf202b331997e29ff682ba09ca82b4fbbfc78f60d4dbd9b1cf"
    ],
-   "lat_ms": 6572.2,
+   "lat_ms": 6853.3,
    "round": 0,
    "erro": null
   },
@@ -3336,7 +3336,7 @@
     "231c78f712b9f910bceeef9ce2128469bc38086ce43fe855eb348bde61e0677e",
     "abb0741d59ddf23ccded82062d65df81ce08f8be3cbf6cee23c908f7eaf177a9"
    ],
-   "lat_ms": 6646.6,
+   "lat_ms": 6359.9,
    "round": 0,
    "erro": null
   },
@@ -3375,7 +3375,7 @@
     "27972ce6bd7824ade859fcbd670a56303c1af38530fe23be34f3a96e209097cc",
     "e4af2ad9238964eac1893ea4e99d5febb6dcab5b7e6c576d328366c2e1b0c96e"
    ],
-   "lat_ms": 6578.8,
+   "lat_ms": 6195.6,
    "round": 0,
    "erro": null
   },
@@ -3414,7 +3414,7 @@
     "0b99b378c46a1fa38135ddd900613b67383ee8e3b3df7dd4815ee8954ddc14da",
     "71c7c95e7c70d4ade5e684aa114028d299e8b645338c2f82de2d73ee5c11a183"
    ],
-   "lat_ms": 6507.5,
+   "lat_ms": 6453.2,
    "round": 0,
    "erro": null
   },
@@ -3453,7 +3453,7 @@
     "639bbb96af42f5a5b2c4aa955eb3a373a9f6be0e101d99372860d481dc629adb",
     "35f3f575b0f82bae0ab70a9e762e73520d29063fcd1b0fbe3d965a14d5f01cae"
    ],
-   "lat_ms": 3868.0,
+   "lat_ms": 3839.8,
    "round": 0,
    "erro": null
   },
@@ -3492,7 +3492,7 @@
     "acc52f2311669bcc84bf280dd5af326c9ee6cae7f9e3dc59a0e3ef41c1b8da6b",
     "9f7787a8a2bf8a28a9e4a31a509815e8cf5296a0c052a97346328bd4b85a519b"
    ],
-   "lat_ms": 6684.2,
+   "lat_ms": 6455.1,
    "round": 0,
    "erro": null
   },
@@ -3531,7 +3531,7 @@
     "cdd9b99d376c679e1db90b0aebb48f3a71c5d8f0f44bc2d75376494c9a54e0cf",
     "4859710b5d5b9269af495588df749b21bd2b36a09f8922a3289b23e707bfd70b"
    ],
-   "lat_ms": 5994.2,
+   "lat_ms": 5655.0,
    "round": 0,
    "erro": null
   },
@@ -3570,7 +3570,7 @@
     "97ad94543b8102e911dc6bde2855edf91acd1d17d3f3cd97b71583aac928290a",
     "d8f7234b96a16384ca4681ad87f3e152c13e1bb014452c43edeaea7024875b00"
    ],
-   "lat_ms": 6519.6,
+   "lat_ms": 6232.8,
    "round": 0,
    "erro": null
   },
@@ -3609,7 +3609,7 @@
     "d545a7359cce76adbe4b4106daa5441f3725e53593d9cf0989f7bd378e888b18",
     "d0c0a1e25db2ad442872fbc20e111b582d65b1a3bea73a7d64a9ed37ea195cd3"
    ],
-   "lat_ms": 6564.9,
+   "lat_ms": 6374.7,
    "round": 0,
    "erro": null
   },
@@ -3648,7 +3648,7 @@
     "d929953f51b9e621c8a7f4671920493d32974151cf022db12d9556f8daaefe26",
     "1e5f3a4ce11d4a8490b515658ff49603bbb963f8cfed961b8e205feb89fa04f5"
    ],
-   "lat_ms": 6559.3,
+   "lat_ms": 6398.1,
    "round": 0,
    "erro": null
   },
@@ -3687,7 +3687,7 @@
     "624b25591ff08ff93c20b189cda6142ae04784a6c6f5fced832f2cc9d3b4fb21",
     "5fac3bfe4c47a8ebcceb007621d0ab0d1baadcae36f499e572e3933775b94b53"
    ],
-   "lat_ms": 6203.7,
+   "lat_ms": 7285.9,
    "round": 0,
    "erro": null
   },
@@ -3710,7 +3710,7 @@
     "8f5c5c1cb608d81bbe0967a2d620e4af5f39d35c36a6e49b5219e03556b2b656",
     "4601a97ddce2030a2d10df5c68708f65f13f627701ff4189fdf36036432d36da"
    ],
-   "lat_ms": 5764.4,
+   "lat_ms": 5897.7,
    "round": 0,
    "erro": null
   },
@@ -3749,7 +3749,7 @@
     "3bcfb4b0928035b657830da5bd7e454ddff101a031b57693e768fb41cef56c88",
     "8a1f8a813b0d90a1b5f25f387d4f1e44b6af5947daff63bc9f129e0773d6e4fa"
    ],
-   "lat_ms": 5830.2,
+   "lat_ms": 6432.0,
    "round": 0,
    "erro": null
   },
@@ -3788,7 +3788,7 @@
     "ae4534ea02b474f429beb03fa66ab39d96619f49e80ca4e90f08212769e09fc7",
     "2f20abf37caa33a9df4653dd6581a7dccd3bdc8428739d87db332b5f5df5040b"
    ],
-   "lat_ms": 6479.2,
+   "lat_ms": 6357.0,
    "round": 0,
    "erro": null
   },
@@ -3827,7 +3827,7 @@
     "5558082d452b7dd7606efcb4a2ccd0e03f6879738285220da2dfc88d3c5c2770",
     "199ae738fe6a3e2a8d73a1c134220e2ef550c96e043ef558ada59ff7fb1973dd"
    ],
-   "lat_ms": 5389.1,
+   "lat_ms": 5193.7,
    "round": 0,
    "erro": null
   },
@@ -3866,7 +3866,7 @@
     "d8bdae36a7d747b1c890a1be70edb60c2c53d4c2a06529ad1e45aa9a8cf1bac1",
     "02ff231170239476a6566f173ccd4c8278bb173bee6c7be619b2cfa553cab4dc"
    ],
-   "lat_ms": 4603.1,
+   "lat_ms": 4330.1,
    "round": 0,
    "erro": null
   },
@@ -3905,7 +3905,7 @@
     "dbef4e2b1c32ee1efdedb8146a90a2998a07c5efb57329bdfe478168a97df7a4",
     "c6cb60b0d418cd886a0bda7b91ea26ce882c96756ecaf9caaffa80a56ff6fccb"
    ],
-   "lat_ms": 6617.1,
+   "lat_ms": 6001.4,
    "round": 0,
    "erro": null
   },
@@ -3944,7 +3944,7 @@
     "abb956dfc4a564fc3550bf6ce895d77be0d4876518c2157fae0c70f7fa5a2f42",
     "a4a2b186a19c299700a6ae146477b6e418e0f736cb6c6b7288a3abe9e6828dd0"
    ],
-   "lat_ms": 6140.1,
+   "lat_ms": 6048.2,
    "round": 0,
    "erro": null
   },
@@ -3983,7 +3983,7 @@
     "89787b326ac4166af902009488fe98341abda7627408fcde189290a79e1e51be",
     "556a198ef88d0d745c27fa70359a9360f23ed91ea102c285b3fc8e221644f3a5"
    ],
-   "lat_ms": 6624.4,
+   "lat_ms": 6485.2,
    "round": 0,
    "erro": null
   },
@@ -4022,7 +4022,7 @@
     "6e53c9c522421c2b4926116fa0d31683d4bbcd5baff97489b51b52489420f37e",
     "52d088c95873ab4ecced0e67b39952976c9fadf5633cf4a49e7902941a91371b"
    ],
-   "lat_ms": 5128.3,
+   "lat_ms": 4716.3,
    "round": 0,
    "erro": null
   },
@@ -4061,7 +4061,7 @@
     "d22c9aca3b55f05809b4770ac62912f0ce2c7b4387118685ce6f334d30596e43",
     "87fd7de840b1edc8714aa2e99b570d2ba4915d6a0c327efc5ca02fb39bfdef8a"
    ],
-   "lat_ms": 3931.1,
+   "lat_ms": 3735.5,
    "round": 0,
    "erro": null
   },
@@ -4100,7 +4100,7 @@
     "f2cf409dc0dbfb62599269721af0a6aa38999fc920dba17e80ee346ce12e7854",
     "df23c0af712220799c9a3c7b9a8bfbfc125755b7feed2617591319023d722503"
    ],
-   "lat_ms": 5609.3,
+   "lat_ms": 6517.0,
    "round": 0,
    "erro": null
   },
@@ -4139,7 +4139,7 @@
     "fae965d81b2bed482ef6c8a55cbffd1fae3fca26aa264ec533a2fb29c148e2c5",
     "05e82b0257a71c229cee8bd01477d3c99b382538ca99fa4dda631d4049f67444"
    ],
-   "lat_ms": 6733.0,
+   "lat_ms": 7122.7,
    "round": 0,
    "erro": null
   },
@@ -4178,7 +4178,7 @@
     "f13691df980d5d4988796b99875737359e3dd7e811c259a1bef8ff8f49d5a43b",
     "122d3d6c22c491f7261e4897559c18f4543ccecc646f9b461b317d3d21a6ec8b"
    ],
-   "lat_ms": 5493.9,
+   "lat_ms": 5081.3,
    "round": 0,
    "erro": null
   },
@@ -4217,7 +4217,7 @@
     "5b6eaba2cb6c2b3bc06e1c2014d8bc60d233a99e38f99123d6ebed602afa78cd",
     "2c45403220aca26f1a210add3cc07d2710d33704607eb8c807bafe5551a91366"
    ],
-   "lat_ms": 6537.8,
+   "lat_ms": 5946.5,
    "round": 0,
    "erro": null
   },
@@ -4256,7 +4256,7 @@
     "c998a33b9c445bfd8040b991e40e799f8eb21dec11b6330229e1b2efe74dabd5",
     "b0f9e0acc5dc98fa66144af508b59b5a0deb96ab4266281d0b75172b16c7f183"
    ],
-   "lat_ms": 5660.6,
+   "lat_ms": 5090.9,
    "round": 0,
    "erro": null
   },
@@ -4295,7 +4295,7 @@
     "7f2bfd3c07ebdf6565c25e7877faec306667a49e8bdfd9a8b7e2ae2783177d60",
     "d0e5a55a73b326b9b52a3608f8dba397998b812cd371a35de6cae42f2430d552"
    ],
-   "lat_ms": 3826.4,
+   "lat_ms": 3413.2,
    "round": 0,
    "erro": null
   },
@@ -4323,7 +4323,7 @@
     "073594be4d4e391abd7abce068e810c568fce379b492243f7f67e657aa74caa1",
     "d7e79336041b76fd88d9059d9270166fdacc567c4b89668aaeeb983dd992680d"
    ],
-   "lat_ms": 5217.7,
+   "lat_ms": 4899.7,
    "round": 0,
    "erro": null
   },
@@ -4358,7 +4358,7 @@
     "5499251c39352ba5050afe969f68ea91d3ad0b6661ace59452cc9512c46a5edb",
     "c043699a4a43e4b610da8e4766918ff44e755a5ade73a1cc311f0a4ca24f19e6"
    ],
-   "lat_ms": 5713.1,
+   "lat_ms": 5214.7,
    "round": 0,
    "erro": null
   },
@@ -4397,7 +4397,7 @@
     "ec86c763d609468f73b048b491ccb0c79a0131254d53c19ef9950e41b8e21ceb",
     "c643317d84a4a3dc0bd5c3375a3fccd4b43b7e33e8cc019e03af3fc7e0f4b0cb"
    ],
-   "lat_ms": 6628.2,
+   "lat_ms": 6102.2,
    "round": 0,
    "erro": null
   },
@@ -4436,7 +4436,7 @@
     "ab77f0f3b4e85d8fa0d1418e314f783d819ad630860c2dce59181e17e9354c0d",
     "2e9881e4cbe4df97c9d5dd1ffd30925c5b5b766d6b3beb695f5d5af30fdbabbf"
    ],
-   "lat_ms": 5751.5,
+   "lat_ms": 5125.0,
    "round": 0,
    "erro": null
   },
@@ -4475,7 +4475,7 @@
     "9851e0a5b3e59338895a8a6d870ce60e94dbbba0da5a4b4656eff27e74756923",
     "5ee00580c6a357aef3e7cca55d91d084ec11318c04fc83cc8bb1d85f57a15c4a"
    ],
-   "lat_ms": 5189.1,
+   "lat_ms": 4664.1,
    "round": 0,
    "erro": null
   },
@@ -4514,7 +4514,7 @@
     "639bbb96af42f5a5b2c4aa955eb3a373a9f6be0e101d99372860d481dc629adb",
     "6c74e2fd56e1825cb46e82aebde9f964eaa84171079a4909fb7c3cfb0def0834"
    ],
-   "lat_ms": 6862.8,
+   "lat_ms": 6003.2,
    "round": 0,
    "erro": null
   },
@@ -4553,7 +4553,7 @@
     "334e0e329bc7710eab4abb7e08040161867c25b69452c4d3067392692d80f817",
     "d45c14058ac06bd5ab2332791208184567900a15cfd295e7d46cab7fb4e9c445"
    ],
-   "lat_ms": 3318.7,
+   "lat_ms": 2876.0,
    "round": 0,
    "erro": null
   },
@@ -4589,7 +4589,7 @@
     "93489b46b4488037d00e76e6c3eb648ae53d20e55176e6e5ce3bf01f52d2f6e6",
     "d5b1b5acaec9bb9d4d08f15e9eb9ea11551b294fab171745b770792e00859228"
    ],
-   "lat_ms": 4421.0,
+   "lat_ms": 4126.8,
    "round": 0,
    "erro": null
   },
@@ -4628,7 +4628,7 @@
     "c34df043684d5edda9c786b88bca8e8620f32e3a7c50bc3e647e42d2605a2e5a",
     "6882675f29fcaa5fe23f5b4672244a1e421b3bbd9eedbad90c6f2339491d1db8"
    ],
-   "lat_ms": 1903.4,
+   "lat_ms": 1758.8,
    "round": 0,
    "erro": null
   },
@@ -4666,7 +4666,7 @@
     "0df2e48b2393be4bc6b8435bb48c276772354c3287622d98ba43ccc9ef806116",
     "33ac13475cd15529ce4b5741acfff316dee5e02a51a1f8a1c55186bab81f46ff"
    ],
-   "lat_ms": 2969.7,
+   "lat_ms": 2654.6,
    "round": 0,
    "erro": null
   }
