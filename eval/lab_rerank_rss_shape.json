@@ -1,0 +1,46 @@
+{
+  "pares": 40,
+  "resultados": [
+    {
+      "max_len": 512,
+      "batch": 32,
+      "ms_por_par_p50": 125.7,
+      "ms_total": 10.05,
+      "rss_delta_mb": 1764.0,
+      "rss_hwm_mb": 2376.0
+    },
+    {
+      "max_len": 512,
+      "batch": 8,
+      "ms_por_par_p50": 113.0,
+      "ms_total": 23.19,
+      "rss_delta_mb": 9.0,
+      "rss_hwm_mb": 2385.0
+    },
+    {
+      "max_len": 256,
+      "batch": 32,
+      "ms_por_par_p50": 45.2,
+      "ms_total": 3.61,
+      "rss_delta_mb": 33.0,
+      "rss_hwm_mb": 2417.0
+    },
+    {
+      "max_len": 256,
+      "batch": 8,
+      "ms_por_par_p50": 47.0,
+      "ms_total": 10.34,
+      "rss_delta_mb": 3.0,
+      "rss_hwm_mb": 2421.0
+    },
+    {
+      "max_len": 128,
+      "batch": 8,
+      "ms_por_par_p50": 21.4,
+      "ms_total": 4.34,
+      "rss_delta_mb": 6.0,
+      "rss_hwm_mb": 2427.0
+    }
+  ],
+  "top10_igual_512_vs_256_40pares": false
+}

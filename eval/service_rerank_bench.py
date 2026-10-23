@@ -189,6 +189,7 @@ def main() -> int:
             "rerank_enabled": os.getenv("MCP_RERANK_ENABLED"),
             "model": os.getenv("MCP_RERANK_MODEL"),
             "candidates": os.getenv("MCP_RERANK_CANDIDATES"),
+            "max_length": os.getenv("MCP_RERANK_MAX_LENGTH"),
         },
         "recall": recall_d,
         "latency": {

@@ -96,6 +96,8 @@ def main() -> int:
     ap.add_argument("--cases", default=os.path.join(REPO, "eval", "recall_cases_v3.json"))
     ap.add_argument("--dump", default="/tmp/cands40.json")
     ap.add_argument("--limit", type=int, default=30)
+    ap.add_argument("--max-length", type=int, default=0,
+                    help="MCP_RERANK_MAX_LENGTH do serviço (0 = default do código)")
     ap.add_argument("--probe-queries", type=int, default=0)
     ap.add_argument("--probe-baseline", default="")
     args = ap.parse_args()
@@ -111,8 +113,16 @@ def main() -> int:
     candidates = 40
 
     port = free_port(args.port)
-    work_db = f"/tmp/work-1602-{cfg}-{port}.db"
+    work_db = os.path.join(os.path.expanduser("~/local-data/mcp/lab"),
+                           f"work-1602-{cfg}-{port}.db")
     shutil.copy2(args.snapshot, work_db)
+    # Freeze the work copy BEFORE trusting it: a malformed image poisons the
+    # whole run silently (measured 22/out: the bge config scored 0.0 recall on a
+    # truncated copy -- every number was garbage and looked like a feature bug).
+    check = subprocess.run(["sqlite3", work_db, "PRAGMA quick_check"],
+                           capture_output=True, text=True, timeout=120)
+    if check.returncode != 0 or check.stdout.strip() != "ok":
+        raise SystemExit(f"work-copy integrity check failed ({cfg}): {check.stdout.strip()!r} {check.stderr.strip()!r}")
 
     # env base + override do host, na ordem em que o systemd carrega
     env = {
@@ -138,10 +148,13 @@ def main() -> int:
         env["MCP_RERANK_ENABLED"] = "true"
         env["MCP_RERANK_CANDIDATES"] = str(candidates)
         env["MCP_RERANK_MODEL"] = model
+        if args.max_length:
+            env["MCP_RERANK_MAX_LENGTH"] = str(args.max_length)
     else:
         env.pop("MCP_RERANK_ENABLED", None)
         env.pop("MCP_RERANK_MODEL", None)
         env.pop("MCP_RERANK_CANDIDATES", None)
+        env.pop("MCP_RERANK_MAX_LENGTH", None)
 
     log_path = f"/tmp/mmssvc-1602-{cfg}.log"
     started = time.monotonic()
@@ -155,7 +168,8 @@ def main() -> int:
 
     bench_env = dict(os.environ)
     bench_env.update({
-        k: env[k] for k in ("MCP_RERANK_ENABLED", "MCP_RERANK_MODEL", "MCP_RERANK_CANDIDATES")
+        k: env[k] for k in ("MCP_RERANK_ENABLED", "MCP_RERANK_MODEL", "MCP_RERANK_CANDIDATES",
+                            "MCP_RERANK_MAX_LENGTH")
         if k in env
     })
     cmd = [
@@ -183,7 +197,7 @@ def main() -> int:
 
     effective = effective_env(proc.pid, (
         "MCP_MEMORY_SQLITE_PATH", "MCP_SSE_PORT", "MCP_RERANK_ENABLED",
-        "MCP_RERANK_MODEL", "MCP_RERANK_CANDIDATES", "MCP_CONSOLIDATION_ENABLED",
+        "MCP_RERANK_MODEL", "MCP_RERANK_CANDIDATES", "MCP_RERANK_MAX_LENGTH", "MCP_CONSOLIDATION_ENABLED",
         "MCP_HARVEST_SCHEDULE", "MCP_SYNC_SCHEDULE",
     ))
 

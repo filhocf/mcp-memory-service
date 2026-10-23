@@ -1,0 +1,60 @@
+{
+  "nota": "processo fresco por config, 3 repeticoes x 2 lotes",
+  "configs": [
+    {
+      "max_len": 512,
+      "batch": 32,
+      "lotes": 3,
+      "rss_base_mb": 53,
+      "rss_pos_load_mb": 615,
+      "delta_load_mb": 561,
+      "delta_infer_mb": 3278,
+      "rss_final_mb": 3893,
+      "ms_por_par_p50": 124.1
+    },
+    {
+      "max_len": 512,
+      "batch": 8,
+      "lotes": 3,
+      "rss_base_mb": 53,
+      "rss_pos_load_mb": 614,
+      "delta_load_mb": 561,
+      "delta_infer_mb": 844,
+      "rss_final_mb": 1458,
+      "ms_por_par_p50": 122.5
+    },
+    {
+      "max_len": 256,
+      "batch": 32,
+      "lotes": 3,
+      "rss_base_mb": 53,
+      "rss_pos_load_mb": 614,
+      "delta_load_mb": 561,
+      "delta_infer_mb": 1285,
+      "rss_final_mb": 1899,
+      "ms_por_par_p50": 50.9
+    },
+    {
+      "max_len": 256,
+      "batch": 8,
+      "lotes": 3,
+      "rss_base_mb": 53,
+      "rss_pos_load_mb": 614,
+      "delta_load_mb": 561,
+      "delta_infer_mb": 354,
+      "rss_final_mb": 968,
+      "ms_por_par_p50": 48.6
+    },
+    {
+      "max_len": 128,
+      "batch": 8,
+      "lotes": 3,
+      "rss_base_mb": 53,
+      "rss_pos_load_mb": 614,
+      "delta_load_mb": 561,
+      "delta_infer_mb": 167,
+      "rss_final_mb": 781,
+      "ms_por_par_p50": 21.8
+    }
+  ]
+}
