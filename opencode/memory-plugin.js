@@ -113,6 +113,7 @@ const DEFAULT_CONFIG = {
     searchTags: [],
     includeProjectTag: false,
     allowSelfSignedCerts: false,
+    agentId: "opencode",
     projectQueries: [
       "{project} architecture decisions",
       "{project} recent work",
@@ -231,7 +232,45 @@ function environmentOverrides() {
     overrides.inbox.agentId = inboxAgentId
   }
 
+  // An explicitly empty value is an instruction too: it must reach the resolver
+  // (which rejects it and falls back) instead of silently keeping the file value.
+  const agentId = process.env.OPENCODE_MEMORY_AGENT_ID
+  if (agentId !== undefined) {
+    overrides.memoryService.agentId = agentId
+  }
+
   return overrides
+}
+
+const AGENT_ID_MAX_LENGTH = 64
+const AGENT_ID_CONTROL_CHARS = /[\u0000-\u001f\u007f]/
+// Dedupe is per raw invalid value, not per process: one warning for every
+// distinct malformed identity, however many times it is resolved.
+const warnedInvalidAgentIds = new Set()
+
+function validAgentId(value) {
+  if (typeof value !== "string") return false
+  const trimmed = value.trim()
+  return trimmed.length > 0
+    && trimmed.length <= AGENT_ID_MAX_LENGTH
+    && !AGENT_ID_CONTROL_CHARS.test(trimmed)
+}
+
+function resolveAgentId(config, env = process.env) {
+  const raw = env?.OPENCODE_MEMORY_AGENT_ID
+    ?? config?.memoryService?.agentId
+    ?? "opencode"
+  if (validAgentId(raw)) return raw.trim()
+
+  const key = String(raw)
+  if (!warnedInvalidAgentIds.has(key)) {
+    warnedInvalidAgentIds.add(key)
+    console.warn(
+      `[Memory Plugin] Invalid agent ID ${JSON.stringify(key)}; falling back to "opencode". `
+      + `Agent IDs must be 1-${AGENT_ID_MAX_LENGTH} characters with no control characters.`,
+    )
+  }
+  return "opencode"
 }
 
 function mergeConfig(base, overrides = {}) {
@@ -286,6 +325,9 @@ async function loadConfig(directory) {
   }
 
   config = mergeConfig(config, environmentOverrides())
+  // Resolve once at load: buildHeaders stays pure and every request reuses the
+  // same identity even if the environment changes mid-session.
+  config.memoryService.agentId = resolveAgentId(config)
 
   return config
 }
@@ -301,8 +343,13 @@ function buildUrl(baseUrl, pathname) {
 }
 
 function buildHeaders(config, extraHeaders = {}) {
+  const configuredAgentId = config?.memoryService?.agentId
+  const agentId = typeof configuredAgentId === "string" && configuredAgentId.trim()
+    ? configuredAgentId.trim()
+    : "opencode"
   const headers = {
     Accept: "application/json",
+    "X-Agent-ID": agentId,
     ...extraHeaders,
   }
 
@@ -1768,6 +1815,10 @@ export const _internal = {
   inboxStateKey,
   pluginConfigPaths,
   resolvePaths,
+  resolveAgentId,
+  buildHeaders,
+  requestJson,
+  loadConfig,
   searchInboxMemories,
   writeInboxMarker,
   sessionIdentity,

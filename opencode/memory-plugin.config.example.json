@@ -5,6 +5,7 @@
     "timeoutMs": 5000,
     "loadTimeoutMs": 2500,
     "maxMemoriesPerSession": 8,
+    "agentId": "opencode",
     "searchTags": [],
     "includeProjectTag": false,
     "allowSelfSignedCerts": false,

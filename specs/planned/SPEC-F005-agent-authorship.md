@@ -2,7 +2,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | planned |
+| Status | GREEN, G5 |
 | Impact | High — writes authorship tags on stored memories |
 | Depends on | F001, F002 |
 | Blocks | F008 |
@@ -51,6 +51,11 @@ EARS: WHEN `--agent-id` is omitted, THE installer SHALL use `opencode`.
 EARS: WHEN `--agent-id research-box` is passed, THE installer SHALL write
 `research-box` as the MCP header value and as the plugin `agentId`.
 
+In an existing installation the installer merges only
+`memoryService.agentId` into the active plugin configuration (new file name
+first, then the legacy `memory-awareness.json`), preserving every other key.
+Without an explicit flag, an existing configuration is never rewritten.
+
 **R3 — MCP header.**
 The registration carries `X-Agent-ID: <id>` as a header on the remote server.
 
@@ -98,11 +103,14 @@ EARS: IF the configured identity is invalid, THEN THE plugin SHALL fall back to
 
 `--agent-id` is added to the installer CLI and threaded into:
 
-- MCP registration: header `X-Agent-ID: <id>`;
+- MCP registration: header `X-Agent-ID: <id>`; an existing registration keeps
+  its other headers (for example `Authorization`) and unrelated keys;
 - plugin config bootstrap: `memoryService.agentId = <id>`.
 
 `MMS_AGENT_ID` is read as the default when `--agent-id` is absent; the literal
-`opencode` is the final fallback.
+`opencode` is the final fallback. An existing plugin configuration is updated
+only for an explicit, valid `--agent-id`; an invalid value falls back with a
+warning and never rewrites the file.
 
 ### 5.2 Plugin
 
@@ -127,6 +135,11 @@ function buildHeaders(config) {
 `agentId` is resolved once at config load and stored in
 `config.memoryService.agentId`, so `buildHeaders` stays pure.
 
+For tests, the plugin exposes `resolveAgentId`, `buildHeaders`, `requestJson`,
+and `loadConfig` under `_internal`. Invalid identities are validated after
+trimming: control characters or more than 64 characters fall back to
+`opencode`, and repeated resolution of the same invalid value warns once.
+
 ### 5.3 Server
 
 No change. The existing `X-Agent-ID` → `arguments.agent_id` injection and REST
@@ -147,9 +160,9 @@ tagging are reused.
 
 | AC | Command | Expected |
 |----|---------|----------|
-| AC1 | `pytest tests/harness/test_agent_id.py opencode/tests/agent-id.test.js -q` | all pass |
+| AC1 | `python3 -m pytest tests/harness/test_agent_id.py -q` and `node --test opencode/tests/agent-id.test.js` | all pass |
 | AC2 | install with `--agent-id research-box`; read config | MCP header and `memoryService.agentId` both `research-box` |
-| AC3 | MCP `initialize` + `tools/call memory_store` against the lab | stored memory has tag `agent:research-box` |
+| AC3 | MCP `initialize` + `tools/call memory_store` against the lab | `memory_search` filtered by `agent_id: research-box` returns the record |
 | AC4 | plugin store request against a fake HTTP server | header `X-Agent-ID` present on every request |
 | AC5 | no flag, no env | `opencode` on both surfaces |
 

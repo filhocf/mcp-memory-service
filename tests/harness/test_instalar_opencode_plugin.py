@@ -213,7 +213,14 @@ def test_clean_install_bootstraps_memory_plugin_json(tmp_path):
     assert service["timeoutMs"] == 5000
     assert service["loadTimeoutMs"] == 2500
     assert service["maxMemoriesPerSession"] == 8
-    assert set(service) == {"endpoint", "timeoutMs", "loadTimeoutMs", "maxMemoriesPerSession"}
+    assert service["agentId"] == "opencode"
+    assert set(service) == {
+        "endpoint",
+        "timeoutMs",
+        "loadTimeoutMs",
+        "maxMemoriesPerSession",
+        "agentId",
+    }
 
 
 def test_existing_memory_plugin_json_is_never_modified(tmp_path):

@@ -20,7 +20,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "harness"))
 
 URL = "http://127.0.0.1:39123/mcp"
-ENTRY = {"type": "remote", "url": URL}
+ENTRY = {"type": "remote", "url": URL, "headers": {"X-Agent-ID": "opencode"}}
 
 
 def _mod():

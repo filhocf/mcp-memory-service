@@ -63,7 +63,8 @@ The installer creates `<root>/memory-plugin.json` only when neither
 port selected at install time.
 
 EARS: WHEN no plugin configuration exists, THE installer SHALL create
-`memory-plugin.json`; WHEN one exists, THE installer SHALL NOT modify it.
+`memory-plugin.json`; WHEN one exists, THE installer SHALL NOT modify it,
+except for the explicit `--agent-id` merge defined in SPEC-F005.
 
 **R5 — XDG resolution in the plugin.**
 The plugin resolves its config, state, and data directories from
@@ -177,7 +178,7 @@ resolvePaths({ env = process.env, home = homedir(), directory } = {}) -> {
 | Case | Behaviour |
 |------|-----------|
 | Plugin directory exists with an older file | Replace only `index.js` if its hash matches a known-previous install; otherwise abort (`foreign plugin`) |
-| `memory-plugin.json` exists | Never overwrite; report `configuration retained` |
+| `memory-plugin.json` exists | Never overwrite; report `configuration retained` (SPEC-F005 may merge only `memoryService.agentId` when `--agent-id` is explicit) |
 | `memory-awareness.json` exists | Treat as configuration present; do not create the new file |
 | Uninstall after the user edited `index.js` | Keep the file, report it, remove the rest |
 | Status file parent missing | Plugin creates it on first write (`mkdir -p`) |

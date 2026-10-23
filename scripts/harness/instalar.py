@@ -23,6 +23,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -39,6 +40,13 @@ DEFAULT_PORT = 8000
 SERVER_NAME = "mms"
 MANIFEST_NAME = "mms-install-manifest.json"
 OPENCODE_SCHEMA = "https://opencode.ai/config.json"
+DEFAULT_AGENT_ID = "opencode"
+AGENT_ID_HEADER = "X-Agent-ID"
+AGENT_ID_MAX_LENGTH = 64
+_AGENT_ID_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
+# Tells `merge_mcp` a direct legacy call apart from an installer call that has
+# already resolved the identity. The installer always passes a value.
+_AGENT_ID_UNSET = object()
 
 # The plugin ships from the repository; nothing is transpiled or bundled.
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -155,6 +163,32 @@ def api_key() -> str:
     return os.environ.get("MCP_API_KEY", "").strip()
 
 
+def resolve_agent_id(value: str | None = None) -> tuple[str, str | None]:
+    """The identity to stamp, and the raw value when it had to be rejected.
+
+    Precedence belongs to the caller (flag, then ``MMS_AGENT_ID``); this only
+    trims and validates. An invalid identity never fails an install: it falls
+    back to the default and the caller logs the returned raw value once.
+    """
+    raw = DEFAULT_AGENT_ID if value is None else value
+    if not isinstance(raw, str):
+        return DEFAULT_AGENT_ID, str(raw)
+    trimmed = raw.strip()
+    if (
+        trimmed
+        and len(trimmed) <= AGENT_ID_MAX_LENGTH
+        and not _AGENT_ID_CONTROL_CHARS.search(trimmed)
+    ):
+        return trimmed, None
+    return DEFAULT_AGENT_ID, raw
+
+
+def entry_has_agent_id(entry: dict, agent_id: str) -> bool:
+    """Whether a registration already carries the identity we would write."""
+    headers = entry.get("headers")
+    return isinstance(headers, dict) and headers.get(AGENT_ID_HEADER) == agent_id
+
+
 def read_mcp_entry(path: Path) -> dict:
     """The `mms` entry from a harness JSON config, or {} when absent/unreadable."""
     if not path.is_file():
@@ -259,11 +293,26 @@ def _write_atomic(path: Path, text: str) -> None:
         raise
 
 
-def _opencode_registration(port: int) -> dict:
-    entry: dict = {"type": "remote", "url": _opencode_url(port)}
+def _opencode_registration(
+    port: int, agent_id: str = DEFAULT_AGENT_ID, existing: dict | None = None
+) -> dict:
+    """The mms entry to write, upgraded in place from *existing* when present.
+
+    An upgrade must not erase what the operator configured: keep every other key
+    and header, force the parts the installer owns, and add the identity.
+    """
+    entry: dict = dict(existing) if isinstance(existing, dict) else {}
+    entry["type"] = "remote"
+    entry["url"] = _opencode_url(port)
+    headers = entry.get("headers")
+    headers = dict(headers) if isinstance(headers, dict) else {}
+    headers[AGENT_ID_HEADER] = agent_id
     key = api_key()
     if key:
-        entry["headers"] = {"Authorization": f"Bearer {key}"}
+        headers["Authorization"] = f"Bearer {key}"
+    entry["headers"] = headers
+    # A disabled entry would fail the usability check we just upgraded it for.
+    entry.pop("disabled", None)
     return entry
 
 
@@ -284,7 +333,12 @@ def cli_mcp_present(argv_prefix: tuple[str, ...], root: Path) -> bool:
 
 
 def plan_for(
-    harness: Harness, root: Path, port: int, installed: bool, cli_present: bool
+    harness: Harness,
+    root: Path,
+    port: int,
+    installed: bool,
+    cli_present: bool,
+    agent_id: str = DEFAULT_AGENT_ID,
 ) -> list[Action]:
     actions: list[Action] = []
 
@@ -350,6 +404,9 @@ class Deposit:
     target: Path
     source: Path | None = None
     text: str | None = None
+    # False for a file the operator owns: written this run, never recorded as
+    # created, therefore never deleted by uninstall.
+    record: bool = True
 
     def render(self) -> str:
         if self.kind == "copy":
@@ -384,7 +441,7 @@ def plugin_package_json(version: str | None = None) -> str:
     return json.dumps(payload, indent=2) + "\n"
 
 
-def plugin_config_json(port: int) -> str:
+def plugin_config_json(port: int, agent_id: str = DEFAULT_AGENT_ID) -> str:
     """Only the keys the installer decides; the plugin owns every other default."""
     payload = {
         "memoryService": {
@@ -392,6 +449,7 @@ def plugin_config_json(port: int) -> str:
             "timeoutMs": 5000,
             "loadTimeoutMs": 2500,
             "maxMemoriesPerSession": 8,
+            "agentId": agent_id,
         }
     }
     return json.dumps(payload, indent=2) + "\n"
@@ -509,13 +567,21 @@ def _contained(path: Path, root: Path) -> Path:
     return resolved
 
 
-def plan_plugin(root: Path, port: int) -> tuple[list[Deposit], list[Path], list[str]]:
+def plan_plugin(
+    root: Path,
+    port: int,
+    agent_id: str = DEFAULT_AGENT_ID,
+    explicit_agent_id: str | None = None,
+) -> tuple[list[Deposit], list[Path], list[str]]:
     """Plan the plugin package and its configuration bootstrap.
 
     Raises RuntimeError for a foreign `index.js`/`package.json`: overwriting a file
     the installer cannot prove it wrote would destroy someone's work. Also raises
     when any planned path resolves outside the root: a symlinked `plugins`
     directory must not smuggle the payload out of the sandbox.
+
+    An existing configuration is only touched for an explicit, valid
+    ``explicit_agent_id``; then just ``memoryService.agentId`` changes.
     """
     if not PLUGIN_SOURCE.is_file():
         raise RuntimeError(f"plugin source not found at {PLUGIN_SOURCE}")
@@ -523,8 +589,10 @@ def plan_plugin(root: Path, port: int) -> tuple[list[Deposit], list[Path], list[
     plugin_dir = root / PLUGIN_REL_DIR
     index = plugin_dir / "index.js"
     package = plugin_dir / "package.json"
+    config = root / PLUGIN_CONFIG
+    legacy_config = root / PLUGIN_LEGACY_CONFIG
     # Validate containment before planning anything: nothing is written on abort.
-    for target in (index, package, root / PLUGIN_CONFIG):
+    for target in (index, package, config, legacy_config):
         _contained(target, root)
     owned = owned_hashes(root)
     deposits: list[Deposit] = []
@@ -540,20 +608,62 @@ def plan_plugin(root: Path, port: int) -> tuple[list[Deposit], list[Path], list[
         text=package_text,
     )
 
-    config = root / PLUGIN_CONFIG
-    legacy_config = root / PLUGIN_LEGACY_CONFIG
-    if config.is_file():
-        notes.append(f"configuration retained: {config}")
-    elif legacy_config.is_file():
-        notes.append(f"configuration retained: {legacy_config}")
+    active_config = config if config.is_file() else legacy_config if legacy_config.is_file() else None
+    if active_config is not None:
+        notes.append(f"configuration retained: {active_config}")
+        if explicit_agent_id is not None:
+            merged = _plugin_config_with_agent_id(active_config, explicit_agent_id)
+            if merged is not None:
+                # Ownership is proven by the manifest hash matching the file as it
+                # is RIGHT NOW, before the merge. A config the operator edited is
+                # not ours: record=False leaves the old manifest entry untouched,
+                # so uninstall later sees a divergent hash and retains the file.
+                record = owned.get(_resolved(active_config)) == _sha256_file(active_config)
+                deposits.append(
+                    Deposit(
+                        kind="write",
+                        description="plugin configuration (agentId)",
+                        target=active_config,
+                        text=merged,
+                        record=record,
+                    )
+                )
     else:
-        config_text = plugin_config_json(port)
+        config_text = plugin_config_json(port, agent_id)
         deposits.append(
             Deposit(kind="write", description="plugin configuration", target=config, text=config_text)
         )
 
     dirs = missing_dirs(root, [deposit.target for deposit in deposits])
     return deposits, dirs, notes
+
+
+def _plugin_config_with_agent_id(path: Path, agent_id: str) -> str | None:
+    """Merge only ``memoryService.agentId``; return None when already correct.
+
+    The file is the operator's: every other key and value is preserved. Invalid
+    JSON or a non-object ``memoryService`` aborts before anything is written.
+    """
+    try:
+        data = json.loads(_read_config(path))
+    except (OSError, jsonc.JsoncError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"{path} is not valid JSON; refusing to merge it") from exc
+    if not isinstance(data, dict):
+        raise RuntimeError(f"{path} does not contain a JSON object; refusing to merge it")
+
+    service = data.get("memoryService")
+    if service is None:
+        service = {}
+        data["memoryService"] = service
+    elif not isinstance(service, dict):
+        raise RuntimeError(
+            f"{path}: memoryService is not a JSON object; refusing to merge it"
+        )
+
+    if service.get("agentId") == agent_id:
+        return None
+    service["agentId"] = agent_id
+    return json.dumps(data, indent=2, ensure_ascii=False) + "\n"
 
 
 def run_deposit(deposit: Deposit, root: Path, dry_run: bool = False) -> bool:
@@ -578,8 +688,15 @@ def run_deposit(deposit: Deposit, root: Path, dry_run: bool = False) -> bool:
 # --- apply -------------------------------------------------------------------
 
 
-def merge_mcp(path: Path, port: int) -> None:
-    """Merge the server into a harness JSON config, preserving everything else."""
+def merge_mcp(
+    path: Path, port: int, agent_id: str | object = _AGENT_ID_UNSET
+) -> None:
+    """Merge the server into a harness JSON config, preserving everything else.
+
+    The installer always resolves and passes an identity. A direct legacy call
+    without one keeps its previous shape (no agent header) so callers that manage
+    headers themselves are not silently rewritten.
+    """
     data: dict = {}
     if path.is_file():
         try:
@@ -587,10 +704,22 @@ def merge_mcp(path: Path, port: int) -> None:
         except json.JSONDecodeError:
             raise RuntimeError(f"{path} is not valid JSON; aborting without overwriting")
     servers = data.setdefault("mcpServers", {})
-    entry: dict = {"url": _mcp_url(port), "autoApprove": _safe_autoapprove()}
+    existing = servers.get(SERVER_NAME)
+    entry: dict = dict(existing) if isinstance(existing, dict) else {}
+    entry["url"] = _mcp_url(port)
+    entry["autoApprove"] = _safe_autoapprove()
+    headers = entry.get("headers")
+    headers = dict(headers) if isinstance(headers, dict) else {}
     key = api_key()
     if key:
-        entry["headers"] = {"Authorization": f"Bearer {key}"}
+        headers["Authorization"] = f"Bearer {key}"
+    if agent_id is not _AGENT_ID_UNSET:
+        headers[AGENT_ID_HEADER] = str(agent_id)
+    if headers:
+        entry["headers"] = headers
+    else:
+        entry.pop("headers", None)
+    entry.pop("disabled", None)
     servers[SERVER_NAME] = entry
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
@@ -608,7 +737,13 @@ def _safe_autoapprove() -> list[str]:
     ]
 
 
-def run_action(action: Action, port: int, dry_run: bool, root: Path) -> bool:
+def run_action(
+    action: Action,
+    port: int,
+    dry_run: bool,
+    root: Path,
+    agent_id: str = DEFAULT_AGENT_ID,
+) -> bool:
     if dry_run:
         return True
     if action.kind == "cli":
@@ -633,15 +768,21 @@ def run_action(action: Action, port: int, dry_run: bool, root: Path) -> bool:
             raise RuntimeError("jsonc-mcp action without a target")
         if action.target.is_file():
             text = _read_config(action.target)
+            existing = opencode_entry(action.target)
         else:
             text = f'{{\n  "$schema": "{OPENCODE_SCHEMA}"\n}}\n'
-        updated = jsonc.upsert(text, ["mcp", "servers", SERVER_NAME], _opencode_registration(port))
+            existing = None
+        updated = jsonc.upsert(
+            text,
+            ["mcp", "servers", SERVER_NAME],
+            _opencode_registration(port, agent_id, existing),
+        )
         _write_atomic(action.target, updated)
         return True
     if action.kind == "merge-mcp":
         if action.target is None:
             raise RuntimeError("merge-mcp action without a target")
-        merge_mcp(action.target, port)
+        merge_mcp(action.target, port, agent_id)
         return True
     if action.kind == "copy":
         if action.source is None or action.target is None:
@@ -655,22 +796,36 @@ def run_action(action: Action, port: int, dry_run: bool, root: Path) -> bool:
 # --- verify ------------------------------------------------------------------
 
 
-def verify(harness: Harness, root: Path, port: int) -> list[str]:
+def verify(
+    harness: Harness, root: Path, port: int, agent_id: str = DEFAULT_AGENT_ID
+) -> list[str]:
     """Post-write effects that must hold; returns the failures."""
     failures: list[str] = []
 
     if harness.mcp_candidates:
         target = resolve_mcp_file(harness, root)
-        if target is None or not entry_is_usable(opencode_entry(target), port):
+        entry = opencode_entry(target) if target is not None else {}
+        if target is None or not entry_is_usable(entry, port):
             failures.append(
                 f"{SERVER_NAME} missing, disabled, or not pointing at :{port}/mcp "
                 f"in {target.name if target else 'the OpenCode config'}"
             )
+        elif not entry_has_agent_id(entry, agent_id):
+            failures.append(
+                f"{SERVER_NAME} registration in {target.name} has no "
+                f"{AGENT_ID_HEADER}: {agent_id}"
+            )
     elif harness.mcp_file is not None:
-        if not entry_is_usable(read_mcp_entry(root / harness.mcp_file), port):
+        entry = read_mcp_entry(root / harness.mcp_file)
+        if not entry_is_usable(entry, port):
             failures.append(
                 f"{SERVER_NAME} missing, disabled, or not pointing at :{port}/mcp "
                 f"in {harness.mcp_file}"
+            )
+        elif not entry_has_agent_id(entry, agent_id):
+            failures.append(
+                f"{SERVER_NAME} registration in {harness.mcp_file} has no "
+                f"{AGENT_ID_HEADER}: {agent_id}"
             )
     elif harness.uses_cli:
         if not cli_mcp_present(harness.uses_cli, root):
@@ -719,7 +874,7 @@ def write_manifest(
             by_path[_resolved(path)] = len(entries) - 1
 
     targets = [a.target for a in actions if a.kind == "copy" and a.target is not None]
-    targets.extend(deposit.target for deposit in deposits)
+    targets.extend(deposit.target for deposit in deposits if deposit.record)
     for target in targets:
         if not target.is_file():
             continue
@@ -856,11 +1011,32 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--harness", default="auto", choices=["auto", *harnesses()])
     parser.add_argument("--root", default=None, help="harness root (ad-hoc sandbox)")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
+    parser.add_argument(
+        "--agent-id",
+        default=None,
+        help=(
+            "identity stamped on MCP and plugin writes "
+            f"(default: $MMS_AGENT_ID or {DEFAULT_AGENT_ID})"
+        ),
+    )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--uninstall", action="store_true")
     parser.add_argument("--list", action="store_true", help="list supported harnesses")
     parser.add_argument("--skip-health", action="store_true")
     args = parser.parse_args(argv)
+
+    # One resolution and at most one warning per run, whatever the harness count.
+    requested_agent_id = args.agent_id if args.agent_id is not None else os.environ.get("MMS_AGENT_ID")
+    agent_id, invalid_agent_id = resolve_agent_id(requested_agent_id)
+    if invalid_agent_id is not None:
+        print(
+            f"warning: invalid agent id {invalid_agent_id!r}; using {agent_id!r}",
+            file=sys.stderr,
+        )
+    # Only an explicit, valid flag may rewrite a plugin config the operator owns.
+    explicit_agent_id = (
+        agent_id if args.agent_id is not None and invalid_agent_id is None else None
+    )
 
     registry = harnesses()
 
@@ -920,15 +1096,28 @@ def main(argv: list[str] | None = None) -> int:
         try:
             if harness.mcp_candidates:
                 target = resolve_mcp_file(harness, root)
-                installed = target is not None and entry_is_usable(opencode_entry(target), args.port)
-            else:
+                entry = opencode_entry(target) if target is not None else {}
                 installed = (
-                    entry_is_usable(read_mcp_entry(root / harness.mcp_file), args.port)
+                    target is not None
+                    and entry_is_usable(entry, args.port)
+                    and entry_has_agent_id(entry, agent_id)
+                )
+            else:
+                entry = (
+                    read_mcp_entry(root / harness.mcp_file)
+                    if harness.mcp_file
+                    else {}
+                )
+                installed = (
+                    entry_is_usable(entry, args.port)
+                    and entry_has_agent_id(entry, agent_id)
                     if harness.mcp_file
                     else False
                 )
             cli_present = cli_mcp_present(harness.uses_cli, root) if harness.uses_cli else False
-            actions = plan_for(harness, root, args.port, installed, cli_present)
+            actions = plan_for(
+                harness, root, args.port, installed, cli_present, agent_id
+            )
         except (RuntimeError, jsonc.JsoncError, OSError) as exc:
             print(f"  error: {exc}; nothing was written", file=sys.stderr)
             rc = 1
@@ -941,7 +1130,9 @@ def main(argv: list[str] | None = None) -> int:
         notes: list[str] = []
         if harness.name == "opencode":
             try:
-                deposits, created_dirs, notes = plan_plugin(root, args.port)
+                deposits, created_dirs, notes = plan_plugin(
+                    root, args.port, agent_id, explicit_agent_id
+                )
             except (RuntimeError, OSError) as exc:
                 print(f"  error: {exc}; nothing was written", file=sys.stderr)
                 rc = 1
@@ -962,7 +1153,7 @@ def main(argv: list[str] | None = None) -> int:
             continue
 
         try:
-            ok = all(run_action(a, args.port, dry_run=False, root=root) for a in actions)
+            ok = all(run_action(a, args.port, dry_run=False, root=root, agent_id=agent_id) for a in actions)
             if ok:
                 ok = all(run_deposit(d, root, dry_run=False) for d in deposits)
         except (RuntimeError, jsonc.JsoncError, OSError) as exc:
@@ -974,7 +1165,7 @@ def main(argv: list[str] | None = None) -> int:
             continue
 
         try:
-            failures = verify(harness, root, args.port)
+            failures = verify(harness, root, args.port, agent_id)
         except (RuntimeError, jsonc.JsoncError, OSError) as exc:
             print(f"  error: {exc}; the effect could not be verified", file=sys.stderr)
             rc = 1
