@@ -25,13 +25,18 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
+from urllib.parse import urlparse
+
+import jsonc
 
 PAYLOAD = Path(__file__).resolve().parent / "payload"
 DEFAULT_PORT = 8000
 SERVER_NAME = "mms"
 MANIFEST_NAME = "mms-install-manifest.json"
+OPENCODE_SCHEMA = "https://opencode.ai/config.json"
 
 
 # --- harness descriptors -----------------------------------------------------
@@ -44,10 +49,16 @@ class Harness:
     name: str
     root_default: Path
     mcp_file: Path | None = None  # JSON config we can merge
+    mcp_candidates: tuple[Path, ...] = ()  # ordered alternatives; last is the creation target
     uses_cli: tuple[str, ...] = ()  # CLI used for registration instead of JSON merge
     steering: Path | None = None
     skill: Path | None = None
     hooks: Path | None = None
+
+
+def _opencode_root(home: Path) -> Path:
+    xdg = os.environ.get("XDG_CONFIG_HOME", "").strip()
+    return (Path(xdg) if xdg else home / ".config") / "opencode"
 
 
 def harnesses() -> dict[str, Harness]:
@@ -67,7 +78,30 @@ def harnesses() -> dict[str, Harness]:
             steering=Path("steering") / "mms.md",
             skill=Path("skills") / "mms-uso" / "SKILL.md",
         ),
+        "opencode": Harness(
+            name="opencode",
+            root_default=_opencode_root(home),
+            mcp_candidates=(Path("opencode.jsonc"), Path("opencode.json")),
+        ),
     }
+
+
+def resolve_mcp_file(harness: Harness, root: Path) -> Path | None:
+    """The file the installer should edit; the last candidate when none exists.
+
+    Two candidate files at once are ambiguous: picking one would leave the other
+    silently authoritative. Abort instead of guessing.
+    """
+    if harness.mcp_candidates:
+        existing = [root / candidate for candidate in harness.mcp_candidates if (root / candidate).is_file()]
+        if len(existing) > 1:
+            raise RuntimeError("ambiguous configuration: both opencode.json and opencode.jsonc exist")
+        if existing:
+            return existing[0]
+        return root / harness.mcp_candidates[-1]
+    if harness.mcp_file is not None:
+        return root / harness.mcp_file
+    return None
 
 
 def detect(roots: dict[str, Path] | None = None) -> list[str]:
@@ -81,7 +115,7 @@ def detect(roots: dict[str, Path] | None = None) -> list[str]:
 
 @dataclass
 class Action:
-    kind: str  # "cli" | "merge-mcp" | "copy"
+    kind: str  # "cli" | "merge-mcp" | "jsonc-mcp" | "copy"
     description: str
     argv: list[str] = field(default_factory=list)
     source: Path | None = None
@@ -92,6 +126,8 @@ class Action:
             return f"cli     {' '.join(self.argv)}"
         if self.kind == "merge-mcp":
             return f"merge   {self.target}"
+        if self.kind == "jsonc-mcp":
+            return f"jsonc   {self.target}"
         return f"copy    {self.source} -> {self.target}"
 
 
@@ -135,15 +171,90 @@ def read_mcp_names(path: Path) -> set[str]:
 
 
 def entry_is_usable(entry: dict, port: int) -> bool:
-    """A registration counts only if it points at THIS port and is enabled.
+    """A registration counts only if it is local, on THIS port, and enabled.
 
     Matching the name alone accepted a stale entry for another host on the same
     port, and a disabled one.
     """
     if not entry or entry.get("disabled") is True:
         return False
-    url = str(entry.get("url") or "")
-    return f":{port}/mcp" in url
+    try:
+        parsed = urlparse(str(entry.get("url") or ""))
+        if parsed.scheme not in {"http", "https"}:
+            return False
+        if parsed.hostname not in {"localhost", "127.0.0.1", "::1"}:
+            return False
+        if parsed.port != port:
+            return False
+    except ValueError:
+        return False
+    return parsed.path.rstrip("/") == "/mcp"
+
+
+def _read_config(path: Path) -> str:
+    """Read bytes and decode, so universal-newline translation cannot eat CRLF."""
+    try:
+        return path.read_bytes().decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise jsonc.JsoncError(f"{path} is not valid UTF-8") from exc
+
+
+def _opencode_url(port: int) -> str:
+    return f"http://127.0.0.1:{port}/mcp"
+
+
+def opencode_entry(path: Path) -> dict:
+    """`mcp.servers.mms`, else legacy `mcp.mms`, else {} (unreadable/invalid)."""
+    if not path.is_file():
+        return {}
+    try:
+        data = jsonc.load(_read_config(path))
+    except (OSError, jsonc.JsoncError):
+        return {}
+    mcp = data.get("mcp")
+    if not isinstance(mcp, dict):
+        return {}
+    servers = mcp.get("servers")
+    if isinstance(servers, dict) and isinstance(servers.get(SERVER_NAME), dict):
+        return servers[SERVER_NAME]
+    legacy = mcp.get(SERVER_NAME)
+    return legacy if isinstance(legacy, dict) else {}
+
+
+def _write_atomic(path: Path, text: str) -> None:
+    """Write through a same-directory temporary file, preserving the target.
+
+    A symlinked config keeps its link: the real path is replaced, not the link.
+    An existing read-only file is refused instead of silently rewritten, and a
+    new file starts at 0600 because it may hold a bearer token.
+    """
+    real = Path(os.path.realpath(path))
+    real.parent.mkdir(parents=True, exist_ok=True)
+    mode = real.stat().st_mode & 0o777 if real.exists() else 0o600
+    if real.exists() and not mode & 0o222:
+        raise PermissionError(f"{real} is read-only; refusing to overwrite it")
+    fd, temporary = tempfile.mkstemp(dir=real.parent, prefix=f"{real.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="") as handle:
+            handle.write(text)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.chmod(temporary, mode)
+        os.replace(temporary, real)
+    except BaseException:
+        try:
+            os.unlink(temporary)
+        except OSError:
+            pass
+        raise
+
+
+def _opencode_registration(port: int) -> dict:
+    entry: dict = {"type": "remote", "url": _opencode_url(port)}
+    key = api_key()
+    if key:
+        entry["headers"] = {"Authorization": f"Bearer {key}"}
+    return entry
 
 
 def cli_mcp_present(argv_prefix: tuple[str, ...], root: Path) -> bool:
@@ -168,7 +279,16 @@ def plan_for(
     actions: list[Action] = []
 
     if not (installed or cli_present):
-        if harness.mcp_file is not None:
+        if harness.mcp_candidates:
+            target = resolve_mcp_file(harness, root)
+            actions.append(
+                Action(
+                    kind="jsonc-mcp",
+                    description=f"register {SERVER_NAME} in {target.name}",
+                    target=target,
+                )
+            )
+        elif harness.mcp_file is not None:
             actions.append(
                 Action(
                     kind="merge-mcp",
@@ -261,6 +381,16 @@ def run_action(action: Action, port: int, dry_run: bool, root: Path) -> bool:
             )
             return False
         return True
+    if action.kind == "jsonc-mcp":
+        if action.target is None:
+            raise RuntimeError("jsonc-mcp action without a target")
+        if action.target.is_file():
+            text = _read_config(action.target)
+        else:
+            text = f'{{\n  "$schema": "{OPENCODE_SCHEMA}"\n}}\n'
+        updated = jsonc.upsert(text, ["mcp", "servers", SERVER_NAME], _opencode_registration(port))
+        _write_atomic(action.target, updated)
+        return True
     if action.kind == "merge-mcp":
         if action.target is None:
             raise RuntimeError("merge-mcp action without a target")
@@ -282,7 +412,14 @@ def verify(harness: Harness, root: Path, port: int) -> list[str]:
     """Post-write effects that must hold; returns the failures."""
     failures: list[str] = []
 
-    if harness.mcp_file is not None:
+    if harness.mcp_candidates:
+        target = resolve_mcp_file(harness, root)
+        if target is None or not entry_is_usable(opencode_entry(target), port):
+            failures.append(
+                f"{SERVER_NAME} missing, disabled, or not pointing at :{port}/mcp "
+                f"in {target.name if target else 'the OpenCode config'}"
+            )
+    elif harness.mcp_file is not None:
         if not entry_is_usable(read_mcp_entry(root / harness.mcp_file), port):
             failures.append(
                 f"{SERVER_NAME} missing, disabled, or not pointing at :{port}/mcp "
@@ -319,7 +456,16 @@ def uninstall(harness: Harness, root: Path) -> list[str]:
     """Undo the installation: remove the server by key, then created files."""
     removed: list[str] = []
 
-    if harness.mcp_file is not None:
+    if harness.mcp_candidates:
+        target = resolve_mcp_file(harness, root)
+        if target is not None and target.is_file():
+            text = _read_config(target)
+            updated = jsonc.remove(text, ["mcp", "servers", SERVER_NAME])
+            updated = jsonc.remove(updated, ["mcp", SERVER_NAME])
+            if updated != text:
+                _write_atomic(target, updated)
+                removed.append(f"{SERVER_NAME} de {target}")
+    elif harness.mcp_file is not None:
         config = root / harness.mcp_file
         if config.is_file():
             try:
@@ -349,8 +495,12 @@ def uninstall(harness: Harness, root: Path) -> list[str]:
             entries = json.loads(path.read_text()).get("created") or []
         except (OSError, json.JSONDecodeError):
             entries = []
+        root_resolved = root.resolve()
         for entry in entries:
             target = Path(entry)
+            resolved = Path(os.path.realpath(target))
+            if not resolved.is_relative_to(root_resolved):
+                continue
             if target.is_file():
                 target.unlink()
                 removed.append(str(target))
@@ -378,12 +528,13 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.list:
         for name, h in registry.items():
-            print(f"{name:8s} root={h.root_default}  mcp={h.mcp_file or h.uses_cli}")
+            target = h.mcp_file or (h.mcp_candidates[-1] if h.mcp_candidates else None) or h.uses_cli
+            print(f"{name:8s} root={h.root_default}  mcp={target}")
         return 0
 
     names = [args.harness] if args.harness != "auto" else detect()
     if not names:
-        print("no harness detected (looked for ~/.hermes and ~/.kiro)")
+        print("no harness detected (looked for ~/.hermes, ~/.kiro, and the OpenCode config)")
         return 1
 
     # Uninstalling must work with the service down: that is often why you are uninstalling.
@@ -412,17 +563,32 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.uninstall:
             print(f"{name}: uninstall from {root}")
-            for item in uninstall(harness, root) if not args.dry_run else []:
+            try:
+                removed = uninstall(harness, root) if not args.dry_run else []
+            except (RuntimeError, jsonc.JsoncError, OSError) as exc:
+                print(f"  error: {exc}; nothing was written", file=sys.stderr)
+                rc = 1
+                continue
+            for item in removed:
                 print(f"  removed: {item}")
             continue
 
-        installed = (
-            entry_is_usable(read_mcp_entry(root / harness.mcp_file), args.port)
-            if harness.mcp_file
-            else False
-        )
-        cli_present = cli_mcp_present(harness.uses_cli, root) if harness.uses_cli else False
-        actions = plan_for(harness, root, args.port, installed, cli_present)
+        try:
+            if harness.mcp_candidates:
+                target = resolve_mcp_file(harness, root)
+                installed = target is not None and entry_is_usable(opencode_entry(target), args.port)
+            else:
+                installed = (
+                    entry_is_usable(read_mcp_entry(root / harness.mcp_file), args.port)
+                    if harness.mcp_file
+                    else False
+                )
+            cli_present = cli_mcp_present(harness.uses_cli, root) if harness.uses_cli else False
+            actions = plan_for(harness, root, args.port, installed, cli_present)
+        except (RuntimeError, jsonc.JsoncError, OSError) as exc:
+            print(f"  error: {exc}; nothing was written", file=sys.stderr)
+            rc = 1
+            continue
 
         print(f"\n{name} ({root})")
         if not actions:
@@ -434,12 +600,22 @@ def main(argv: list[str] | None = None) -> int:
         if args.dry_run:
             continue
 
-        ok = all(run_action(a, args.port, dry_run=False, root=root) for a in actions)
+        try:
+            ok = all(run_action(a, args.port, dry_run=False, root=root) for a in actions)
+        except (RuntimeError, jsonc.JsoncError, OSError) as exc:
+            print(f"  error: {exc}; nothing was written", file=sys.stderr)
+            rc = 1
+            continue
         if not ok:
             rc = 1
             continue
 
-        failures = verify(harness, root, args.port)
+        try:
+            failures = verify(harness, root, args.port)
+        except (RuntimeError, jsonc.JsoncError, OSError) as exc:
+            print(f"  error: {exc}; the effect could not be verified", file=sys.stderr)
+            rc = 1
+            continue
         if failures:
             rc = 1
             for failure in failures:
