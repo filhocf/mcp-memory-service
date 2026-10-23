@@ -104,6 +104,7 @@ def harnesses() -> dict[str, Harness]:
             name="opencode",
             root_default=_opencode_root(home),
             mcp_candidates=(Path("opencode.jsonc"), Path("opencode.json")),
+            skill=Path("skills") / "mms-uso" / "SKILL.md",
             agents=Path("AGENTS.md"),
         ),
     }

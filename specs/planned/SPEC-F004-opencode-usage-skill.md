@@ -2,7 +2,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | planned |
+| Status | GREEN, G5 (approved with reservations) |
 | Impact | Low — payload text only |
 | Depends on | F001 |
 | Blocks | F007, F009 |

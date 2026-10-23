@@ -1,75 +1,80 @@
 ---
 name: mms-uso
-description: "Como usar o mcp-memory-service (servidor memory-service em :3202) como memória primária no Kiro: quando buscar antes de agir, o que gravar, como etiquetar, e as armadilhas medidas. Complementa a skill mms-custo (orçamento de créditos)."
+description: "Operating the mcp-memory-service (mms) as long-term project memory: when to search before answering about prior decisions, project state, or where we left off, how to keep reads cheap, what to store, and the measured pitfalls."
 ---
 
-# mms-uso — operar o memory-service no Kiro
+# mms-uso — operating the memory service
 
-O `memory-service` está registrado em `~/.kiro/settings/mcp.json` (`http://localhost:3202/mcp`).
-Este documento é a doutrina de uso. O orçamento está em `mms-custo`.
+The `mms` MCP server registered by the installer is the long-term memory for this
+machine and its projects. This is the doctrine for using it: search cheaply, store
+deliberately, and never answer a state question from guesswork.
 
-## 1. Antes de agir
+## Before acting
 
-| situação | ação |
+| Situation | Action |
 |---|---|
-| "como estamos", "o que decidimos", "onde paramos" | `memory_search` primeiro — **não** responda de memória |
-| antes de repetir investigação | busque; se já foi medida, cite o número em vez de refazer |
-| antes de propor procedimento (deploy, publicação, migração) | busque tags `procedimento` |
-| pergunta conceitual ou código aberto na tela | **não** consulte |
+| "how are we doing", "what did we decide", "where did we leave off" | `memory_search` first — do **not** answer from memory |
+| about to repeat an investigation | search first; if it was measured, cite the number instead of redoing it |
+| about to propose a procedure (deploy, publish, migration) | search the `procedure` tag |
+| a conceptual question, or code already on screen | **do not** consult the service |
 
-Regra prática: pergunta sobre **estado** → mcp; pergunta sobre **conceito** → conhecimento próprio.
+Rule of thumb: a question about **state** goes to the memory service; a question
+about a **concept** goes to your own knowledge.
 
-## 2. Como buscar
+## How to search
 
 ```
-memory_search(query="<token distintivo>", limit=3, max_response_chars=2000)
+memory_search(query="<distinctive token>", limit=3, max_response_chars=2000)
 ```
 
-- `limit` ≤ 3. Cinco resultados raramente mudam a decisão e custam 7× mais.
-- Busque pelo **token mais distintivo e curto** (sigla, nome de produto, hash). Frase inteira
-  raramente existe literalmente.
-- `mode="exact"` exige substring **contígua** — duas palavras separadas devolvem vazio mesmo com a
-  memória gravada.
-- Se vier `Showing 0 of N results`, repita **sem** `max_response_chars`.
-- Ausência na busca **não** é ausência no banco. Confirme por SQL antes de afirmar que não existe.
+- `limit` ≤ 3: five results rarely change a decision and cost far more.
+- Search by the most distinctive, short token (acronym, product name, hash). A full
+  sentence rarely exists verbatim.
+- `mode="exact"` requires a **contiguous** substring — two words separated by
+  anything return nothing even when the memory is stored.
+- If the reply says `Showing 0 of N results`, retry **without** `max_response_chars`.
+- Absence in search is **not** absence in the database. Confirm with a read-only SQL
+  query before claiming a memory does not exist.
 
-## 3. Store e tag
+## Store and tag
 
-`store` é partição trancada, não pasta compartilhada: busca **sem** `store` devolve apenas
-`default`. O inventário é **por host** e muda — medir antes de citar.
+`store` is a locked partition, not a shared folder: a search **without** a `store`
+returns only `default`. The inventory is **per host** and changes — measure it before
+citing it.
 
-```bash
-sqlite3 -readonly ~/local-data/mcp/sqlite_vec.db \
-  "select store,count(*) from memories group by 1 order by 2 desc"
-```
+For project-specific memory, prefer `default` plus a tag (`<project>-system`) and let
+the transport stamp the author. `store: null` is **rejected** by the schema — omit the
+field instead of sending null.
 
-Para projeto específico, prefira `default` + tag (`<sigla>-sistema`) e `agent_id`.
-`store: null` é **rejeitado** pelo schema — omita o campo em vez de mandar null.
+## What to store
 
-## 4. O que gravar
+Store what **saves tokens later**:
 
-Grave o que **economiza tokens no futuro**:
+- a decision with its reason, dated;
+- a measurement with the number and the method (not "it improved", but
+  "+10pp, 95% CI [0.05, 0.1583]");
+- a procedure that worked, with the exact commands;
+- a pitfall: the error, the cause, and the fix.
 
-- decisão com o porquê, datada;
-- medição com número e método (não "melhorou", mas "+10pp, IC95 [0,05 · 0,1583]");
-- procedimento que funcionou (comandos exatos);
-- armadilha: o erro, a causa e a correção.
+Do not store: what is already in the repository or a commit, what is in the session
+transcript, or an opinion without a measurement.
 
-Não grave: o que já está no repo/commit, o que está no transcript da sessão, opinião sem medição.
+Useful tags: `procedure`, `measured`, `<project>-system`, `pitfall`, `decision`.
 
-Etiquetas úteis: `procedimento`, `medido`, `<projeto>-sistema`, `armadilha`, `decisao`.
+## Pitfalls (measured 2026-10-20)
 
-## 5. Armadilhas medidas neste host (20/out/2026)
+- **`memory_context` is not a project-state tool.** It ranks by semantic belief
+  neighbourhood: asking for one project returned another project's memories at the
+  top. Use a tag query instead.
+- **`memory_context` returns every item twice** (`items` and `beliefs`) and carries
+  ~9 KB of fixed metadata that `budget_tokens` does not count.
+- **`memory_list` costs ~4,875 tokens per call** — inventory belongs in SQL.
+- **`memory_store` is cheap** (~98 tokens). Writing is not the problem; reading is.
+- **`memory_health`/`memory_stats` titles mislead** when tombstones exist: count the
+  live rows in SQL.
 
-- **`memory_context` não serve para estado de projeto.** Ele ranqueia por vizinhança semântica de
-  crença: pedindo "Projeto MIR", o top-1 e top-2 vieram de RER e Core-API. Use SQL por tag.
-- **`memory_context` devolve cada item duas vezes** (`items` e `beliefs`) e carrega ~9 KB fixos de
-  metadados que o `budget_tokens` não conta.
-- **`memory_list` custa ~4.875 tokens por chamada** — inventário se faz por SQL.
-- **`memory_store` é barato** (~98 tokens). Gravar não é o problema; **ler** é.
-- **Título de `memory_health`/`memory_stats` engana** quando há tombstones: conte vivas por SQL.
+## Authorship
 
-## 6. Autoria
-
-`agent_id` deve vir do ambiente/hook do harness, não de invenção na chamada. Se a memória gravada
-aparecer sem autor, o problema é o hook — não a tool.
+The `agent_id` comes from the client transport, which stamps it on every call; it is
+never invented in the tool call. If a stored memory appears without an author, the
+defect is in the transport, not in the tool.
