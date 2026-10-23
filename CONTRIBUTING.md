@@ -372,6 +372,10 @@ When adding features or making significant changes:
 3. Update CHANGELOG.md following Keep a Changelog format
 4. Update AGENTS.md or CLAUDE.md if development workflow changes
 
+For a new agent integration, follow the five-layer checklist in
+[`agents/README.md#adding-an-agent`](agents/README.md#adding-an-agent) and update
+every documentation surface it names.
+
 **Advanced Workflow Automation**:
 - See [Context Provider Workflow Automation](https://github.com/doobidoo/mcp-memory-service/wiki/Context-Provider-Workflow-Automation) for automating development workflows with intelligent patterns
 

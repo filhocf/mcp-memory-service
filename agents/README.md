@@ -35,7 +35,7 @@ is actually used well.
 | Harness | 1. Connectivity | 2. Connector | 3. Lifecycle hooks | 4. Preference override | 5. Usage toolkit |
 |---|---|---|---|---|---|
 | **Claude Code** | ✅ MCP | ✅ [`claude-hooks/`](../claude-hooks/README.md) plugin | ✅ session start, auto-capture, session end | 🔴 hooks inject context but the native file memory stays on ([#1364](https://github.com/doobidoo/mcp-memory-service/discussions/1364)) | 🟡 [`claude_commands/`](../claude_commands/README.md) ships commands; the plugin also ships the [`remember-session`](../claude-hooks/skills/remember-session/SKILL.md) skill (when to save, how to tag, how to search before writing), but nothing there overrides the native file memory |
-| **OpenCode** | ✅ MCP | ✅ [`opencode/memory-plugin.js`](../opencode/README.md) | ✅ load, capture, session summary, harvest | 🔴 not observed | 🔴 none shipped |
+| **OpenCode** 🚧 | ✅ MCP | 🚧 [`opencode/`](../opencode/README.md) — installer for the JSONC-safe `mcp.servers.mms` entry, surgical uninstall, XDG paths, in progress | ✅ load, capture, session summary, harvest | 🔴 not observed | 🚧 `mms-uso` skill and managed `AGENTS.md` in progress — [first-class status](../opencode/README.md#first-class-status) |
 | **Codex CLI** | ✅ REST API | ✅ [`codex/`](../codex/README.md) installer | ✅ hooks for retrieval, capture and write-back | 🔴 not observed | 🔴 none shipped |
 | **Hermes** | ✅ MCP | ✅ [`scripts/hermes/install.py`](../scripts/hermes/install.py) — register, verify, uninstall | 🔴 hooks and skills are out of that installer's scope by design | 🔴 ships a native SQLite memory; adding the MCP server does not make it prefer ours ([#1364](https://github.com/doobidoo/mcp-memory-service/discussions/1364)) | 🔴 none shipped |
 | **Kiro CLI** | ✅ MCP | 🔴 no connector | 🟡 [`harvest/parser.py`](../src/mcp_memory_service/harvest/parser.py) reads the CLI session formats — JSONL through `parse_file()`, and CLI v3 `data.sqlite3`/`conversations_v2` through `parse_sqlite()`; no session hooks | 🔴 not observed | 🔴 none shipped |
@@ -91,3 +91,29 @@ An integration that installs something gets a directory here, `agents/<name>/`,
 with its installer, its tests, and a README naming which of the five layers it
 covers. A client that needs only configuration does not get a directory — it gets
 a row in this page.
+
+Before calling an integration first-class, work through the list:
+
+1. **Claim the issue.** Open or take an issue and wait for assignment; CI checks
+   that the author is an assignee for `src/` changes.
+2. **Choose the transport.** MCP (stdio or streamable HTTP) when the harness
+   speaks the protocol; REST when it does not. State which one the installer
+   registers and why.
+3. **Name the five layers.** Fill the row honestly; a connected harness can still
+   be at layer 1.
+4. **Decide directory vs row.** Installing something → `agents/<name>/` with
+   README, installer, and tests. Configuration only → a row in
+   `agents/README.md`.
+5. **Build the installer.** Plan before writing, stay idempotent, verify the
+   effect, uninstall only what it created, and support a sandbox root. It never
+   owns the configuration file it edits.
+6. **Prove it in a lab.** Isolated `HOME` and XDG directories, a free port, a
+   temporary database, a real client check, and a guard that the developer's real
+   configuration is unchanged.
+7. **Ship the toolkit and authorship.** A usage skill or managed instructions,
+   plus `X-Agent-ID` on writes. Without them the integration reaches the store but
+   is not used well.
+8. **Update every surface.** `agents/README.md`, `docs/integrations.md`, root `README.md`, the integration README, `changelog.d/`, and the wiki map when it ships.
+
+The OpenCode integration is the worked example:
+[`opencode/README.md#first-class-status`](../opencode/README.md#first-class-status).

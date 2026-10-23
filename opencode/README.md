@@ -9,6 +9,30 @@ This integration provides:
 - **Harvest**: optional pattern-harvesting via `/api/harvest` at session end
 - **Compact Injection**: inject condensed memory context into `experimental.session.compacting`
 
+## First-class status
+
+The plugin is prior art contributed earlier and is not being replaced. It already
+covers connectivity, the connector, and lifecycle hooks. What makes the
+integration first-class — one command that registers and deposits, surgical
+uninstall, XDG-aware paths, agent authorship, and a usage toolkit — is the work
+in progress. The five-layer model is defined in
+[`agents/README.md`](../agents/README.md#the-five-layers).
+
+| Layer | Today | This work | Remaining |
+|---|---|---|---|
+| 1. Connectivity | ✅ MCP and REST | — | — |
+| 2. Connector | ✅ `memory-plugin.js` with its V1/V2 adapter and tests | one-command installer, JSONC-safe V2 registration, surgical uninstall, XDG paths | — |
+| 3. Lifecycle hooks | ✅ load, capture, session summary, harvest | verification in the isolated lab | — |
+| 4. Preference override | 🔴 not observed | — | OpenCode keeps no native memory store we can override; there is no evidence yet |
+| 5. Usage toolkit | 🔴 none shipped | `mms-uso` skill, managed `AGENTS.md` block, `initialize.instructions` | — |
+
+The public issue is added to the pull request that introduces this section; the
+roadmap above is the source of truth for status.
+
+Not claimed by this work: a model-backed end-to-end session (it needs credentials
+and is non-deterministic), the optional TUI sidebar, and layer 4. Layer 3 is
+verified in the isolated lab, not by a live model.
+
 ## OpenCode V1 and V2
 
 OpenCode V2 loads a plugin through `id` + `setup(context)`; V1 used `server(client)`
