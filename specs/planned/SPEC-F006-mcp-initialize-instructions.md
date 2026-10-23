@@ -2,7 +2,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | planned |
+| Status | GREEN, G5 (approved with reservations) |
 | Impact | Medium — protocol payload consumed by every MCP client |
 | Depends on | — (server-side, independent of the installer) |
 | Blocks | — |

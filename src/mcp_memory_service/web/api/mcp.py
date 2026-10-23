@@ -19,6 +19,7 @@ from ..._version import __version__
 from ...compat import _sanitize_log_value
 from ...utils.tool_rate_limit import resolve_caller_identity
 from ..oauth.middleware import require_read_access, AuthenticationResult
+from .mcp_instructions import MCP_INSTRUCTIONS, instructions_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -171,17 +172,20 @@ async def mcp_endpoint(
         server = _get_memory_server()
 
         if request.method == "initialize":
-            response = MCPResponse(
-                id=request.id,
-                result={
-                    "protocolVersion": "2024-11-05",
-                    "capabilities": {"tools": {}},
-                    "serverInfo": {
-                        "name": "mcp-memory-service",
-                        "version": __version__,
-                    },
+            result = {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {"tools": {}},
+                "serverInfo": {
+                    "name": "mcp-memory-service",
+                    "version": __version__,
                 },
-            )
+            }
+            # SPEC-F006: hand the client a short usage doctrine. The switch is
+            # read per request (not at import time) so the environment can be
+            # toggled without a reload.
+            if instructions_enabled():
+                result["instructions"] = MCP_INSTRUCTIONS
+            response = MCPResponse(id=request.id, result=result)
             return JSONResponse(content=response.model_dump(exclude_none=True))
 
         elif request.method == "tools/list":
