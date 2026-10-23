@@ -2,7 +2,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | planned |
+| Status | GREEN, G5 |
 | Impact | Medium — edits `~/.config/opencode/AGENTS.md`, read on every session |
 | Depends on | F001 |
 | Blocks | F009 |
@@ -58,8 +58,9 @@ text between them.
 
 **R4 — Append without collision.**
 When the file exists without markers, the installer appends one blank line and
-the managed section, preserving the existing content and its trailing newline
-convention.
+the managed section. When the file has no trailing newline, it adds exactly one
+newline before the block instead, so uninstall can restore the original bytes.
+Existing content and its line endings are preserved.
 
 EARS: WHEN `AGENTS.md` exists without an MMS marker, THE installer SHALL append
 the managed section and SHALL NOT modify existing lines.
@@ -141,7 +142,7 @@ Line endings of the existing file are preserved (`\r\n` stays `\r\n`).
 | Case | Behaviour |
 |------|-----------|
 | File empty | Write only the block |
-| File without trailing newline | Add exactly one before the appended block |
+| File without trailing newline | Add exactly one newline before the appended block (uninstall restores the bytes) |
 | CRLF file | Block uses CRLF |
 | Markers inside a fenced code block | Counted; ambiguous >1 pair aborts (safe default) |
 | Block is the entire file and we created it | Uninstall deletes the file |

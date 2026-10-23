@@ -122,15 +122,19 @@ def test_resolve_mcp_file_creates_json_edits_jsonc_and_rejects_both(tmp_path):
 # --- 3. planning -------------------------------------------------------------
 
 
-def test_plan_for_a_clean_root_emits_one_jsonc_mcp_action(tmp_path):
+def test_plan_for_a_clean_root_emits_the_jsonc_mcp_and_agents_md_actions(tmp_path):
     instalar = _mod()
     opencode = instalar.harnesses()["opencode"]
 
     actions = instalar.plan_for(opencode, tmp_path, 39123, installed=False, cli_present=False)
 
-    assert len(actions) == 1
-    assert actions[0].kind == "jsonc-mcp"
-    assert actions[0].target == tmp_path / "opencode.json"
+    mcp_actions = [a for a in actions if a.kind == "jsonc-mcp"]
+    assert len(mcp_actions) == 1
+    assert mcp_actions[0].target == tmp_path / "opencode.json"
+
+    agents_actions = [a for a in actions if a.kind == "agents-md"]
+    assert len(agents_actions) == 1
+    assert agents_actions[0].target == tmp_path / "AGENTS.md"
 
 
 # --- 4. clean install --------------------------------------------------------

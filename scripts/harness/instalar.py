@@ -44,6 +44,9 @@ DEFAULT_AGENT_ID = "opencode"
 AGENT_ID_HEADER = "X-Agent-ID"
 AGENT_ID_MAX_LENGTH = 64
 _AGENT_ID_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
+# The managed section's contract (SPEC-F003): markers on their own lines.
+MMS_START = "<!-- mms:start -->"
+MMS_END = "<!-- mms:end -->"
 # Tells `merge_mcp` a direct legacy call apart from an installer call that has
 # already resolved the identity. The installer always passes a value.
 _AGENT_ID_UNSET = object()
@@ -72,6 +75,7 @@ class Harness:
     steering: Path | None = None
     skill: Path | None = None
     hooks: Path | None = None
+    agents: Path | None = None  # a file with a marker-delimited managed block
 
 
 def _opencode_root(home: Path) -> Path:
@@ -100,6 +104,7 @@ def harnesses() -> dict[str, Harness]:
             name="opencode",
             root_default=_opencode_root(home),
             mcp_candidates=(Path("opencode.jsonc"), Path("opencode.json")),
+            agents=Path("AGENTS.md"),
         ),
     }
 
@@ -128,16 +133,217 @@ def detect(roots: dict[str, Path] | None = None) -> list[str]:
     return [name for name, root in roots.items() if root.is_dir()]
 
 
+# --- managed block (SPEC-F003) ----------------------------------------------
+#
+# The contract in one place: a file may contain at most ONE balanced pair of
+# markers, each on its own line. Anything else (duplicate, nested, inverted,
+# unbalanced, mid-line) is ambiguous and must abort before a byte is written.
+# Markers inside a fenced code block are not special-cased: counting is enough.
+
+
+@dataclass(frozen=True)
+class _ManagedBlock:
+    """Byte offsets of the one managed pair, all line-boundary based."""
+
+    line_start: int  # first byte of the start-marker line
+    body_start: int  # first byte after the start-marker line's EOL
+    end_line_start: int  # first byte of the end-marker line
+    line_end: int  # one past the end-marker line's EOL (or EOF)
+    end_terminator: str  # "\n", "\r\n", or "" when the end marker ends the file
+
+
+def _line_span(text: str, index: int) -> tuple[int, int]:
+    """The line containing *index*, EOL included (empty EOL at EOF)."""
+    start = text.rfind("\n", 0, index) + 1
+    newline = text.find("\n", index)
+    return start, (len(text) if newline == -1 else newline + 1)
+
+
+def _detect_eol(text: str) -> str:
+    """The file's convention: CRLF when it contains any CRLF, else LF."""
+    return "\r\n" if "\r\n" in text else "\n"
+
+
+def to_eol(text: str, eol: str) -> str:
+    """Rewrite *text* (LF-based) using *eol*, never leaving a bare LF."""
+    return text.replace("\r\n", "\n").replace("\n", eol)
+
+
+def _marker_pair(text: str) -> _ManagedBlock | None:
+    """Locate the single managed pair, or None when there is no marker at all.
+
+    Raises RuntimeError when the markers are ambiguous: duplicates, nesting,
+    inversion, an odd count, or a marker that does not own its line.
+    """
+    starts = [match.start() for match in re.finditer(re.escape(MMS_START), text)]
+    ends = [match.start() for match in re.finditer(re.escape(MMS_END), text)]
+    if not starts and not ends:
+        return None
+    if len(starts) != 1 or len(ends) != 1 or starts[0] > ends[0]:
+        raise RuntimeError(
+            f"ambiguous managed markers: {len(starts)} start and {len(ends)} end marker(s)"
+        )
+    start = starts[0]
+    end = ends[0]
+    start_line, body_start = _line_span(text, start)
+    end_line_start, line_end = _line_span(text, end)
+    if text[start_line:start].strip():
+        raise RuntimeError("ambiguous managed markers: start marker does not own its line")
+    if text[start + len(MMS_START) : body_start].strip():
+        raise RuntimeError("ambiguous managed markers: start marker does not own its line")
+    if text[end_line_start:end].strip():
+        raise RuntimeError("ambiguous managed markers: end marker does not own its line")
+    if text[end + len(MMS_END) : line_end].strip():
+        raise RuntimeError("ambiguous managed markers: end marker does not own its line")
+    if end_line_start < body_start:
+        raise RuntimeError("ambiguous managed markers: end marker precedes the body")
+    return _ManagedBlock(
+        line_start=start_line,
+        body_start=body_start,
+        end_line_start=end_line_start,
+        line_end=line_end,
+        end_terminator=text[end + len(MMS_END) : line_end],
+    )
+
+
+def has_block(text: str) -> bool:
+    """Whether *text* contains exactly one balanced managed pair."""
+    return _marker_pair(text) is not None
+
+
+def _block_parts(payload_text: str) -> tuple[str, str]:
+    """(body, block) from the shipped payload, both LF-based and EOL-free rules."""
+    block = _marker_pair(payload_text)
+    if block is None:
+        raise RuntimeError("the managed payload has no marker pair")
+    body = payload_text[block.body_start : block.end_line_start]
+    return body, payload_text[block.line_start : block.line_end]
+
+
+def _block_for(payload_text: str, eol: str) -> str:
+    """The payload rendered with *eol*: start line, body, end line."""
+    body, _ = _block_parts(payload_text)
+    return MMS_START + eol + to_eol(body, eol) + MMS_END + eol
+
+
+def replace_block(text: str, body: str) -> str:
+    """Replace only the bytes between the markers' lines; outside bytes survive."""
+    block = _marker_pair(text)
+    if block is None:
+        raise RuntimeError("cannot replace a managed block that does not exist")
+    return text[: block.body_start] + body + text[block.end_line_start :]
+
+
+def remove_block(text: str, body: str = "") -> str:
+    """Remove the managed block and the separator the append rule inserted.
+
+    When the block closes the file, the EOL immediately before it is removed as
+    well, so a file that did not end in a newline is restored byte for byte.
+    Otherwise a preceding blank line is removed (the append separator), and a
+    following blank line when the block opens the file. *body* is accepted for
+    the SPEC-F003 signature and is not needed.
+    """
+    del body
+    block = _marker_pair(text)
+    if block is None:
+        return text
+    start = block.line_start
+    end = block.line_end
+    if text[end:].strip("\r\n") == "":
+        # The block (plus at most trailing empty lines) closes the file. Drop
+        # the EOL we inserted before it: "\n" or "\r\n", never user content.
+        # The tail itself is kept: blank lines the user added after the block
+        # are theirs.
+        if start >= 2 and text[start - 2 : start] == "\r\n":
+            start -= 2
+        elif start >= 1 and text[start - 1] == "\n":
+            start -= 1
+        return text[:start] + text[end:]
+    if start > 0:
+        previous_start = text.rfind("\n", 0, start - 1) + 1
+        if text[previous_start:start].strip("\r\n") == "" and previous_start < start:
+            start = previous_start
+    else:
+        newline = text.find("\n", end)
+        following_end = len(text) if newline == -1 else newline + 1
+        if text[end:following_end].strip("\r\n") == "" and end < following_end:
+            end = following_end
+    return text[:start] + text[end:]
+
+
+def _payload_agents_text(harness: Harness) -> str | None:
+    """The shipped managed payload for *harness*, or None when there is none."""
+    if harness.agents is None:
+        return None
+    source = PAYLOAD / harness.name / harness.agents.name
+    if not source.is_file():
+        return None
+    return source.read_bytes().decode("utf-8")
+
+
+def _read_agents_text(path: Path) -> str:
+    try:
+        return path.read_bytes().decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise RuntimeError(f"{path} is not valid UTF-8; refusing to touch it") from exc
+
+
+def _append_block(text: str, payload_text: str, eol: str) -> str:
+    """Append the block without touching a byte of the existing content.
+
+    A file that already ends in a newline gets one blank separator line; a file
+    without a trailing newline gets exactly one EOL, so uninstall can drop that
+    EOL and restore the original bytes.
+    """
+    block = _block_for(payload_text, eol)
+    if text == "":
+        return block
+    return text + eol + block
+
+
+def install_agents_block(target: Path, source: Path) -> bool:
+    """Create, append, or replace the managed block; return whether it wrote.
+
+    Re-reads the target (the plan may be stale) and revalidates ambiguity before
+    writing. The file's own EOL wins; the payload is converted, never the file.
+    """
+    payload_text = source.read_bytes().decode("utf-8")
+    if not target.is_file():
+        _write_atomic(target, _block_for(payload_text, "\n"))
+        return True
+    text = _read_agents_text(target)
+    eol = _detect_eol(text)
+    block = _marker_pair(text)
+    if block is None:
+        updated = _append_block(text, payload_text, eol)
+    else:
+        body, _ = _block_parts(payload_text)
+        expected = to_eol(body, eol)
+        if text[block.body_start : block.end_line_start] == expected:
+            return False
+        replacement = (
+            MMS_START + eol + expected + MMS_END + block.end_terminator
+        )
+        updated = text[: block.line_start] + replacement + text[block.line_end :]
+    if updated == text:
+        return False
+    _write_atomic(target, updated)
+    return True
+
+
 # --- plan --------------------------------------------------------------------
 
 
 @dataclass
 class Action:
-    kind: str  # "cli" | "merge-mcp" | "jsonc-mcp" | "copy"
+    kind: str  # "cli" | "merge-mcp" | "jsonc-mcp" | "copy" | "agents-md"
     description: str
     argv: list[str] = field(default_factory=list)
     source: Path | None = None
     target: Path | None = None
+    # True only when this run CREATES the target and owns it from now on.
+    # Appending/replacing a pre-existing file must never record it.
+    record: bool = False
 
     def render(self) -> str:
         if self.kind == "cli":
@@ -146,6 +352,8 @@ class Action:
             return f"merge   {self.target}"
         if self.kind == "jsonc-mcp":
             return f"jsonc   {self.target}"
+        if self.kind == "agents-md":
+            return f"agents  {self.target}"
         return f"copy    {self.source} -> {self.target}"
 
 
@@ -339,6 +547,7 @@ def plan_for(
     installed: bool,
     cli_present: bool,
     agent_id: str = DEFAULT_AGENT_ID,
+    dry_run: bool = False,
 ) -> list[Action]:
     actions: list[Action] = []
 
@@ -389,7 +598,74 @@ def plan_for(
                 Action(kind="copy", description="deposit hook", source=source, target=target)
             )
 
+    actions.extend(_plan_agents(harness, root, dry_run=dry_run))
+
     return actions
+
+
+def _is_read_only(path: Path) -> bool:
+    """Whether the resolved target carries no write bit for anyone."""
+    return Path(os.path.realpath(path)).stat().st_mode & 0o222 == 0
+
+
+def _plan_agents(harness: Harness, root: Path, dry_run: bool = False) -> list[Action]:
+    """Create, append, or replace the managed block in `AGENTS.md`.
+
+    Ambiguity raises here, during planning, so `main` can abort before a single
+    byte is written. An existing file without markers is appended to and never
+    recorded: the file stays the operator's.
+
+    Permission is only relevant when a write is pending: an already-installed
+    block (no-op) and a missing file (create) must not be refused. In dry-run
+    even a pending write is planned rather than rejected, since nothing runs.
+    """
+    if harness.agents is None:
+        return []
+    source = PAYLOAD / harness.name / harness.agents.name
+    if not source.is_file():
+        return []
+    target = root / harness.agents
+    payload_text = source.read_bytes().decode("utf-8")
+    name = harness.agents.name
+
+    if not target.exists():
+        return [
+            Action(
+                kind="agents-md",
+                description=f"create {name} with the managed block",
+                source=source,
+                target=target,
+                record=True,
+            )
+        ]
+
+    text = _read_agents_text(target)
+    block = _marker_pair(text)
+    body, _ = _block_parts(payload_text)
+    if block is not None and (
+        text[block.body_start : block.end_line_start] == to_eol(body, _detect_eol(text))
+    ):
+        # Already installed: no write, therefore no permission to require.
+        return []
+
+    if not dry_run and _is_read_only(target):
+        # A read-only target must abort during planning: discovering it while
+        # writing would leave opencode.json/plugin/manifest behind for nothing.
+        raise PermissionError(f"{target} is read-only; refusing to change it")
+
+    description = (
+        f"append the managed block to {name}"
+        if block is None
+        else f"update the managed block in {name}"
+    )
+    return [
+        Action(
+            kind="agents-md",
+            description=description,
+            source=source,
+            target=target,
+        )
+    ]
 
 
 # --- opencode plugin deposit -------------------------------------------------
@@ -790,6 +1066,12 @@ def run_action(
         action.target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(action.source, action.target)
         return True
+    if action.kind == "agents-md":
+        if action.source is None or action.target is None:
+            raise RuntimeError("agents-md action without source or target")
+        action.target.parent.mkdir(parents=True, exist_ok=True)
+        install_agents_block(action.target, action.source)
+        return True
     return False
 
 
@@ -838,6 +1120,19 @@ def verify(
     if harness.hooks is not None and not (root / harness.hooks).is_file():
         failures.append(f"hook not deposited at {harness.hooks}")
 
+    if harness.agents is not None:
+        target = root / harness.agents
+        if not target.is_file():
+            failures.append(f"{harness.agents.name} missing at {harness.agents}")
+        else:
+            try:
+                if _marker_pair(_read_agents_text(target)) is None:
+                    failures.append(
+                        f"{harness.agents.name} has no managed mms block"
+                    )
+            except RuntimeError as exc:
+                failures.append(f"{harness.agents.name}: {exc}")
+
     return failures
 
 
@@ -856,10 +1151,16 @@ def write_manifest(
     Called without plugin deposits it keeps the historical string-only shape for
     callers that record copies by hand; the installer itself records objects so
     uninstall can prove ownership by hash.
+
+    `agents-md` is recorded on the same rule as copies: only an action that
+    CREATES the file (``record=True``) is owned. Appending to or replacing a
+    pre-existing operator file must never enter the manifest.
     """
     if deposits is None:
         entries: list[object] = [
-            str(a.target.absolute()) for a in actions if a.kind == "copy" and a.target is not None
+            str(a.target.absolute())
+            for a in actions
+            if a.target is not None and (a.kind == "copy" or a.record)
         ]
         (root / MANIFEST_NAME).write_text(json.dumps({"created": entries}, indent=2) + "\n")
         return
@@ -873,7 +1174,11 @@ def write_manifest(
         if path is not None:
             by_path[_resolved(path)] = len(entries) - 1
 
-    targets = [a.target for a in actions if a.kind == "copy" and a.target is not None]
+    targets = [
+        a.target
+        for a in actions
+        if a.target is not None and (a.kind == "copy" or a.record)
+    ]
     targets.extend(deposit.target for deposit in deposits if deposit.record)
     for target in targets:
         if not target.is_file():
@@ -910,9 +1215,59 @@ def _legacy_expected_bytes(target: Path) -> bytes | None:
     return None
 
 
+def _manifest_owns_path(root: Path, target: Path) -> bool:
+    """Whether the manifest records *target* as created by this installer."""
+    resolved = _resolved(target)
+    for entry in read_manifest(root)["created"]:
+        path = _entry_path(entry, root)
+        if path is not None and _resolved(path) == resolved:
+            return True
+    return False
+
+
+def _uninstall_agents_block(path: Path, created: bool) -> list[str]:
+    """Remove the managed block, keeping every other byte.
+
+    An ambiguous or damaged file is retained and reported, never rewritten.
+    A file we created is deleted once it is empty; a file the operator already
+    had is left as an empty file.
+    """
+    if not path.is_file():
+        return []
+    try:
+        text = _read_agents_text(path)
+        block = _marker_pair(text)
+    except RuntimeError as exc:
+        print(f"  retained: {path} ({exc})")
+        return []
+    if block is None:
+        print(f"  retained: {path} (no managed mms block)")
+        return []
+    updated = remove_block(text)
+    if updated == "" and created:
+        path.unlink()
+        return [str(path)]
+    if updated != text:
+        _write_atomic(path, updated)
+    return [f"managed block from {path}"]
+
+
 def uninstall(harness: Harness, root: Path) -> list[str]:
     """Undo the installation: remove the server by key, then files still ours."""
     removed: list[str] = []
+
+    # Pre-flight the managed block before touching the MCP config: a read-only
+    # AGENTS.md holding a block cannot be rewritten, and removing the server
+    # first would leave a partial uninstall behind. No markers means nothing to
+    # write there, so that case proceeds (and is reported as retained below).
+    if harness.agents is not None:
+        agents_path = root / harness.agents
+        if agents_path.is_file():
+            block = _marker_pair(_read_agents_text(agents_path))
+            if block is not None and _is_read_only(agents_path):
+                raise RuntimeError(
+                    f"{agents_path} is read-only; refusing a partial uninstall"
+                )
 
     if harness.mcp_candidates:
         target = resolve_mcp_file(harness, root)
@@ -947,6 +1302,16 @@ def uninstall(harness: Harness, root: Path) -> list[str]:
         except (OSError, subprocess.SubprocessError):
             pass
 
+    # The managed block is handled BEFORE the manifest loop, and independently
+    # of it: an appended block has no manifest entry but must still be removed.
+    agents_resolved: Path | None = None
+    if harness.agents is not None:
+        agents_path = root / harness.agents
+        agents_resolved = _resolved(agents_path)
+        removed.extend(
+            _uninstall_agents_block(agents_path, _manifest_owns_path(root, agents_path))
+        )
+
     path = root / MANIFEST_NAME
     if path.is_file():
         manifest = read_manifest(root)
@@ -961,6 +1326,10 @@ def uninstall(harness: Harness, root: Path) -> list[str]:
             if not resolved.is_relative_to(root_resolved):
                 # A tampered or stale manifest must never delete outside the root.
                 retained.append(str(target))
+                continue
+            if agents_resolved is not None and resolved == agents_resolved:
+                # Already handled above: deleting it here would drop user bytes
+                # (or the empty file a pre-existing AGENTS.md must keep).
                 continue
             if not target.is_file():
                 continue
@@ -1116,7 +1485,8 @@ def main(argv: list[str] | None = None) -> int:
                 )
             cli_present = cli_mcp_present(harness.uses_cli, root) if harness.uses_cli else False
             actions = plan_for(
-                harness, root, args.port, installed, cli_present, agent_id
+                harness, root, args.port, installed, cli_present, agent_id,
+                dry_run=args.dry_run,
             )
         except (RuntimeError, jsonc.JsoncError, OSError) as exc:
             print(f"  error: {exc}; nothing was written", file=sys.stderr)
