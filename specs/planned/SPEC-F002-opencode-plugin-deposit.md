@@ -2,7 +2,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | planned |
+| Status | GREEN, G5 |
 | Impact | Medium — new files under the OpenCode config directory |
 | Depends on | F001 |
 | Blocks | F005, F008 |
@@ -140,12 +140,37 @@ IPv6/IPv4 resolution order.
     {"path": ".../index.js", "sha256": "..."},
     {"path": ".../package.json", "sha256": "..."},
     {"path": ".../memory-plugin.json", "sha256": "..."}
-  ]
+  ],
+  "created_dirs": [".../plugins", ".../plugins/opencode-memory"]
 }
 ```
 
 Directories created by the installer are recorded separately and removed only
-when empty.
+when empty. Legacy manifests that store plain path strings remain readable. For
+the plugin `index.js`, ownership is provable when its bytes match the shipped
+source; the other legacy string entries keep the historical behaviour and are
+removed on uninstall.
+
+### 5.5 Test seam in the plugin
+
+The plugin exports `_internal.resolvePaths(options)` so the XDG rules are tested
+directly instead of by reading prose. The signature is:
+
+```js
+resolvePaths({ env = process.env, home = homedir(), directory } = {}) -> {
+  configDir, stateDir, dataDir, statusFile, inboxStateFile, configPaths
+}
+```
+
+- `configDir = (XDG_CONFIG_HOME || home/.config)/opencode`;
+- `stateDir = (XDG_STATE_HOME || home/.local/state)/opencode`;
+- `dataDir = (XDG_DATA_HOME || home/.local/share)/opencode`;
+- `statusFile = OPENCODE_MEMORY_STATUS_FILE || stateDir/.memory-status.json`;
+- `configPaths` preserves the existing precedence: explicit `configPath`,
+  `OPENCODE_MEMORY_PLUGIN_CONFIG`, `<configDir>/memory-plugin.json`,
+  `<configDir>/memory-awareness.json`, then project-local paths.
+- The module-level constants and `pluginConfigPaths()` both call this function,
+  so the exported seam is the same code path the plugin uses.
 
 ## 6. Edge cases
 

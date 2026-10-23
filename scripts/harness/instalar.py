@@ -20,12 +20,14 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import urlparse
@@ -37,6 +39,14 @@ DEFAULT_PORT = 8000
 SERVER_NAME = "mms"
 MANIFEST_NAME = "mms-install-manifest.json"
 OPENCODE_SCHEMA = "https://opencode.ai/config.json"
+
+# The plugin ships from the repository; nothing is transpiled or bundled.
+REPO_ROOT = Path(__file__).resolve().parents[2]
+PLUGIN_SOURCE = REPO_ROOT / "opencode" / "memory-plugin.js"
+PLUGIN_REL_DIR = Path("plugins") / "opencode-memory"
+PLUGIN_CONFIG = "memory-plugin.json"
+PLUGIN_LEGACY_CONFIG = "memory-awareness.json"
+PLUGIN_PACKAGE_NAME = "opencode-memory"
 
 
 # --- harness descriptors -----------------------------------------------------
@@ -328,6 +338,243 @@ def plan_for(
     return actions
 
 
+# --- opencode plugin deposit -------------------------------------------------
+
+
+@dataclass
+class Deposit:
+    """A file the installer creates for the OpenCode plugin surface."""
+
+    kind: str  # "copy" | "write"
+    description: str
+    target: Path
+    source: Path | None = None
+    text: str | None = None
+
+    def render(self) -> str:
+        if self.kind == "copy":
+            return f"deposit {self.description} -> {self.target}"
+        return f"write   {self.description} -> {self.target}"
+
+
+def project_version() -> str:
+    """The MMS version, from pyproject.toml and then installed metadata."""
+    try:
+        with (REPO_ROOT / "pyproject.toml").open("rb") as handle:
+            return str(tomllib.load(handle)["project"]["version"])
+    except (OSError, KeyError, TypeError, tomllib.TOMLDecodeError):
+        try:
+            from importlib.metadata import PackageNotFoundError, version
+
+            try:
+                return version("mcp-memory-service")
+            except PackageNotFoundError:
+                return "0.0.0"
+        except Exception:  # noqa: BLE001 - the package metadata is best effort
+            return "0.0.0"
+
+
+def plugin_package_json(version: str | None = None) -> str:
+    payload = {
+        "name": PLUGIN_PACKAGE_NAME,
+        "version": version or project_version(),
+        "type": "module",
+        "exports": {".": "./index.js"},
+    }
+    return json.dumps(payload, indent=2) + "\n"
+
+
+def plugin_config_json(port: int) -> str:
+    """Only the keys the installer decides; the plugin owns every other default."""
+    payload = {
+        "memoryService": {
+            "endpoint": f"http://127.0.0.1:{port}",
+            "timeoutMs": 5000,
+            "loadTimeoutMs": 2500,
+            "maxMemoriesPerSession": 8,
+        }
+    }
+    return json.dumps(payload, indent=2) + "\n"
+
+
+def _sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def _sha256_file(path: Path) -> str:
+    return _sha256_bytes(path.read_bytes())
+
+
+def _resolved(path: Path) -> Path:
+    return Path(os.path.realpath(path))
+
+
+def read_manifest(root: Path) -> dict:
+    """The manifest, tolerating corruption: an unreadable one records nothing."""
+    empty: dict = {"created": [], "created_dirs": []}
+    path = root / MANIFEST_NAME
+    if not path.is_file():
+        return empty
+    try:
+        data = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return empty
+    if not isinstance(data, dict):
+        return empty
+    created = data.get("created") if isinstance(data.get("created"), list) else []
+    dirs = data.get("created_dirs") if isinstance(data.get("created_dirs"), list) else []
+    return {"created": created, "created_dirs": dirs}
+
+
+def _entry_path(entry: object, root: Path) -> Path | None:
+    """The path of a manifest entry, whether it is an object or a legacy string."""
+    raw = entry.get("path") if isinstance(entry, dict) else entry
+    if not isinstance(raw, str) or not raw:
+        return None
+    path = Path(raw)
+    return path if path.is_absolute() else root / path
+
+
+def owned_hashes(root: Path) -> dict[Path, str]:
+    """Recorded hashes by resolved path; legacy strings carry no hash."""
+    owned: dict[Path, str] = {}
+    for entry in read_manifest(root)["created"]:
+        if not isinstance(entry, dict):
+            continue
+        path = _entry_path(entry, root)
+        digest = entry.get("sha256")
+        if path is not None and isinstance(digest, str) and digest:
+            owned[_resolved(path)] = digest
+    return owned
+
+
+def _plan_deposit(
+    deposits: list[Deposit],
+    target: Path,
+    expected: bytes,
+    description: str,
+    owned: dict[Path, str],
+    source: Path | None = None,
+    text: str | None = None,
+) -> None:
+    """Plan a create, a no-op, or an upgrade; refuse a file we cannot prove is ours."""
+    if not target.is_file():
+        deposits.append(
+            Deposit(kind="copy" if source else "write", description=description,
+                    target=target, source=source, text=text)
+        )
+        return
+    current = target.read_bytes()
+    if current == expected:
+        return
+    recorded = owned.get(_resolved(target))
+    if recorded is not None and recorded == _sha256_bytes(current):
+        # The manifest proves we wrote this exact file: an upgrade may replace it.
+        deposits.append(
+            Deposit(kind="copy" if source else "write", description=description,
+                    target=target, source=source, text=text)
+        )
+        return
+    raise RuntimeError(
+        f"foreign plugin file at {target}: it differs from the shipped plugin and the "
+        "manifest does not record it; refusing to overwrite"
+    )
+
+
+def missing_dirs(root: Path, targets: list[Path]) -> list[Path]:
+    """Directories a deposit creates, parents first, never including the root."""
+    root_resolved = _resolved(root)
+    missing: list[Path] = []
+    for target in targets:
+        parent = _resolved(target).parent
+        chain: list[Path] = []
+        while parent != root_resolved and parent.is_relative_to(root_resolved) and not parent.exists():
+            chain.append(parent)
+            parent = parent.parent
+        for directory in reversed(chain):
+            if directory not in missing:
+                missing.append(directory)
+    return missing
+
+
+def _contained(path: Path, root: Path) -> Path:
+    """The resolved path, refusing one that escapes the root.
+
+    `plugins` may be a symlink pointing anywhere; resolving before writing keeps a
+    deposit inside the sandbox the operator named.
+    """
+    resolved = _resolved(path)
+    if not resolved.is_relative_to(_resolved(root)):
+        raise RuntimeError(f"plugin path escapes the root: {path} -> {resolved}")
+    return resolved
+
+
+def plan_plugin(root: Path, port: int) -> tuple[list[Deposit], list[Path], list[str]]:
+    """Plan the plugin package and its configuration bootstrap.
+
+    Raises RuntimeError for a foreign `index.js`/`package.json`: overwriting a file
+    the installer cannot prove it wrote would destroy someone's work. Also raises
+    when any planned path resolves outside the root: a symlinked `plugins`
+    directory must not smuggle the payload out of the sandbox.
+    """
+    if not PLUGIN_SOURCE.is_file():
+        raise RuntimeError(f"plugin source not found at {PLUGIN_SOURCE}")
+
+    plugin_dir = root / PLUGIN_REL_DIR
+    index = plugin_dir / "index.js"
+    package = plugin_dir / "package.json"
+    # Validate containment before planning anything: nothing is written on abort.
+    for target in (index, package, root / PLUGIN_CONFIG):
+        _contained(target, root)
+    owned = owned_hashes(root)
+    deposits: list[Deposit] = []
+    notes: list[str] = []
+
+    _plan_deposit(
+        deposits, index, PLUGIN_SOURCE.read_bytes(), "plugin index.js", owned,
+        source=PLUGIN_SOURCE,
+    )
+    package_text = plugin_package_json()
+    _plan_deposit(
+        deposits, package, package_text.encode("utf-8"), "plugin package.json", owned,
+        text=package_text,
+    )
+
+    config = root / PLUGIN_CONFIG
+    legacy_config = root / PLUGIN_LEGACY_CONFIG
+    if config.is_file():
+        notes.append(f"configuration retained: {config}")
+    elif legacy_config.is_file():
+        notes.append(f"configuration retained: {legacy_config}")
+    else:
+        config_text = plugin_config_json(port)
+        deposits.append(
+            Deposit(kind="write", description="plugin configuration", target=config, text=config_text)
+        )
+
+    dirs = missing_dirs(root, [deposit.target for deposit in deposits])
+    return deposits, dirs, notes
+
+
+def run_deposit(deposit: Deposit, root: Path, dry_run: bool = False) -> bool:
+    """Write one deposit, refusing a target that resolves outside the root."""
+    _contained(deposit.target, root)
+    if dry_run:
+        return True
+    deposit.target.parent.mkdir(parents=True, exist_ok=True)
+    if deposit.kind == "copy":
+        if deposit.source is None:
+            raise RuntimeError("copy deposit without a source")
+        shutil.copy2(deposit.source, deposit.target)
+        return True
+    if deposit.kind == "write":
+        if deposit.text is None:
+            raise RuntimeError("write deposit without content")
+        _write_atomic(deposit.target, deposit.text)
+        return True
+    raise RuntimeError(f"unknown deposit kind {deposit.kind!r}")
+
+
 # --- apply -------------------------------------------------------------------
 
 
@@ -439,21 +686,77 @@ def verify(harness: Harness, root: Path, port: int) -> list[str]:
     return failures
 
 
-def write_manifest(root: Path, actions: list[Action]) -> None:
-    """Record only files this installer CREATED.
+def write_manifest(
+    root: Path,
+    actions: list[Action],
+    deposits: list[Deposit] | None = None,
+    created_dirs: list[Path] | None = None,
+) -> None:
+    """Record only files this installer CREATED, with their SHA-256.
 
-    A `merge-mcp` target is a pre-existing config file that we edited, never a
-    file we own: listing it here would make `uninstall` delete the harness's whole
-    MCP config (14 servers on a real machine). The server is removed by key.
+    A `merge-mcp`/`jsonc-mcp` target is a pre-existing config file that we edited,
+    never a file we own: listing it here would make `uninstall` delete the
+    harness's whole MCP config (14 servers on a real machine).
+
+    Called without plugin deposits it keeps the historical string-only shape for
+    callers that record copies by hand; the installer itself records objects so
+    uninstall can prove ownership by hash.
     """
-    entries = [
-        str(a.target) for a in actions if a.kind == "copy" and a.target is not None
-    ]
-    (root / MANIFEST_NAME).write_text(json.dumps({"created": entries}, indent=2) + "\n")
+    if deposits is None:
+        entries: list[object] = [
+            str(a.target.absolute()) for a in actions if a.kind == "copy" and a.target is not None
+        ]
+        (root / MANIFEST_NAME).write_text(json.dumps({"created": entries}, indent=2) + "\n")
+        return
+
+    existing = read_manifest(root)
+    entries: list[object] = []
+    by_path: dict[Path, int] = {}
+    for entry in existing["created"]:
+        path = _entry_path(entry, root)
+        entries.append(entry)
+        if path is not None:
+            by_path[_resolved(path)] = len(entries) - 1
+
+    targets = [a.target for a in actions if a.kind == "copy" and a.target is not None]
+    targets.extend(deposit.target for deposit in deposits)
+    for target in targets:
+        if not target.is_file():
+            continue
+        resolved = _resolved(target)
+        record = {"path": str(target.absolute()), "sha256": _sha256_file(target)}
+        if resolved in by_path:
+            entries[by_path[resolved]] = record
+        else:
+            by_path[resolved] = len(entries)
+            entries.append(record)
+
+    dirs: list[str] = []
+    for directory in list(existing["created_dirs"]) + [str(d) for d in (created_dirs or [])]:
+        if isinstance(directory, str) and directory not in dirs:
+            dirs.append(directory)
+
+    payload = {"created": entries, "created_dirs": dirs}
+    _write_atomic(root / MANIFEST_NAME, json.dumps(payload, indent=2) + "\n")
+
+
+def _legacy_expected_bytes(target: Path) -> bytes | None:
+    """The current source for a legacy (hash-less) entry, when the installer has one.
+
+    Legacy manifests stored bare strings. For the files the installer can still
+    reproduce byte-for-byte, ownership is provable; for anything else the older
+    behaviour (treat as ours) is kept so a pre-hash install still uninstalls.
+    """
+    if target.name == "index.js" and target.parent.name == "opencode-memory":
+        try:
+            return PLUGIN_SOURCE.read_bytes()
+        except OSError:
+            return None
+    return None
 
 
 def uninstall(harness: Harness, root: Path) -> list[str]:
-    """Undo the installation: remove the server by key, then created files."""
+    """Undo the installation: remove the server by key, then files still ours."""
     removed: list[str] = []
 
     if harness.mcp_candidates:
@@ -491,19 +794,54 @@ def uninstall(harness: Harness, root: Path) -> list[str]:
 
     path = root / MANIFEST_NAME
     if path.is_file():
-        try:
-            entries = json.loads(path.read_text()).get("created") or []
-        except (OSError, json.JSONDecodeError):
-            entries = []
-        root_resolved = root.resolve()
-        for entry in entries:
-            target = Path(entry)
-            resolved = Path(os.path.realpath(target))
-            if not resolved.is_relative_to(root_resolved):
+        manifest = read_manifest(root)
+        root_resolved = _resolved(root)
+        retained: list[str] = []
+
+        for entry in manifest["created"]:
+            target = _entry_path(entry, root)
+            if target is None:
                 continue
-            if target.is_file():
-                target.unlink()
-                removed.append(str(target))
+            resolved = _resolved(target)
+            if not resolved.is_relative_to(root_resolved):
+                # A tampered or stale manifest must never delete outside the root.
+                retained.append(str(target))
+                continue
+            if not target.is_file():
+                continue
+            recorded = entry.get("sha256") if isinstance(entry, dict) else None
+            if isinstance(recorded, str) and recorded:
+                if _sha256_file(target) != recorded:
+                    retained.append(str(target))
+                    continue
+            else:
+                expected = _legacy_expected_bytes(resolved)
+                if expected is not None and target.read_bytes() != expected:
+                    retained.append(str(target))
+                    continue
+            target.unlink()
+            removed.append(str(target))
+
+        for item in retained:
+            print(f"  retained: {item}")
+
+        recorded_dirs = [
+            directory
+            for directory in manifest["created_dirs"]
+            if isinstance(directory, str) and directory.strip()
+        ]
+        for directory in sorted(recorded_dirs, key=lambda d: len(Path(d).parts), reverse=True):
+            resolved = _resolved(Path(directory) if Path(directory).is_absolute() else root / directory)
+            if resolved == root_resolved or not resolved.is_relative_to(root_resolved):
+                continue
+            if not resolved.is_dir():
+                continue
+            try:
+                resolved.rmdir()
+            except OSError:
+                continue
+            removed.append(str(resolved))
+
         path.unlink()
         removed.append(str(path))
 
@@ -560,6 +898,12 @@ def main(argv: list[str] | None = None) -> int:
     for name in names:
         harness = registry[name]
         root = Path(args.root) if args.root else harness.root_default
+        # A relative --root must not leak into the manifest: the manifest records
+        # where files live, not where the operator happened to stand.
+        root = root.expanduser()
+        if not root.is_absolute():
+            root = Path.cwd() / root
+        root = _resolved(root)
 
         if args.uninstall:
             print(f"{name}: uninstall from {root}")
@@ -590,18 +934,37 @@ def main(argv: list[str] | None = None) -> int:
             rc = 1
             continue
 
+        # The plugin surface is planned separately: it must never appear in the
+        # MCP action list, and a foreign file aborts before anything is written.
+        deposits: list[Deposit] = []
+        created_dirs: list[Path] = []
+        notes: list[str] = []
+        if harness.name == "opencode":
+            try:
+                deposits, created_dirs, notes = plan_plugin(root, args.port)
+            except (RuntimeError, OSError) as exc:
+                print(f"  error: {exc}; nothing was written", file=sys.stderr)
+                rc = 1
+                continue
+
         print(f"\n{name} ({root})")
-        if not actions:
+        for note in notes:
+            print(f"  {note}")
+        if not actions and not deposits:
             print("  nothing to do: already installed")
             continue
         for action in actions:
             print(f"  {action.render()}")
+        for deposit in deposits:
+            print(f"  {deposit.render()}")
 
         if args.dry_run:
             continue
 
         try:
             ok = all(run_action(a, args.port, dry_run=False, root=root) for a in actions)
+            if ok:
+                ok = all(run_deposit(d, root, dry_run=False) for d in deposits)
         except (RuntimeError, jsonc.JsoncError, OSError) as exc:
             print(f"  error: {exc}; nothing was written", file=sys.stderr)
             rc = 1
@@ -622,8 +985,8 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"  ERRO: {failure}", file=sys.stderr)
             continue
 
-        write_manifest(root, actions)
-        print(f"  OK: {len(actions)} action(s), effect verified")
+        write_manifest(root, actions, deposits=deposits, created_dirs=created_dirs)
+        print(f"  OK: {len(actions) + len(deposits)} action(s), effect verified")
 
     return rc
 

@@ -4,14 +4,58 @@ import http from "node:http"
 import https from "node:https"
 import path from "node:path"
 
-const STATUS_FILE = process.env.OPENCODE_MEMORY_STATUS_FILE
-  || path.join(homedir(), ".local", "state", "opencode", ".memory-status.json")
-const INBOX_STATE_FILE = process.env.OPENCODE_MEMORY_INBOX_STATE_FILE
-  || path.join(path.dirname(STATUS_FILE), ".memory-inbox-state.json")
 const INBOX_LOCK_STALE_MS = 30_000
 // Delivered peer messages stay in the system block for the rest of the session,
 // since the block is not part of the chat history.
 const INBOX_SESSION_KEEP = 10
+
+// XDG-aware path resolution. The module-level constants, `pluginConfigPaths`, and
+// `_internal.resolvePaths` all call this one function, so the exported seam is the
+// same code path the plugin runs — no test-only reimplementation.
+function xdgHome(env, variable, fallback) {
+  const value = env?.[variable]
+  return typeof value === "string" && value.trim() ? value : fallback
+}
+
+function resolvePaths({ env = process.env, home = homedir(), directory, configPath } = {}) {
+  const environment = env || {}
+  const base = typeof home === "string" && home ? home : homedir()
+  const configDir = path.join(xdgHome(environment, "XDG_CONFIG_HOME", path.join(base, ".config")), "opencode")
+  const stateDir = path.join(xdgHome(environment, "XDG_STATE_HOME", path.join(base, ".local", "state")), "opencode")
+  const dataDir = path.join(xdgHome(environment, "XDG_DATA_HOME", path.join(base, ".local", "share")), "opencode")
+
+  const statusFile = environment.OPENCODE_MEMORY_STATUS_FILE
+    || path.join(stateDir, ".memory-status.json")
+  const inboxStateFile = environment.OPENCODE_MEMORY_INBOX_STATE_FILE
+    || path.join(path.dirname(statusFile), ".memory-inbox-state.json")
+
+  // Precedence: explicit option, environment, config dir, project-local.
+  const configPaths = [
+    typeof configPath === "string" ? configPath : "",
+    environment.OPENCODE_MEMORY_PLUGIN_CONFIG || "",
+    path.join(configDir, "memory-plugin.json"),
+    path.join(configDir, "memory-awareness.json"),
+  ]
+  if (directory) {
+    configPaths.push(
+      path.join(directory, ".opencode", "memory-plugin.json"),
+      path.join(directory, ".opencode", "memory-awareness.json"),
+    )
+  }
+
+  return {
+    configDir,
+    stateDir,
+    dataDir,
+    statusFile,
+    inboxStateFile,
+    configPaths: configPaths.filter(Boolean),
+  }
+}
+
+const INITIAL_PATHS = resolvePaths()
+const STATUS_FILE = INITIAL_PATHS.statusFile
+const INBOX_STATE_FILE = INITIAL_PATHS.inboxStateFile
 
 // TLS certificate verification stays on by default. Setting
 // allowSelfSignedCerts disables it for that request only, with a warning —
@@ -224,20 +268,7 @@ function mergeConfig(base, overrides = {}) {
 }
 
 function pluginConfigPaths(directory, options = {}) {
-  const configDir = path.join(homedir(), ".config", "opencode")
-  const paths = [
-    typeof options.configPath === "string" ? options.configPath : "",
-    process.env.OPENCODE_MEMORY_PLUGIN_CONFIG || "",
-    path.join(configDir, "memory-plugin.json"),
-    path.join(configDir, "memory-awareness.json"),
-  ]
-  if (directory) {
-    paths.push(
-      path.join(directory, ".opencode", "memory-plugin.json"),
-      path.join(directory, ".opencode", "memory-awareness.json"),
-    )
-  }
-  return paths.filter(Boolean)
+  return resolvePaths({ directory, configPath: options.configPath }).configPaths
 }
 
 async function loadConfig(directory) {
@@ -1735,6 +1766,8 @@ export const _internal = {
   formatInboxBlock,
   inboxOverlapMs,
   inboxStateKey,
+  pluginConfigPaths,
+  resolvePaths,
   searchInboxMemories,
   writeInboxMarker,
   sessionIdentity,
