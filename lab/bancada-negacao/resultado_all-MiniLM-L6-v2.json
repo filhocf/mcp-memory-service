@@ -1,0 +1,55 @@
+{
+ "cosine": {
+  "pairwise_all": 0.63,
+  "pos": 0.66,
+  "neg": 0.6,
+  "neg_explicit": 0.88,
+  "neg_implicit": 0.32,
+  "top1_pos": 0.66,
+  "top1_neg": 0.6,
+  "pares_no_pool": "100/100",
+  "p50_ms": 0.0
+ },
+ "rerank40": {
+  "pairwise_all": 0.87,
+  "pos": 1.0,
+  "neg": 0.74,
+  "neg_explicit": 1.0,
+  "neg_implicit": 0.48,
+  "top1_pos": 1.0,
+  "top1_neg": 0.7,
+  "pares_no_pool": "100/100",
+  "p50_ms": 257.1
+ },
+ "rerank_all": {
+  "pairwise_all": 0.88,
+  "pos": 1.0,
+  "neg": 0.76,
+  "neg_explicit": 1.0,
+  "neg_implicit": 0.52,
+  "top1_pos": 1.0,
+  "top1_neg": 0.7,
+  "pares_no_pool": "100/100",
+  "p50_ms": 804.5
+ },
+ "bootstrap": {
+  "rerank40": {
+   "delta": 0.24,
+   "ci95": [
+    0.14,
+    0.34
+   ],
+   "melhorou": 27,
+   "piorou": 3
+  },
+  "rerank_all": {
+   "delta": 0.25,
+   "ci95": [
+    0.15,
+    0.35
+   ],
+   "melhorou": 28,
+   "piorou": 3
+  }
+ }
+}
