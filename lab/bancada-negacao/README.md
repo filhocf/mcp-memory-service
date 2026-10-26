@@ -22,7 +22,9 @@ Três condições, no mesmo store:
 O baseline `cosine` **reproduz exatamente** os números publicados no #1696:
 `pairwise_all` 0,63 e `neg_implicit` 0,32. Sem essa coincidência a comparação não valeria.
 
-## Resultado (`all-MiniLM-L6-v2`, igual em `paraphrase-multilingual-MiniLM-L12-v2`)
+## Resultado
+
+Índice do mantenedor (`all-MiniLM-L6-v2`, o mesmo do #1696):
 
 | condição | pairwise_all | pos | neg | neg_explicit | neg_implicit | top1_pos | top1_neg | p50 |
 |---|---|---|---|---|---|---|---|---|
@@ -30,10 +32,30 @@ O baseline `cosine` **reproduz exatamente** os números publicados no #1696:
 | **rerank40** | **0,87** | 1,00 | 0,74 | 1,00 | 0,48 | 1,00 | 0,70 | 257 ms |
 | rerank_all | 0,88 | 1,00 | 0,76 | 1,00 | 0,52 | 1,00 | 0,70 | 805 ms |
 
+Índice de produção (`paraphrase-multilingual-MiniLM-L12-v2`):
+
+| condição | pairwise_all | pos | neg | neg_explicit | neg_implicit | top1_pos | top1_neg | p50 |
+|---|---|---|---|---|---|---|---|---|
+| cosine | 0,77 | 1,00 | 0,54 | 0,80 | 0,28 | 1,00 | 0,52 | — |
+| **rerank40** | **0,89** | 1,00 | 0,78 | 1,00 | 0,56 | 1,00 | 0,72 | 294 ms |
+| rerank_all | 0,88 | 1,00 | 0,76 | 1,00 | 0,52 | 1,00 | 0,72 | 800 ms |
+
 Bootstrap pareado (10.000 reamostragens sobre as 100 consultas):
 
-- cosine → rerank40: **+24,0 p.p.**, IC95 [+14,0, +34,0]; 27 consultas melhoraram, **3 pioraram**
-- cosine → rerank_all: +25,0 p.p., IC95 [+15,0, +35,0]; 28 melhoraram, 3 pioraram
+- `all-MiniLM-L6-v2`: cosine → rerank40 **+24,0 p.p.**, IC95 [+14,0, +34,0]; 27 consultas melhoraram, **3 pioraram**
+- `paraphrase-multilingual`: cosine → rerank40 **+12,0 p.p.**, IC95 [+5,0, +19,0]; 13 melhoraram, 1 piorou
+
+Os dois índices não são intercambiáveis: o multilíngue já separa muito melhor a metade
+afirmativa (1,00 contra 0,66), daí o teto menor. Os dois melhoram; o `rerank_all` do
+multilíngue fica 1 decisão abaixo do `rerank40` — ruído de uma consulta, não regressão
+de mecanismo (as duas decisões estavam no pool nas duas condições).
+
+> **Correção de 27/out.** A primeira versão desta bancada dizia que os números eram
+> idênticos nos dois modelos. Não eram: `SqliteVecMemoryStorage` recebe o modelo por
+> argumento de construtor e o default é `all-MiniLM-L6-v2`, então as duas execuções
+> construíam o índice inglês. Pegou no Greptile (P1 do PR #1697); corrigido, e os números
+> acima vêm de execuções que constroem índices de fato diferentes.
+
 
 Referência do mantenedor no mesmo conjunto: `resonance` 0,62 / `phase` 0,60 / `hybrid` 0,61
 — todos no nível do cosseno.

@@ -19,10 +19,16 @@ foi medido. Falta publicar.
   LoCoMo −0,5 p.p. Ficou experimental; nada no dashboard mudou. Não vale investir: score sem
   informação nova (fase derivada do mesmo embedding → monótona em cosseno, o próprio artigo
   admite $S=(1+\cos\theta)/2$ para vetor real) **e** 3,4 s p50 @20k contra 31 ms do KNN.
-- **Nosso número de negação** (mesmo corpus dele, 115 memórias, 100 decisões): cosseno 0,63 →
-  rerank 40 candidatos **0,87** (+24,0 p.p., IC95 [+14,0, +34,0], 27 melhoraram / 3 pioraram,
-  p50 257 ms). Explícita 0,88 → 1,00. **Implícita 0,32 → 0,48, ainda abaixo de 50%.**
-  Idêntico em `all-MiniLM-L6-v2` e `paraphrase-multilingual-MiniLM-L12-v2`.
+- **Nosso número de negação** (mesmo corpus dele, 115 memórias, 100 decisões): no índice dele
+  (`all-MiniLM-L6-v2`) cosseno 0,63 → rerank 40 candidatos **0,87** (+24,0 p.p., IC95
+  [+14,0, +34,0], 27 melhoraram / 3 pioraram, p50 257 ms); no nosso de produção
+  (`paraphrase-multilingual`) cosseno 0,77 → **0,89** (+12,0 p.p., IC95 [+5,0, +19,0],
+  13 melhoraram / 1 piorou). Explícita 0,88 → 1,00. **Implícita 0,32 → 0,48** no inglês (abaixo
+  de 50%) e **0,28 → 0,56** no multilíngue.
+- **Correção de 27/out:** o primeiro relato dizia que os números eram idênticos nos dois modelos.
+  Errado — o storage recebe o modelo por construtor e o default é `all-MiniLM-L6-v2`, então as
+  duas execuções mediam o índice inglês. Greptile P1 no PR #1697; corrigido. **Regra que fica:
+  passar o modelo ao construtor e testar que ele chega lá, não exportar variável de ambiente.**
 - **O baseline bateu dígito por dígito** (0,63 e 0,32) com o publicado no #1696. É o que
   autoriza a comparação; se algum dia divergir, o instrumento quebrou, não o resultado.
 - **Teto de ganho**: subir de 40 para 115 candidatos rende só +1 p.p. O default de produção
