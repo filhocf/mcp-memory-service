@@ -5,7 +5,11 @@ issue #1674, harness #1696) e ela não passou; nós tínhamos o mesmo problema r
 outro caminho (#1602 / PR #1661). O número que faltava — negação contra o nosso rerank —
 foi medido. Falta publicar.
 
-## Estado: MEDIDO, NÃO PUBLICADO
+## Estado: PUBLICADO — PR #1697 aberto, aprovado, aguardando o mantenedor
+
+`gh pr view 1697`: `OPEN`, `MERGEABLE`, **`review=APPROVED` (Greptile)**, 18 checks
+`SUCCESS` + 2 `SKIPPED`, head `b2b719c`, e as três threads de revisão `resolved=true/outdated=true`.
+
 
 ## Fatos que não devem ser redescobertos
 
@@ -41,13 +45,24 @@ foi medido. Falta publicar.
 
 ## Próximos passos, na ordem
 
-1. **Publicar o comentário no #1696** (inglês, texto já redigido na sessão de 26/out; exige
-   OK do Claudio e mostrar EN + PT-BR antes). Números: 0,87 vs 0,63, +24 p.p., IC +14/+34,
-   257 ms, explícita 1,00, implícita 0,48. Sem reivindicar acervo real.
-2. **Abrir PR com o script comparativo** (`bench_negation_rerank.py`) — o mantenedor pediu
-   harness reproduzível no critério "done when" da #1674; entregar o nosso fecha o ciclo.
+1. ~~**Publicar o comentário no #1696**~~ **FEITO** (26/out 23:36 UTC) — tabela do índice inglês.
+   Correção publicada em seguida (23:58) quando o erro de modelo apareceu: no índice multilíngue
+   o cosseno é 0,77 e o rerank leva a 0,89 (+12,0 p.p.), não os 0,87 da tabela inglesa.
+2. ~~**Abrir PR com o script comparativo**~~ **FEITO** — PR #1697, aprovado pelo Greptile.
 3. **Decidir o #1566**: submeter fatiado (base `memory_context` primeiro) ou arquivar.
 4. **Mergear `upstream/main` 12.4.0 no fork** absorvendo `344f4ae1` sem duplicar o rerank.
+5. **Opcional, se o mantenedor pedir**: rodar o mesmo conjunto no acervo real (não sintético) —
+   é a lacuna honesta que o PR declara.
+
+## O que o Greptile pegou (e o que isso ensinou)
+
+P1: `--embedding-model` só exportava `MCP_EMBEDDING_MODEL`, mas `SqliteVecMemoryStorage` recebe o
+modelo por **argumento de construtor** (default `all-MiniLM-L6-v2`). As duas execuções construíam
+o índice inglês: a afirmação "idêntico nos dois modelos" media um modelo duas vezes. Corrigido
+(`a71475f4`) passando o modelo ao construtor, com teste que falha se o argumento parar de ser
+repassado. Regra que fica: **configuração de instância se fixa no construtor e se prova por teste,
+não por variável de ambiente exportada antes do import.**
+
 
 ## Como repetir a medição
 
