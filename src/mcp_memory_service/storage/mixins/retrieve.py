@@ -231,7 +231,8 @@ class RetrieveMixin:
                 ][:n_results]
                 logger.debug("min_confidence=%s filtered %s stale memories", _sanitize_log_value(min_confidence), before - len(results))
 
-            logger.info(f"Retrieved {len(results)} memories for query: {_sanitize_log_value(query)}")
+            # DEBUG: the query is the user's prompt text, and this runs on every recall
+            logger.debug(f"Retrieved {len(results)} memories for query: {_sanitize_log_value(query)}")
 
             # Usage telemetry (best-effort, fire-and-forget). A failure here must
             # NEVER break the read path, so it is fully wrapped in log_usage_event's
@@ -252,7 +253,6 @@ class RetrieveMixin:
                     )
             except Exception as _tele_err:
                 logger.warning("Usage telemetry (retrieve) failed (non-fatal): %s", _sanitize_log_value(_tele_err))
-
             return results
 
         except Exception as e:

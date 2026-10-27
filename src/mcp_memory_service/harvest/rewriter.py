@@ -230,6 +230,24 @@ class RewriteResult:
     model: Optional[str] = None
 
 
+class _Skipped:
+    """Batch slot the LLM answered with SKIP: rejected on purpose, not lost (#1560).
+
+    Falsy, so callers that test ``if result:`` treat it exactly like ``None``;
+    only the harvester's ``rewrite_dropped`` count tells the two apart.
+    """
+    __slots__ = ()
+
+    def __bool__(self):
+        return False
+
+    def __repr__(self):
+        return "SKIPPED"
+
+
+SKIPPED = _Skipped()
+
+
 class HarvestRewriter:
     """Rewrites harvest candidates into standalone insights using an LLM.
 
@@ -383,6 +401,7 @@ class HarvestRewriter:
             if idx < 0 or idx >= len(items):
                 continue
             if content.upper().startswith("SKIP"):
+                results[idx] = SKIPPED
                 continue
             # Parse TYPE: content
             type_match = re.match(r'^(\w+):\s*(.+)$', content, re.DOTALL)
@@ -500,6 +519,7 @@ class HarvestRewriter:
                 headers=headers,
                 json={
                     "model": model,
+                    "stream": False,  # fm serve streams SSE when this is absent (#1666)
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.3,
                     "max_tokens": max_tokens,

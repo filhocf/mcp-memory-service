@@ -99,6 +99,10 @@ class MemoryDashboard {
         this._sseReconnectAttempts = 0;
         this._syncMonitorInterval = null;
         this._lastAuthFailureToast = null;
+        this._dashboardRefreshTimer = null;
+        this._dashboardRefreshInterval = null;
+        this._dashboardRefreshInFlight = false;
+        this._syncCountdownInterval = null;
 
         // Settings with defaults
         this.settings = {
@@ -778,6 +782,7 @@ class MemoryDashboard {
             // Reset backoff on successful connection
             this._sseReconnectAttempts = 0;
             this.updateConnectionStatus('connected');
+            this._scheduleDashboardRefresh();
         };
 
         this.eventSource.onmessage = (event) => {
@@ -806,6 +811,33 @@ class MemoryDashboard {
             } catch (error) {
                 console.error('Error parsing sync_completed event:', error);
             }
+        });
+
+        // Issue #1557: the scheduled delta-sync cycle emits a per-peer
+        // completion event; refresh the dashboard and sync panel on receipt.
+        this.eventSource.addEventListener('sync_delta_completed', (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                this.handleSyncDeltaCompleted(data);
+            } catch (error) {
+                console.error('Error parsing sync_delta_completed event:', error);
+            }
+        });
+
+        // Issue #1557: memories stored/deleted by any client (GUI, MCP tools,
+        // remote storage) previously left dashboard widgets stale until a
+        // manual reload. The backend already broadcasts these events; now the
+        // dashboard listens and refreshes itself (debounced).
+        this.eventSource.addEventListener('memory_stored', () => {
+            this._scheduleDashboardRefresh();
+        });
+
+        this.eventSource.addEventListener('memory_deleted', () => {
+            this._scheduleDashboardRefresh();
+        });
+
+        this.eventSource.addEventListener('consolidation_completed', () => {
+            this._scheduleDashboardRefresh();
         });
 
         this.eventSource.onerror = (error) => {
@@ -929,7 +961,7 @@ class MemoryDashboard {
             const memoryCountElement = document.getElementById('totalMemories');
             if (memoryCountElement && data.synced_count) {
                 // Refresh the detailed health to get accurate count
-                this.loadDashboardData().catch(err => console.error('Error refreshing dashboard:', err));
+                this._scheduleDashboardRefresh();
             }
         }
 
@@ -960,7 +992,7 @@ class MemoryDashboard {
 
         // Refresh dashboard data to show updated counts
         if (this.currentView === 'dashboard') {
-            this.loadDashboardData().catch(err => console.error('Error refreshing dashboard:', err));
+            this._scheduleDashboardRefresh();
         }
 
         // Also refresh sync status for hybrid mode
@@ -969,6 +1001,57 @@ class MemoryDashboard {
         // Show completion notification
         const message = data.message || `Sync completed: ${data.synced_count} memories synced`;
         this.showToast(message, 'success');
+    }
+
+    /** Refresh dashboard and peer status once for a burst of cycle events. */
+    handleSyncDeltaCompleted(data) {
+        console.log('Delta-sync completed:', data);
+        this._scheduleDashboardRefresh();
+    }
+
+    /**
+     * Refresh dashboard widgets after accumulating real-time events (issue #1557).
+     *
+     * Multiple SSE events arriving in quick succession (e.g. one delta-sync
+     * cycle touching several peers, or a store/delete burst) collapse into a
+     * single refresh within ~1s of the first event, instead of one refetch each.
+     */
+    _scheduleDashboardRefresh(delayMs = 1000) {
+        if (this._dashboardRefreshTimer) {
+            return; // a refresh is already pending; it will pick up this event too
+        }
+        this._dashboardRefreshTimer = setTimeout(async () => {
+            this._dashboardRefreshTimer = null;
+            if (document.hidden) return;
+            if (this._dashboardRefreshInFlight) {
+                this._scheduleDashboardRefresh(delayMs);
+                return;
+            }
+            this._dashboardRefreshInFlight = true;
+            try {
+                await Promise.all([
+                    this.checkSyncStatus(),
+                    this.currentView === 'dashboard' ? this.loadDashboardData({ silent: true }) : Promise.resolve()
+                ]);
+            } catch (error) {
+                console.error('Error refreshing live data:', error);
+            } finally {
+                this._dashboardRefreshInFlight = false;
+            }
+        }, delayMs);
+    }
+
+    /**
+     * Stop any pending dashboard refresh / countdown tickers (called on destroy).
+     */
+    stopLiveRefresh() {
+        if (this._dashboardRefreshTimer) {
+            clearTimeout(this._dashboardRefreshTimer);
+            this._dashboardRefreshTimer = null;
+        }
+        clearInterval(this._dashboardRefreshInterval);
+        this._dashboardRefreshInterval = null;
+        this._stopSyncCountdown();
     }
 
     /**
@@ -1035,8 +1118,8 @@ class MemoryDashboard {
     /**
      * Load initial dashboard data
      */
-    async loadDashboardData() {
-        this.setLoading(true);
+    async loadDashboardData({ silent = false } = {}) {
+        if (!silent) this.setLoading(true);
 
         try {
             // Load recent memories for dashboard display
@@ -1055,9 +1138,9 @@ class MemoryDashboard {
 
         } catch (error) {
             console.error('Error loading dashboard data:', error);
-            this.showToast(this.t('toast.loadDashboardFail', 'Failed to load dashboard data'), 'error');
+            if (!silent) this.showToast(this.t('toast.loadDashboardFail', 'Failed to load dashboard data'), 'error');
         } finally {
-            this.setLoading(false);
+            if (!silent) this.setLoading(false);
         }
     }
 
@@ -1692,6 +1775,7 @@ class MemoryDashboard {
 
         try {
             const syncStatus = await this.apiCall('/sync/status');
+            this.updateDeltaSyncStatus(syncStatus.delta_sync);
 
             // Get compact sync control element
             const syncControl = document.getElementById('syncControl');
@@ -1775,7 +1859,13 @@ class MemoryDashboard {
             }
 
         } catch (error) {
+            this._stopSyncCountdown();
             console.error('Error checking sync status:', error);
+            const deltaControl = document.getElementById('deltaSyncControl');
+            if (deltaControl && deltaControl.style.display !== 'none') {
+                deltaControl.className = 'sync-control-compact delta-sync-control error';
+                document.getElementById('deltaSyncStatus').textContent = 'Status unavailable';
+            }
             // Hide sync control on error (likely not hybrid mode)
             const syncControl = document.getElementById('syncControl');
             if (syncControl) syncControl.style.display = 'none';
@@ -1785,11 +1875,155 @@ class MemoryDashboard {
     /**
      * Format time delta in human readable format
      */
+    updateDeltaSyncStatus(delta) {
+        this._stopSyncCountdown();
+        const panel = document.getElementById('deltaSyncControl');
+        if (!panel) return;
+        panel.style.display = delta?.configured ? 'block' : 'none';
+        if (!delta?.configured) return;
+        const state = delta.status || 'disabled';
+        panel.className = `sync-control-compact delta-sync-control ${state === 'disabled' ? 'paused' : state}`;
+        document.getElementById('deltaSyncStatus').textContent = state.charAt(0).toUpperCase() + state.slice(1);
+        const next = delta.next_run_at ? new Date(delta.next_run_at) : null;
+        document.getElementById('deltaSyncSchedule').textContent = delta.enabled
+            ? `Every ${this.formatTimeDelta(delta.interval_seconds).replace(/ ago$/, '')} · Next: ${next ? next.toLocaleTimeString() : 'not scheduled'}`
+            : `Automatic sync disabled · Schedule: ${delta.schedule}`;
+        if (delta.enabled && delta.next_run_at) {
+            const cadence = this.formatTimeDelta(delta.interval_seconds).replace(/ ago$/, '');
+            this._startSyncCountdown(delta.next_run_at, `Every ${cadence} · `);
+        }
+        const container = document.getElementById('deltaSyncPeers');
+        // Keep the disclosure open across live refreshes, including keyboard focus.
+        const openPeers = new Set([...container.querySelectorAll('details[open]')]
+            .map(details => details.dataset.peerId));
+        const focusedPeer = document.activeElement?.closest('details')?.dataset.peerId;
+        container.replaceChildren();
+        const text = (parent, tag, value, className) => {
+            const el = document.createElement(tag);
+            if (className) el.className = className;
+            el.textContent = value;
+            parent.appendChild(el);
+            return el;
+        };
+        const peers = delta.peers || [];
+        if (!peers.length) text(container, 'p', 'No peers configured', 'delta-sync-meta');
+        for (const peer of peers) {
+            const row = document.createElement('div');
+            row.className = 'delta-sync-peer';
+            const heading = document.createElement('div');
+            heading.className = 'delta-sync-peer-heading';
+            row.appendChild(heading);
+            text(heading, 'span', peer.peer_id, 'delta-sync-destination');
+            if (peers.length > 1) {
+                text(heading, 'span', peer.health || peer.status, 'delta-sync-meta');
+            }
+            text(row, 'p', peer.url || 'URL not configured', 'delta-sync-url');
+
+            const metrics = document.createElement('dl');
+            metrics.className = 'delta-sync-metrics';
+            row.appendChild(metrics);
+            const metric = (label, value, note) => {
+                const group = document.createElement('div');
+                text(group, 'dt', label);
+                const result = text(group, 'dd', value);
+                text(result, 'span', note, 'delta-sync-meta');
+                metrics.appendChild(group);
+            };
+            metric('Pull', peer.pull ? String(peer.pull.received ?? 'Unknown') : '—',
+                peer.pull ? `received · ${peer.pull.applied} applied` : 'No cycle yet');
+            metric('Push', peer.push ? String(peer.push.pushed) : '—',
+                peer.push ? 'sent to peer' : 'No cycle yet');
+
+            const completed = peer.last_cycle_at ? new Date(peer.last_cycle_at) : null;
+            const lastCycle = text(row, 'p', completed
+                ? `Last cycle ${this.formatTimeDelta(Math.max(0, Math.floor((Date.now() - completed.getTime()) / 1000)))}`
+                : peer.cycle_status === 'syncing' ? 'Syncing…' : 'Waiting for first cycle', 'delta-sync-meta');
+            if (completed) lastCycle.title = completed.toLocaleString();
+            if (peer.last_error || ['error', 'incompatible', 'unavailable'].includes(peer.status)) {
+                text(row, 'p', peer.last_error || peer.message, 'delta-sync-error');
+            }
+
+            const details = document.createElement('details');
+            details.className = 'delta-sync-details';
+            details.dataset.peerId = peer.peer_id;
+            details.open = openPeers.has(peer.peer_id);
+            const summary = text(details, 'summary', 'Sync details');
+            const diagnostics = document.createElement('dl');
+            for (const [label, value] of [
+                ['Pull cursor', peer.pull?.cursor ?? 'Not available'],
+                ['Push cursor', peer.push?.cursor ?? 'Not available'],
+                ['Backlog', peer.backlog ?? 'Unknown']
+            ]) {
+                const group = document.createElement('div');
+                text(group, 'dt', label);
+                text(group, 'dd', String(value));
+                diagnostics.appendChild(group);
+            }
+            details.appendChild(diagnostics);
+            row.appendChild(details);
+            container.appendChild(row);
+            if (focusedPeer === peer.peer_id) summary.focus({ preventScroll: true });
+        }
+    }
+
     formatTimeDelta(seconds) {
         if (seconds < 60) return `${seconds}s ago`;
         if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
         if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
         return `${Math.floor(seconds / 86400)}d ago`;
+    }
+
+    /**
+     * Format a time remaining as "Next sync in Xh XXm / Xm XXs / Xs" (issue #1557).
+     */
+    _formatSyncIn(remainingMs) {
+        const total = Math.max(0, Math.round(remainingMs / 1000));
+        const h = Math.floor(total / 3600);
+        const m = Math.floor((total % 3600) / 60);
+        const s = total % 60;
+        if (h > 0) return `Next sync in ${h}h ${String(m).padStart(2, '0')}m`;
+        if (m > 0) return `Next sync in ${m}m ${String(s).padStart(2, '0')}s`;
+        return `Next sync in ${s}s`;
+    }
+
+    /**
+     * Show a live "next sync" countdown anchored to the server-provided
+     * next_run_at of the scheduled delta-sync job (issue #1557).
+     *
+     * Anchoring on an absolute timestamp keeps the countdown accurate across
+     * throttled intervals/interrupted tabs; the 10s checkSyncStatus poll
+     * re-arms it with any schedule change (misfires, manual cycles).
+     */
+    _startSyncCountdown(nextRunAt, prefix = '') {
+        const nextAt = new Date(nextRunAt).getTime();
+        const progressEl = document.getElementById('deltaSyncSchedule');
+        this._stopSyncCountdown();
+        if (!progressEl) return;
+        if (!nextRunAt || Number.isNaN(nextAt)) {
+            progressEl.textContent = 'Schedule paused';
+            return;
+        }
+
+        const render = () => {
+            const remainingMs = nextAt - Date.now();
+            if (remainingMs <= 0) {
+                // A due timestamp does not prove that a cycle is running.
+                // The next status response supplies the next scheduled run.
+                progressEl.textContent = `${prefix}Scheduled sync due`;
+                this._stopSyncCountdown();
+                return;
+            }
+            progressEl.textContent = prefix + this._formatSyncIn(remainingMs);
+        };
+        this._syncCountdownInterval = setInterval(render, 1000);
+        render();
+    }
+
+    _stopSyncCountdown() {
+        if (this._syncCountdownInterval) {
+            clearInterval(this._syncCountdownInterval);
+            this._syncCountdownInterval = null;
+        }
     }
 
     /**
@@ -2029,6 +2263,13 @@ class MemoryDashboard {
         if (this._syncMonitorInterval) {
             clearInterval(this._syncMonitorInterval);
         }
+        // Recover missed SSE events and writes from clients without notifications.
+        clearInterval(this._dashboardRefreshInterval);
+        this._dashboardRefreshInterval = setInterval(() => {
+            if (this.currentView === 'dashboard' && !document.hidden) {
+                this._scheduleDashboardRefresh(1000);
+            }
+        }, 30000);
         // Check sync status every 10 seconds
         this._syncMonitorInterval = setInterval(() => {
             this.checkSyncStatus();
@@ -4630,6 +4871,11 @@ class MemoryDashboard {
             this.loadCredentials();
         }
 
+        // Load the configured quality settings when switching to quality tab
+        if (tabName === 'quality') {
+            this.loadQualitySettings();
+        }
+
         // Load server status + auto-check for updates when switching to server tab
         // (runs once per modal open to avoid repeated git fetches)
         if (tabName === 'server') {
@@ -4734,6 +4980,11 @@ class MemoryDashboard {
         if (saveBtn) {
             saveBtn.addEventListener('click', () => this.saveCloudflareCredentials());
         }
+
+        // Quality tab Save & Restart button
+        document.getElementById('qualitySaveBtn')?.addEventListener('click', () => {
+            this.saveQualitySettings();
+        });
     }
 
     /**
@@ -4823,6 +5074,97 @@ class MemoryDashboard {
 
     _showCredResult(type, message) {
         const el = document.getElementById('credTestResult');
+        if (!el) return;
+        el.className = `cred-test-result cred-test-${type}`;
+        el.textContent = message;
+        el.style.display = 'block';
+    }
+
+    /**
+     * Load the configured quality provider and boost flag into the Quality tab.
+     * Values come from GET /api/config/env, so the tab shows what the server runs with.
+     */
+    async loadQualitySettings() {
+        const resultEl = document.getElementById('qualitySaveResult');
+        if (resultEl) resultEl.style.display = 'none';
+
+        // Nothing can be edited or saved until the configured values are in,
+        // otherwise Save would write the HTML defaults over them
+        const providerSelect = document.getElementById('quality-provider');
+        const boostCheckbox = document.getElementById('quality-boost-enabled');
+        const saveBtn = document.getElementById('qualitySaveBtn');
+        [providerSelect, boostCheckbox, saveBtn].forEach(el => { if (el) el.disabled = true; });
+
+        try {
+            const config = await this.apiCall('/config/env');
+            const params = Object.fromEntries(
+                config.categories.flatMap(category => category.parameters).map(param => [param.key, param])
+            );
+            const provider = params.MCP_QUALITY_AI_PROVIDER;
+            const boost = params.MCP_QUALITY_BOOST_ENABLED;
+
+            const providerValue = (provider?.value || 'local').toLowerCase();
+            const option = Array.from(providerSelect?.options || []).find(opt => opt.value === providerValue);
+            if (providerSelect) {
+                // A provider the dropdown does not offer (e.g. openai-compatible) is left as it is on save
+                providerSelect.disabled = !option;
+                providerSelect.value = providerValue;
+            }
+
+            // Same spellings as safe_get_bool_env(); unset means off, the server default
+            if (boostCheckbox) {
+                boostCheckbox.checked = ['true', '1', 'yes', 'on', 'enabled']
+                    .includes((boost?.value || '').toLowerCase().trim());
+                boostCheckbox.disabled = false;
+            }
+            if (saveBtn) saveBtn.disabled = false;
+
+            const info = document.getElementById('current-provider-info');
+            if (info) info.textContent = option ? option.textContent : providerValue;
+        } catch (e) {
+            console.warn('Failed to load quality settings:', e);
+            this._showQualityResult('error', this.t(
+                'settings.quality.loadFailed',
+                '✗ Could not load the current settings: {error}. Reopen this tab to retry.',
+                { error: e.message }
+            ));
+        }
+    }
+
+    /**
+     * POST /api/config/quality — persist the Quality tab and restart.
+     */
+    async saveQualitySettings() {
+        const saveBtn = document.getElementById('qualitySaveBtn');
+        const providerSelect = document.getElementById('quality-provider');
+        const settings = {
+            MCP_QUALITY_BOOST_ENABLED: document.getElementById('quality-boost-enabled')?.checked ? 'true' : 'false',
+        };
+        if (providerSelect && !providerSelect.disabled) {
+            settings.MCP_QUALITY_AI_PROVIDER = providerSelect.value || 'local';
+        }
+
+        saveBtn.disabled = true;
+        saveBtn.textContent = this.t('settings.quality.saving', 'Saving…');
+
+        try {
+            await this.apiCall('/config/quality', 'POST', { settings });
+            this.closeModal(document.getElementById('settingsModal'));
+            this.showRestartOverlay();
+        } catch (e) {
+            this._showQualityResult('error', this.t(
+                'settings.quality.saveFailed',
+                '✗ Save failed: {error}',
+                { error: e.message }
+            ));
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = this.t('settings.quality.save', 'Save & Restart');
+        }
+    }
+
+    _showQualityResult(type, message) {
+        const el = document.getElementById('qualitySaveResult');
         if (!el) return;
         el.className = `cred-test-result cred-test-${type}`;
         el.textContent = message;
@@ -7580,6 +7922,7 @@ This action cannot be undone. Are you sure?`);
             clearInterval(this._syncMonitorInterval);
             this._syncMonitorInterval = null;
         }
+        this.stopLiveRefresh();
     }
 }
 

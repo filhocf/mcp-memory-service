@@ -18,7 +18,7 @@ from pydantic import BaseModel, ConfigDict
 from ..._version import __version__
 from ...compat import _sanitize_log_value
 from ...utils.tool_rate_limit import resolve_caller_identity
-from ..oauth.middleware import require_read_access, AuthenticationResult
+from ..oauth.middleware import require_read_access, get_current_user, AuthenticationResult
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +46,36 @@ async def _requires_write(server, tool_name: Optional[str], arguments: Optional[
     the SSE and Streamable HTTP transports use too (GHSA-9x7v-2vjj-xghg).
     """
     return await server.tool_requires_write(tool_name, arguments)
+
+
+async def _scope_refusal(server, user, request_id, tool_name: str, arguments: dict) -> Optional[JSONResponse]:
+    """Return the 403 for a tool call the caller's scope does not cover, else None.
+
+    Mutating tools require 'write', read-only tools require 'read'
+    (GHSA-2r68-g678-7qr3). A global 'read'/'write' grants every store.
+    'read:<store>'/'write:<store>' grants exactly that store, and only where
+    MemoryServer.store_grant_target says the call stays inside it (the same rule
+    the SDK transports apply); anything else, including a call with no `store`,
+    requires the global operation scope.
+    """
+    operation = "write" if await _requires_write(server, tool_name, arguments) else "read"
+    target = await server.store_grant_target(tool_name, arguments)
+    if user.has_store_scope(operation, target):
+        return None
+    required = (
+        f"'{operation}' (global)" if target is None
+        else f"'{operation}' or '{operation}:{target}'"
+    )
+    response = MCPResponse(
+        id=request_id,
+        error={
+            "code": -32003,
+            "message": f"Insufficient scope: tool requires {required} access",
+            "data": {"required_scope": operation, "tool": tool_name, "store": arguments.get("store")},
+        },
+    )
+    return JSONResponse(content=response.model_dump(exclude_none=True), status_code=403)
+
 
 router = APIRouter(prefix="/mcp", tags=["mcp"])
 
@@ -157,9 +187,14 @@ def _wrap_tool_result(result, is_error: bool = False) -> Dict[str, Any]:
 async def mcp_endpoint(
     request: MCPRequest,
     http_request: Request,
-    user: AuthenticationResult = Depends(require_read_access)
+    user: AuthenticationResult = Depends(get_current_user)
 ):
-    """Main MCP protocol endpoint. Delegates to the shared MemoryServer."""
+    """Main MCP protocol endpoint. Delegates to the shared MemoryServer.
+
+    Scope is enforced per tool call (see tools/call below), not at the route,
+    so a store-restricted token (e.g. ``read:projectA``) can still initialize
+    and list tools but may only invoke tools within its stores.
+    """
     try:
         # JSON-RPC 2.0: a message without `id` is a Notification; the server
         # MUST NOT reply. MCP Streamable HTTP requires HTTP 202 Accepted with
@@ -230,21 +265,9 @@ async def mcp_endpoint(
                 )
                 return JSONResponse(content=response.model_dump(exclude_none=True))
 
-            # Mutating tools require 'write' scope even through MCP. Read-only
-            # tools remain accessible with 'read' scope (GHSA-2r68-g678-7qr3).
-            if await _requires_write(server, tool_name, arguments) and not user.has_scope("write"):
-                response = MCPResponse(
-                    id=request.id,
-                    error={
-                        "code": -32003,
-                        "message": "Insufficient scope: tool requires 'write' access",
-                        "data": {"required_scope": "write", "tool": tool_name},
-                    },
-                )
-                return JSONResponse(
-                    content=response.model_dump(exclude_none=True),
-                    status_code=403,
-                )
+            refusal = await _scope_refusal(server, user, request.id, tool_name, arguments)
+            if refusal is not None:
+                return refusal
 
             # Resolve the rate-limit identity from the transport BEFORE the
             # arguments rewrite below: the shim copies X-Agent-ID into

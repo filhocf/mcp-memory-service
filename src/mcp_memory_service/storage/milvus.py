@@ -342,8 +342,8 @@ class MilvusMemoryStorage(MemoryStorage):
         # Lower-cased mirror of ``content``. Populated on every insert/upsert
         # so that ``get_by_exact_content`` can push a case-insensitive
         # substring filter down to Milvus (its ``like`` operator is
-        # case-sensitive and has no escape syntax, so we match against the
-        # pre-lowered mirror instead of scanning rows in Python).
+        # case-sensitive, so we match against the pre-lowered mirror instead
+        # of scanning rows in Python).
         schema.add_field(
             field_name="content_lower",
             datatype=DataType.VARCHAR,
@@ -1377,7 +1377,10 @@ class MilvusMemoryStorage(MemoryStorage):
 
     # -- Store ---------------------------------------------------------------
 
-    async def store(self, memory: Memory, skip_semantic_dedup: bool = False, store: str = "default") -> Tuple[bool, str]:
+    async def store(self, memory: Memory, skip_semantic_dedup: bool = False, store: str = "default",
+                    recreate: Optional[bool] = None) -> Tuple[bool, str]:
+        # `recreate` accepted for BaseStorage parity (#1560) and intentionally unused:
+        # Milvus keeps no tombstones / sync event log, so there is no delete to refuse.
         # `store` accepted for BaseStorage parity (multi-store, issue #133).
         # The Milvus backend is single-collection and does not partition by
         # store yet, so the value is intentionally not used (matches
@@ -1474,8 +1477,9 @@ class MilvusMemoryStorage(MemoryStorage):
             results[idx] = outcome
 
     async def store_batch(
-        self, memories: List[Memory], store: str = "default"
+        self, memories: List[Memory], store: str = "default", recreate: Optional[bool] = None
     ) -> List[Tuple[bool, str]]:
+        # `recreate` accepted for BaseStorage parity (#1560), unused — see store().
         # `store` accepted for BaseStorage parity (multi-store, issue #133).
         # Single-collection backend — see store() for the full rationale.
         if not memories:
@@ -1849,7 +1853,11 @@ class MilvusMemoryStorage(MemoryStorage):
         tag_filter, matched = self._tag_like_clauses([tag], joiner="or")
         if not matched:
             return 0, f"No memories found with tag '{tag}'"
-        return await self._delete_matching(tag_filter, f"Successfully deleted {{count}} memories with tag '{tag}'")
+        return await self._delete_matching(
+            tag_filter,
+            f"Successfully deleted {{count}} memories with tag '{tag}'",
+            any_of_tags=[tag],
+        )
 
     async def delete_by_tags(self, tags: List[str], store: Optional[str] = None) -> Tuple[int, str, List[str]]:
         if not self._ensure_initialized():
@@ -1861,7 +1869,7 @@ class MilvusMemoryStorage(MemoryStorage):
         if not matched:
             return 0, f"No memories found matching any of the {len(tags)} tags", []
 
-        hashes = await self._collect_hashes(tag_filter)
+        hashes = await self._collect_hashes(tag_filter, any_of_tags=tags)
         if not hashes:
             return 0, f"No memories found matching any of the {len(tags)} tags", []
 
@@ -1925,6 +1933,7 @@ class MilvusMemoryStorage(MemoryStorage):
         count, _ = await self._delete_matching_parts(
             filter_expr,
             f"Deleted {{count}} memories from {start_date} to {end_date}{suffix}",
+            any_of_tags=[tag] if tag else None,
         )
         return count, f"Deleted {count} memories from {start_date} to {end_date}{suffix}"
 
@@ -1952,6 +1961,7 @@ class MilvusMemoryStorage(MemoryStorage):
         count, _ = await self._delete_matching_parts(
             filter_expr,
             f"Deleted {{count}} memories before {before_date}{suffix}",
+            any_of_tags=[tag] if tag else None,
         )
         return count, f"Deleted {count} memories before {before_date}{suffix}"
 
@@ -1960,9 +1970,11 @@ class MilvusMemoryStorage(MemoryStorage):
         filter_expr: str,
         success_template: str,
         require_live: bool = False,
+        any_of_tags: Optional[List[str]] = None,
     ) -> Tuple[int, str]:
         count, hashes = await self._delete_matching_parts(
             filter_expr, success_template, require_live=require_live,
+            any_of_tags=any_of_tags,
         )
         if count > 0:
             return count, success_template.format(count=count)
@@ -1973,8 +1985,11 @@ class MilvusMemoryStorage(MemoryStorage):
         filter_expr: str,
         _success_template: str,
         require_live: bool = False,
+        any_of_tags: Optional[List[str]] = None,
     ) -> Tuple[int, List[str]]:
-        hashes = await self._collect_hashes(filter_expr, require_live=require_live)
+        hashes = await self._collect_hashes(
+            filter_expr, require_live=require_live, any_of_tags=any_of_tags,
+        )
         if not hashes:
             return 0, []
         for start in range(0, len(hashes), self._GET_BY_ID_CHUNK):
@@ -1989,13 +2004,31 @@ class MilvusMemoryStorage(MemoryStorage):
         self,
         filter_expr: str,
         require_live: bool = False,
+        any_of_tags: Optional[List[str]] = None,
     ) -> List[str]:
-        output_fields = ["id", "metadata"] if require_live else ["id"]
+        """Return the ids of rows matching ``filter_expr``.
+
+        ``any_of_tags`` re-checks, in Python, that each row really carries one
+        of those tags before its id is returned for deletion. The tag filter is
+        a ``like`` pattern, and Milvus has not handled escaped wildcards the
+        same way in every server version (milvus-io/milvus#43864). On a read an
+        over-match shows one extra row; on a delete it removes one, so the
+        delete paths do not rely on the server alone (#1684).
+        """
+        output_fields = ["id"]
+        if require_live:
+            output_fields.append("metadata")
+        wanted = None
+        if any_of_tags is not None:
+            wanted = {t.strip() for t in any_of_tags if isinstance(t, str) and t.strip()}
+            output_fields.append("tags")
         rows = await self._drain_rows(filter_expr, output_fields)
         return [
             row["id"]
             for row in rows
-            if row.get("id") and (not require_live or self._row_is_live(row))
+            if row.get("id")
+            and (not require_live or self._row_is_live(row))
+            and (wanted is None or not wanted.isdisjoint(_string_to_tags(row.get("tags"))))
         ]
 
     # -- Reads ---------------------------------------------------------------
@@ -2729,13 +2762,22 @@ class MilvusMemoryStorage(MemoryStorage):
         include_superseded: bool = False,
         ranking_weights: Optional[Dict[str, float]] = None,
         store: str = "default",  # interface parity (issue #133); single-collection, not partitioned
+        agent_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Unified memory search with Milvus-native filtering.
 
         Pushes time and tag filters into Milvus filter expressions for
         server-side filtering instead of Python-side post-filtering.
         Supports all modes: semantic, exact, hybrid, ranked.
+
+        ``agent_id`` is accepted because the MCP search handler always passes
+        it (issue #1650). Filtering by agent is not implemented for Milvus, so
+        a non-None value returns an error result, like the other failures here.
         """
+        if agent_id is not None:
+            return {"memories": [], "total": 0, "query": query, "mode": mode,
+                    "error": "agent_id filtering is not implemented for the Milvus backend "
+                             "(sqlite-vec only in this phase). See PR #1297."}
         if not self._ensure_initialized():
             return {"memories": [], "total": 0, "query": query, "mode": mode,
                     "error": "Milvus storage not initialized"}
@@ -2801,7 +2843,9 @@ class MilvusMemoryStorage(MemoryStorage):
 
             if self._has_content_lower and combined_filter:
                 # Push all filters (content + time + tags) to Milvus in one query
-                needle = escape_expr_value(query.lower())
+                # Escape like wildcards first, as get_by_exact_content does, so
+                # "_" and "%" in the query match literally (#1684).
+                needle = escape_expr_value(_escape_like(query.lower()))
                 content_filter = f'content_lower like "%{needle}%"'
                 final_filter = (
                     f"({combined_filter}) and ({content_filter})"

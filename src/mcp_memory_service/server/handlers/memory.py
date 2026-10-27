@@ -244,6 +244,15 @@ async def handle_store_memory(server, arguments: dict) -> List[types.TextContent
         conversation_id = arguments.get("conversation_id")
         agent_id = arguments.get("agent_id")
         store = arguments.get("store", "default")
+        restore_deleted = arguments.get("restore_deleted", False)
+        if not isinstance(restore_deleted, bool):
+            # `bool("false")` is True. The /mcp route hands tool arguments to this
+            # handler without validating them against the tool schema, so a
+            # restore must be asked for with a real boolean, never a string (#1560).
+            raise ValueError(
+                "restore_deleted must be a boolean (true/false), "
+                f"got {type(restore_deleted).__name__}"
+            )
 
         # Call shared MemoryService business logic
         result = await server.memory_service.store_memory(
@@ -255,11 +264,18 @@ async def handle_store_memory(server, arguments: dict) -> List[types.TextContent
             conversation_id=conversation_id,
             agent_id=agent_id,
             store=store,
+            restore_deleted=restore_deleted,
         )
 
         # Convert MemoryService result to MCP response format
         if not result.get("success"):
             error_msg = result.get("error", "Unknown error")
+            if result.get("refused_recreate"):
+                # #1560: a refused re-create is the answer the caller chose by not
+                # passing restore_deleted — plain text, not isError. Unlike the
+                # failures #1601 covers, nothing was lost here: the tombstone is
+                # intact and the message says how to proceed.
+                return [types.TextContent(type="text", text=error_msg)]
             # A refused write is a failure. Return-as-text made the MCP envelope
             # report isError=False while nothing was stored, so automation counted
             # it as success (#1601). Raise: the SDK answers isError=True.
@@ -1770,6 +1786,31 @@ async def handle_update_memory_metadata(server, arguments: dict) -> List[types.T
         # Initialize storage lazily when needed
         storage = await server._ensure_storage_initialized()
 
+        # Per-store confinement for this hash-addressed update. The transport
+        # gate authorizes the *claimed* store, but the update resolves by
+        # content_hash and would otherwise ignore it — so a token scoped to one
+        # store could update another store's memory. When a store is claimed,
+        # resolve the hash within it first: on backends whose get_by_hash honors
+        # ``store`` a hash from another store comes back missing -> not found;
+        # backends that ignore ``store`` can't prove confinement, so a
+        # store-scoped update fails closed there (real storage-layer enforcement
+        # is the follow-up issue, after which this pre-check can be removed).
+        claimed_store = arguments.get("store")
+        if claimed_store is not None and claimed_store != "all":
+            # Raise rather than return: a refused update must surface as a tool
+            # error (isError=true), so a client checking the MCP success flag
+            # cannot mistake it for a completed write. The /mcp shim and the SDK
+            # both map a raised exception to isError; the broad except below
+            # re-raises PermissionError so it is not flattened into a
+            # success-looking TextContent.
+            if not getattr(storage, "get_by_hash_is_store_scoped", False):
+                raise PermissionError(
+                    "store-scoped updates are not supported on this storage backend; "
+                    "omit 'store' or use a globally-scoped credential"
+                )
+            if await storage.get_by_hash(content_hash, store=claimed_store) is None:
+                raise PermissionError("memory not found in the requested store")
+
         versioned = arguments.get("versioned", False)
 
         if versioned:
@@ -1864,6 +1905,10 @@ async def handle_update_memory_metadata(server, arguments: dict) -> List[types.T
             logger.warning("Failed to update metadata for memory %s: %s", _sanitize_log_value(content_hash), _sanitize_log_value(message))
             return [types.TextContent(type="text", text=f"Failed to update memory metadata: {message}")]
 
+    except PermissionError:
+        # A store-scope refusal must propagate as a tool error (isError), not be
+        # flattened into a success-looking TextContent by the handler below.
+        raise
     except Exception as e:
         error_msg = f"Error updating memory metadata: {str(e)}"
         logger.error("%s\n%s", _sanitize_log_value(error_msg), traceback.format_exc())
@@ -2026,9 +2071,9 @@ async def handle_recall_memory(server, arguments: dict) -> List[types.TextConten
         # Parse natural language time expressions
         cleaned_query, (start_timestamp, end_timestamp) = extract_time_expression(query)
 
-        # Log the parsed timestamps and clean query
-        logger.info("Original query: %s", _sanitize_log_value(query))
-        logger.info("Cleaned query for semantic search: %s", _sanitize_log_value(cleaned_query))
+        # Log the parsed timestamps and clean query (query text at DEBUG: it is the user's prompt)
+        logger.debug("Original query: %s", _sanitize_log_value(query))
+        logger.debug("Cleaned query for semantic search: %s", _sanitize_log_value(cleaned_query))
         logger.info("Parsed time range: %s to %s", start_timestamp, end_timestamp)
 
         # Log more detailed timestamp information for debugging
