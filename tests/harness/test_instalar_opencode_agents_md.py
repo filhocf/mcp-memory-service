@@ -23,7 +23,9 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "harness"))
 
-PAYLOAD = REPO_ROOT / "scripts" / "harness" / "payload" / "opencode" / "AGENTS.md"
+PAYLOAD = (
+    REPO_ROOT / "src" / "mcp_memory_service" / "installers" / "payload" / "opencode" / "AGENTS.md"
+)
 START = "<!-- mms:start -->"
 END = "<!-- mms:end -->"
 PORT = "39123"

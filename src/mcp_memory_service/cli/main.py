@@ -619,6 +619,61 @@ def memory_server_main():
         sys.argv = original_argv
 
 
+# ─── Install command ──────────────────────────────────────────────────────────
+
+@cli.group("install")
+@click.pass_context
+def install(ctx):
+    """Install the memory service into an agent harness (plan, apply, verify)."""
+
+
+@install.command("list")
+def install_list():
+    """List supported harnesses, their default roots, and deposited surfaces."""
+    from mcp_memory_service.installers.harnesses import harnesses
+
+    for name, harness in harnesses().items():
+        target = harness.mcp_file or (
+            harness.mcp_candidates[-1] if harness.mcp_candidates else None
+        ) or harness.uses_cli
+        click.echo(f"{name:8s} root={harness.root_default}  mcp={target}")
+        for surface, rel in (
+            ("skill", harness.skill),
+            ("steering", harness.steering),
+            ("hooks", harness.hooks),
+            ("agents", harness.agents),
+        ):
+            if rel is not None:
+                click.echo(f"         {surface:8s} {rel}")
+
+
+@install.command("opencode")
+@click.option("--root", default=None, help="harness root (ad-hoc sandbox)")
+@click.option("--port", type=int, default=8000, show_default=True, help="memory service port")
+@click.option("--agent-id", default=None, help="identity stamped on MCP and plugin writes")
+@click.option("--dry-run", is_flag=True, help="print the plan without writing anything")
+@click.option("--uninstall", is_flag=True, help="remove the deposited surfaces (manifest-driven)")
+@click.option("--skip-health", is_flag=True, help="skip the service /health pre-check")
+@click.pass_context
+def install_opencode(ctx, root, port, agent_id, dry_run, uninstall, skip_health):
+    """Install the memory service into OpenCode: MCP config, plugin, AGENTS.md block, skill."""
+    from mcp_memory_service.installers.core import main as installer_main
+
+    argv = ["--harness", "opencode", "--port", str(port)]
+    if root is not None:
+        argv += ["--root", root]
+    if agent_id is not None:
+        argv += ["--agent-id", agent_id]
+    if dry_run:
+        argv.append("--dry-run")
+    if uninstall:
+        argv.append("--uninstall")
+    if skip_health:
+        argv.append("--skip-health")
+
+    ctx.exit(installer_main(argv) or 0)
+
+
 def main():
     """Main entry point for the CLI."""
     try:

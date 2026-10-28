@@ -18,7 +18,7 @@ sys.path.insert(0, str(REPO_ROOT / "scripts" / "harness"))
 
 
 def _jsonc():
-    return importlib.import_module("jsonc")
+    return importlib.import_module("mcp_memory_service.installers.jsonc")
 
 
 ENTRY = {"type": "remote", "url": "http://127.0.0.1:39123/mcp"}

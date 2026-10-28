@@ -22,7 +22,9 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "harness"))
 
-PAYLOAD_SKILL = REPO_ROOT / "scripts" / "harness" / "payload" / "skills" / "mms-uso" / "SKILL.md"
+PAYLOAD_SKILL = (
+    REPO_ROOT / "src" / "mcp_memory_service" / "installers" / "payload" / "skills" / "mms-uso" / "SKILL.md"
+)
 
 # R1: no harness name survives in neutral text.
 FORBIDDEN_NAMES = ("kiro", "hermes", "opencode")
@@ -226,8 +228,9 @@ def test_installer_deposits_the_skill_for_each_harness(tmp_path, monkeypatch, ha
     root plus --skip-health keep it off the network and out of $HOME.
     """
     instalar = _mod()
-    if instalar.harnesses()[harness_name].uses_cli:
-        monkeypatch.setattr(instalar, "cli_mcp_present", lambda *args, **kwargs: True)
+    # Patch where `core.main` resolves the name: the script shim re-exports
+    # copies, so patching the shim would silently miss `main`'s lookup.
+    monkeypatch.setattr(instalar.core, "cli_mcp_present", lambda *args, **kwargs: True)
     root = tmp_path / harness_name
 
     rc = instalar.main(["--harness", harness_name, "--root", str(root), "--skip-health"])
