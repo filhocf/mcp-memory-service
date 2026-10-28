@@ -11,6 +11,7 @@
 |---|---|---|---|
 | `~/git/mms/mms` | `main` | **LINHA VIVA** — o serviço systemd roda daqui (venv editable ONNX) | ativo, serviço |
 | `~/git/mms/mms-dev` | — | removida 21/out (trabalho de tracker já entregue na main) | suprimida |
+| `~/git/mms/opencode-first-class` | `feat/opencode-installer` | bancada do embarque OpenCode 1ª classe: instalador no pacote, CLI `memory install opencode`, specs F001–F010, E2E clean-room | ativa, 12 commits (28/out) |
 
 Rastreio: `git -C ~/git/mms/mms worktree list --porcelain` é a fonte de verdade; esta tabela
 explica **para quê** cada um existe, o que o comando não diz.
