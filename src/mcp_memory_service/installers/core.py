@@ -1430,11 +1430,24 @@ def main(argv: list[str] | None = None) -> int:
             import urllib.error
             import urllib.request
 
-            request = urllib.request.Request(f"http://localhost:{args.port}/health")
             key = api_key()
-            if key:
-                request.add_header("Authorization", f"Bearer {key}")
-            urllib.request.urlopen(request, timeout=5)
+
+            def _healthy(path: str) -> bool:
+                request = urllib.request.Request(f"http://localhost:{args.port}{path}")
+                if key:
+                    request.add_header("Authorization", f"Bearer {key}")
+                urllib.request.urlopen(request, timeout=5)
+                return True
+
+            # The service answers /health when run as the MCP server, but
+            # `memory launch` serves the dashboard on / with health at
+            # /api/health (the same fallback the Hermes installer documents).
+            try:
+                _healthy("/health")
+            except urllib.error.HTTPError as exc:
+                if exc.code != 404:
+                    raise
+                _healthy("/api/health")
         except urllib.error.HTTPError as exc:
             hint = " (the server requires a key: set MCP_API_KEY)" if exc.code == 401 else ""
             print(f"error: /health returned {exc.code}{hint}; nothing was written")
