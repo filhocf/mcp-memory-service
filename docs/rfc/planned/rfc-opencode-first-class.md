@@ -115,6 +115,12 @@ o argumento `agent_id` explícito (precedência máxima no serviço). Correlaç�
 o `_meta["ai.opencode/sessionID"]` que o OpenCode já envia em toda tool call (request
 metadata, não schema) — o serviço pode registrá-la como metadado de origem.
 
+> **Emenda (28/out/2026, revisão adversarial):** a decisão D4 segue válida como alvo,
+> mas o transform NÃO foi implementado — o payload depositado hoje só registra o header
+> (inerte no build 12.3.1). A prova de efeito de autoria (§13.4) depende da sonda
+> (SPEC-F011) e do transform. D4 permanece aberta até o transform existir; a F005
+> carrega a nota de versão.
+
 EARS:
 
 - THE plugin SHALL injetar `agent_id` explícito em toda escrita de memória vinda do OpenCode.
@@ -226,14 +232,15 @@ herança do SSE legado — decisão documentada na RFC-irmã.
 
 ---
 
-## 12. Estado do código (relatório do Manager, 28/out)
+## 12. Estado do código (relatório do Manager, 28/out — emendado pós-E2E e pós-revisão)
 
 | Item | Estado |
 |---|---|
-| Branch `feat/opencode-installer` (worktree `~/git/mms/opencode-first-class`) | 9 commits à frente da `main`, não pushada |
-| Commits | `37c4aba5` registro JSONC V2 · `fe1a103d` depósito do plugin · `b2f2b5e1` stamp de identidade · `e759923c` bloco `AGENTS.md` · `e8519d93` skill `mms-uso` · `447ad26a` instructions no initialize · `5f7725c5` docs first-class |
-| Specs F001–F010 | `specs/planned/` na branch (artefato de trabalho da sessão 22–23/out) |
-| Refactor não commitado | `scripts/harness/*` → `src/mcp_memory_service/installers/` (core.py, harnesses.py, jsonc.py, payload/, tests novos) |
+| Branch `feat/opencode-installer` (worktree `~/git/mms/opencode-first-class`, registrado em `docs/_fork/worktrees.md` via `d620a615`) | 13 commits à frente, não pushada |
+| Commits do arco | `37c4aba5` registro JSONC V2 · `fe1a103d` depósito do plugin · `b2f2b5e1` stamp de identidade · `e759923c` bloco `AGENTS.md` · `e8519d93` skill `mms-uso` · `447ad26a` instructions no initialize · `5f7725c5` docs first-class · `2a5947c5` instalador no pacote + CLI `memory install` (F007 GREEN) · `742706fc` fallback `/api/health` · `b36a5667` README first-class |
+| Specs F001–F010 | `specs/planned/` na branch — revisão adversarial 28/out: 7 COVERED, F005/F010 divergências emendadas, F008/F009 com lacunas em tratamento |
+| E2E clean-room (28/out) | **PASSOU**: wheel 12.3.1 + venv limpo + serviço `memory launch` :3999 (DB isolado, `MCP_ALLOW_ANONYMOUS_ACCESS=true`) + XDG sandbox — install 6 ações, idempotência diff zero, `opencode mcp list` conectado, round trip store/search/delete, uninstall cirúrgico |
+| Pendências de §13 | sonda write→read (F011), docs de integração (F009 R4/R5/R7), lab automatizado (F008 — decisão pendente: implementar vs. evidência manual), prova de sessão nova (§13.5) |
 | Na `main` | `opencode/` (plugin V1/V2 + README + tests), `agents/README.md` (matriz), `scripts/hermes/install.py` (gabarito) |
 | Sessão de origem | `ses_e9ac45a56ffeDAIyVQJR4DCnf6` — terminou em limite de provider (não por decisão técnica) |
 
@@ -270,11 +277,11 @@ da linha OpenCode na matriz e do `opencode/README.md`.
 - Autenticação OAuth no mms (serviço local, sem OAuth; `oauth: false` explícito).
 - Providers de busca externa, delta-sync, arcos de learning-loop (pertencem às suas RFCs).
 
-## 15. Próximos passos (ordem do método)
+## 15. Próximos passos (ordem do método — emendada 28/out)
 
-1. Fechar o refactor não commitado em commit na `feat/opencode-installer` (F007 GREEN).
-2. Rodar a suíte RED/GREEN pendente das specs (F001–F009) no laboratório isolado (F008).
-3. Revisão adversarial por spec (gabarito das sessões F003–F007 de 23/out).
-4. Atualizar esta RFC com evidências medidas; mover para `implemented/` quando os critérios
-   de §13 passarem.
-5. Só então abrir o fluxo upstream (`pr/<feat>` — docs + `agents/opencode/`).
+1. ~~Fechar o refactor não commitado~~ → **FEITO** (`2a5947c5`, F007 GREEN, 154 testes).
+2. ~~E2E em ambiente limpo~~ → **FEITO e PASSOU** (28/out; bug do health fallback fixado em `742706fc`).
+3. ~~Revisão adversarial por spec~~ → **FEITA** (28/out): 7 COVERED; sonda → F011; emendas aplicadas.
+4. Fila em execução: emendas de specs/RFC → **SPEC-F011 (sonda write→read) RED→GREEN** → F009 (README raiz, `docs/integrations.md`, changelog, teste de docs) → decisão sobre o lab F008 (automatizar vs. evidência manual + follow-up).
+5. Atualizar esta RFC com as evidências; mover para `implemented/` quando §13 fechar (falta: §13.2 round trip no re-run — F011, §13.4 autoria — F011 + transform D4, §13.5 sessão nova — fora do escopo do instalador, declarar no §14).
+6. Só então abrir o fluxo upstream (`pr/<feat>` — docs + `agents/opencode/`); monitorar o PR2 de #1614 (mover `codex/`+`opencode/` para `agents/`) para rebasear paths.
