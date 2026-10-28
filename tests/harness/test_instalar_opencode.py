@@ -528,3 +528,13 @@ def test_entry_is_usable_rejects_a_non_http_scheme():
     instalar = _mod()
 
     assert not instalar.entry_is_usable({"type": "remote", "url": "ftp://127.0.0.1:39123/mcp"}, 39123)
+
+
+def test_opencode_root_default_follows_the_measured_client(monkeypatch):
+    # Measured (OpenCode 2.1.3, Oct 2026): the client resolves its config from
+    # $HOME/.config/opencode and does NOT consult XDG_CONFIG_HOME — the
+    # default root must match, or mms lands in a file the client never reads.
+    from mcp_memory_service.installers.harnesses import _opencode_root
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", "/xdg/elsewhere")
+    assert _opencode_root(Path("/real/home")) == Path("/real/home/.config/opencode")

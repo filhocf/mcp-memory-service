@@ -72,6 +72,12 @@ the memory.
 EARS: WHEN a memory is stored through the lab MCP endpoint, THE search by
 `agent:<id>` SHALL return it.
 
+> **Emenda (28/out/2026, laboratório executado).** No build 12.3.1 o header
+> `X-Agent-ID` é inerte (SPEC-F005) — a autoria determinística é o argumento
+> explícito `agent_id` (precedência máxima) mais a tag `agent:<id>` no
+> metadata. O caminho por header continua desenhado na RFC D4 (transform do
+> plugin) e volta a valer quando o transform existir.
+
 **R6 — No real-config mutation.**
 The lab records the SHA-256 of the developer's real OpenCode config (when it
 exists) before and after the test and asserts equality.
@@ -133,6 +139,15 @@ XDG_DATA_HOME=<data_home>
 If the module entry point differs, the fixture uses the same command the
 project documents (`memory server --http`) and records it in the test.
 
+> **Emenda medida (28/out/2026).** Três correções do rascunho, descobertas ao
+> executar o lab: (1) a variável que isola o banco é `MCP_MEMORY_SQLITE_PATH`
+> — `MCP_MEMORY_DB_PATH` é o typo que o serviço agora rejeita
+> (config/storage.py avisa explicitamente); (2) o comando `server` recebe
+> `--http-host/--http-port`, não `--port`; (3) o pacote não tem `__main__.py`,
+> então o serviço nasce via `cli.main:main` com `-c` e `PYTHONPATH` fixado na
+> árvore de trabalho. Logs do serviço não têm variável de redirecionamento —
+> ficam no HOME real (resíduo documentado, não é superfície do instalador).
+
 ### 5.2 Tests
 
 `tests/harness/test_opencode_lab.py`:
@@ -162,6 +177,9 @@ service imports successfully. `@pytest.mark.skipif` for missing `opencode` or
 | Developer has no real config | Hash guard skipped, noted |
 | Node absent | Plugin check skipped, noted in the test report |
 | Test killed mid-run | `tmp_path` is disposable; the service is stopped in fixture teardown |
+| OpenCode's managed service binds a default port (49374 on 2.1.3) that collides with a running daemon | the lab sets its own port first: `opencode service set port <free>` (R8) |
+| Cold daemon answers "No MCP servers configured" to an immediate `mcp list` (async boot) | retry up to 5× with 2s sleeps; raw output reported on failure |
+| OpenCode resolves its config from `$HOME/.config/opencode` and ignores `XDG_CONFIG_HOME` (measured, 2.1.3) | the sandbox keeps the XDG vars coherent under `HOME`; the installer's default root follows the same resolution |
 
 ## 7. Acceptance criteria (measurable)
 

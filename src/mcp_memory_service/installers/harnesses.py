@@ -23,8 +23,10 @@ class Harness:
 
 
 def _opencode_root(home: Path) -> Path:
-    xdg = os.environ.get("XDG_CONFIG_HOME", "").strip()
-    return (Path(xdg) if xdg else home / ".config") / "opencode"
+    # Measured (OpenCode 2.1.3, Oct 2026): the client resolves its config from
+    # $HOME/.config/opencode and does NOT consult XDG_CONFIG_HOME — honouring
+    # XDG here would register mms into a file the client never reads.
+    return home / ".config" / "opencode"
 
 
 def harnesses() -> dict[str, Harness]:

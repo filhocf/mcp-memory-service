@@ -15,7 +15,7 @@ The `memory-plugin.js` plugin (a V1/V2 adapter) is prior art contributed earlier
 and is not being replaced. It already
 covers connectivity, the connector, and lifecycle hooks. What makes the
 integration first-class — one command that registers and deposits, surgical
-uninstall, XDG-aware paths, agent authorship, and a usage toolkit — ships in
+uninstall, HOME-resolved paths, agent authorship, and a usage toolkit — ships in
 12.3.1 and is proven end-to-end in a clean room (fresh venv from the wheel,
 isolated database, sandbox XDG; October 2026). The five-layer model is defined
 in [`agents/README.md`](../agents/README.md#the-five-layers).
@@ -23,7 +23,7 @@ in [`agents/README.md`](../agents/README.md#the-five-layers).
 | Layer | Status | Where |
 |---|---|---|
 | 1. Connectivity | ✅ MCP and REST | [Discussion #520](https://github.com/doobidoo/mcp-memory-service/discussions/520) |
-| 2. Connector | ✅ `memory install opencode` — wheel-shipped installer, JSONC-safe V2 registration, surgical uninstall, XDG paths | [Install](#install) |
+| 2. Connector | ✅ `memory install opencode` — wheel-shipped installer, JSONC-safe V2 registration, surgical uninstall, HOME-resolved paths | [Install](#install) |
 | 3. Lifecycle hooks | ✅ load, capture, session summary, harvest — install verified in the clean-room E2E | the deposited plugin |
 | 4. Preference override | ✅ by architecture — OpenCode keeps no native memory store (RFC D1) | — |
 | 5. Usage toolkit | ✅ `mms-uso` skill, managed `AGENTS.md` block, `initialize.instructions` — deposited by the installer | the installer payload |
@@ -212,6 +212,18 @@ change between releases — the date is part of the claim.
    carry server names directly under `mcp` (V1). OpenCode 2.x reads both shapes
    at once, so a mixed file works — but the mixed state is a migration debt the
    owner should settle, not something the installer rewrites.
+5. **OpenCode resolves its configuration from `$HOME/.config/opencode` and does
+   not consult `XDG_CONFIG_HOME`.** Measured on 2.1.3: a registration written
+   under `$XDG_CONFIG_HOME/opencode` never appears in `opencode mcp list`; the
+   same file under `$HOME/.config/opencode` appears and connects. The
+   installer's default root follows this resolution (`--root` still overrides
+   for sandboxes).
+6. **The managed service binds a default port that can collide.** `opencode mcp
+   list` boots a managed service on a default port (49374 on 2.1.3); when
+   another daemon holds it, the command fails with a port-in-use error. The
+   remedy the error itself prescribes — `opencode service set port <port>` —
+   works, and the daemon boots asynchronously, so an immediate `mcp list` can
+   answer "No MCP servers configured" from a cold start.
 
 ## Authentication and agent identity
 

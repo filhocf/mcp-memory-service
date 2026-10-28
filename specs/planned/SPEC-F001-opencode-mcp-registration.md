@@ -49,6 +49,14 @@ EARS: WHERE `XDG_CONFIG_HOME` is set, THE installer SHALL resolve the OpenCode
 root as `$XDG_CONFIG_HOME/opencode`; WHERE it is unset, THE installer SHALL
 resolve it as `~/.config/opencode`.
 
+> **Emenda medida (28/out/2026, lab F008).** O OpenCode 2.1.3 resolve seu
+> config por `$HOME/.config/opencode` e **não consulta** `XDG_CONFIG_HOME`
+> (medido no lab: registro escrito em `$XDG_CONFIG_HOME/opencode` não aparece
+> em `opencode mcp list`; o mesmo arquivo em `$HOME/.config/opencode` aparece
+> e conecta). O root default do instalador passou a ser sempre
+> `~/.config/opencode` — um `--root` explícito continua disponível para
+> sandboxes.
+
 **R2 — V2 registration shape.**
 On a clean install the installer writes the `mms` server under `mcp.servers`
 with `type: "remote"` and the `/mcp` URL of the selected port.
