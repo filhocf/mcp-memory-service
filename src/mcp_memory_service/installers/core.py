@@ -29,6 +29,9 @@ import subprocess
 import sys
 import tempfile
 import tomllib
+import urllib.error
+import urllib.request
+from uuid import uuid4
 from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import urlparse
@@ -1379,6 +1382,145 @@ def uninstall(harness: Harness, root: Path) -> list[str]:
 # --- CLI ---------------------------------------------------------------------
 
 
+# --- proof probe (SPEC-F011) --------------------------------------------------
+
+PROBE_TAG = "mms-install-probe"
+
+
+def _mcp_rpc(
+    port: int, method: str, params: dict, session_id: str | None
+) -> tuple[dict | None, dict | None, str | None]:
+    """One JSON-RPC call over the MCP streamable-HTTP endpoint.
+
+    Returns (result, error, session_id): the response is a single JSON object or
+    an SSE stream (`data:` lines); the `mcp-session-id` header, when the server
+    issues one, is handed back for the next call.
+    """
+    import urllib.error
+    import urllib.request
+
+    body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}).encode()
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json, text/event-stream",
+    }
+    if session_id:
+        headers["mcp-session-id"] = session_id
+    key = api_key()
+    if key:
+        headers["Authorization"] = f"Bearer {key}"
+    request = urllib.request.Request(f"http://localhost:{port}/mcp", data=body, headers=headers)
+    with urllib.request.urlopen(request, timeout=20) as response:
+        sid = response.headers.get("mcp-session-id")
+        payload = response.read().decode()
+    try:
+        message = json.loads(payload)
+        if isinstance(message, dict) and message.get("id") == 1:
+            return message.get("result"), message.get("error"), sid
+        message = None
+    except json.JSONDecodeError:
+        message = None
+    for line in payload.splitlines():
+        line = line.strip()
+        if not line.startswith("data:"):
+            continue
+        try:
+            candidate = json.loads(line[5:].strip())
+        except json.JSONDecodeError:
+            continue
+        if isinstance(candidate, dict) and candidate.get("id") == 1:
+            return candidate.get("result"), candidate.get("error"), sid
+    return None, {"code": -32603, "message": f"unparseable response: {payload[:120]}"}, sid
+
+
+def _tool_text(result: dict) -> str:
+    blocks = result.get("content") or []
+    return " ".join(block.get("text", "") for block in blocks if isinstance(block, dict))
+
+
+def run_probe(port: int, agent_id: str) -> str:
+    """Prove the write path: store a uniquely tagged probe, read it back by
+    search, delete it. Returns the probe hash.
+
+    Any failure raises RuntimeError — installation is not reported successful
+    unless the round trip completes. The token is unique per run: a constant
+    one would be rejected as an exact duplicate on the second run, and the
+    search would then find the PREVIOUS run's probe and never exercise this
+    write. The probe is never recorded in the manifest.
+    """
+    token = f"probe-{uuid4().hex[:12]}"
+    session_id: str | None = None
+
+    def rpc(method: str, params: dict) -> dict:
+        nonlocal session_id
+        result, error, sid = _mcp_rpc(port, method, params, session_id)
+        if sid:
+            session_id = sid
+        if error is not None or result is None:
+            raise RuntimeError(f"{method} failed: {json.dumps(error or result)[:200]}")
+        return result
+
+    try:
+        rpc(
+            "initialize",
+            {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {},
+                "clientInfo": {"name": "mms-installer", "version": "1.0"},
+            },
+        )
+        stored = rpc(
+            "tools/call",
+            {
+                "name": "memory_store",
+                "arguments": {
+                    "content": f"install probe {token}",
+                    "metadata": {"tags": PROBE_TAG},
+                    "agent_id": agent_id,
+                },
+            },
+        )
+        stored_text = _tool_text(stored)
+        if "error" in stored_text.lower() or "duplicate" in stored_text.lower():
+            raise RuntimeError(f"memory_store did not accept the probe: {stored_text[:200]}")
+        match = re.search(r"hash:\s*([0-9a-fA-F]{64})", stored_text)
+        if not match:
+            raise RuntimeError(f"memory_store did not report a probe hash: {stored_text[:160]}")
+        probe_hash = match.group(1)
+
+        found = rpc(
+            "tools/call",
+            {"name": "memory_search", "arguments": {"query": token, "limit": 1}},
+        )
+        found_text = _tool_text(found)
+        if "no memories found" in found_text.lower() or token not in found_text:
+            raise RuntimeError(
+                "the probe was stored but the search did not return it; the service "
+                "is reachable but not retrieving"
+            )
+
+        deleted = rpc(
+            "tools/call",
+            {"name": "memory_delete", "arguments": {"content_hash": probe_hash}},
+        )
+        deleted_text = _tool_text(deleted)
+        if deleted.get("isError") or "error" in deleted_text.lower():
+            raise RuntimeError(
+                f"the probe delete failed; remove hash {probe_hash} manually "
+                f"(tag {PROBE_TAG}): {deleted_text[:160]}"
+            )
+    except urllib.error.HTTPError as exc:
+        hint = (
+            " (set MCP_API_KEY or MCP_ALLOW_ANONYMOUS_ACCESS=true)"
+            if exc.code == 401
+            else ""
+        )
+        raise RuntimeError(f"the probe could not talk to the service: /mcp returned {exc.code}{hint}") from exc
+    except (urllib.error.URLError, OSError) as exc:
+        raise RuntimeError(f"the probe could not reach the service on :{port}: {exc}") from exc
+    return probe_hash
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--harness", default="auto", choices=["auto", *harnesses()])
@@ -1535,6 +1677,17 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  {note}")
         if not actions and not deposits:
             print("  nothing to do: already installed")
+            # SPEC-F011 R5: a rerun still proves the write path.
+            if not args.dry_run:
+                if args.skip_health:
+                    print("  probe: skipped (--skip-health)")
+                else:
+                    try:
+                        probe_hash = run_probe(args.port, agent_id)
+                        print(f"  probe: write/read/delete verified ({probe_hash[:12]})")
+                    except RuntimeError as exc:
+                        print(f"  error: {exc}", file=sys.stderr)
+                        rc = 1
             continue
         for action in actions:
             print(f"  {action.render()}")
@@ -1567,6 +1720,19 @@ def main(argv: list[str] | None = None) -> int:
             for failure in failures:
                 print(f"  ERRO: {failure}", file=sys.stderr)
             continue
+
+        # SPEC-F011: report success only after the write path is proven. The
+        # probe is never recorded in the manifest.
+        if args.skip_health:
+            print("  probe: skipped (--skip-health)")
+        else:
+            try:
+                probe_hash = run_probe(args.port, agent_id)
+                print(f"  probe: write/read/delete verified ({probe_hash[:12]})")
+            except RuntimeError as exc:
+                print(f"  error: {exc}", file=sys.stderr)
+                rc = 1
+                continue
 
         write_manifest(root, actions, deposits=deposits, created_dirs=created_dirs)
         print(f"  OK: {len(actions) + len(deposits)} action(s), effect verified")
