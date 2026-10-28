@@ -5,8 +5,9 @@ table, and the eight-item onboarding checklist do not exist yet. They become
 green with SPEC-F010.
 
 The tests assert the promises a reader relies on, not prose: the table has one
-row per layer, layer 4 is honestly red, the existing plugin is credited, the
-OpenCode row in the index points at the status, and no upstream-facing page
+row per layer, layer 4 is marked by architecture with its reason (RFC D1 — no
+native store, no model-backed session claim), the existing plugin is credited,
+the OpenCode row in the index points at the status, and no upstream-facing page
 leaks the internal `specs/` tree.
 """
 
@@ -60,10 +61,12 @@ def test_status_table_has_one_row_per_layer() -> None:
     assert numbered == [1, 2, 3, 4, 5], f"layer rows: {numbered}"
 
 
-def test_layer_four_is_not_overclaimed() -> None:
+def test_layer_four_is_marked_by_architecture_with_reason() -> None:
     rows = _table_rows(_section(_read(STATUS_README), STATUS_HEADING))
     layer_four = next(row for row in rows if re.match(r"\|\s*4\.", row))
-    assert "🔴" in layer_four, layer_four
+    assert "✅" in layer_four, layer_four
+    assert "architecture" in layer_four.lower(), layer_four
+    assert "native" in layer_four.lower(), layer_four
 
 
 def test_existing_contribution_is_credited() -> None:

@@ -1,6 +1,5 @@
-- **Multi-harness installer: one command deposits the memory service across every surface a harness reads.**
-  `scripts/harness/instalar.py` detects the harnesses present, prints the exact plan before writing, and
-  deposits registration, steering and usage skill (plus the authoring hook on Hermes). It verifies the
-  effect before claiming success, is idempotent, and `--uninstall` removes the server by key and only the
-  files it created — a merged config is never deleted wholesale. `--root` allows an ad-hoc sandbox, so
-  the installer can be exercised without touching a real installation. 13 tests.
+- **OpenCode is a first-class client: one command installs registration, plugin, instructions, and skill.**
+  `memory install opencode` writes the V2 `mcp.servers.mms` entry without touching JSONC comments, deposits
+  the plugin, the `mms-uso` skill and a managed `AGENTS.md` block, and probes the write path before claiming
+  success; reruns re-probe, and `--uninstall` removes only installer-owned state. The multi-harness installer
+  moved into the package (`memory install list|opencode`).

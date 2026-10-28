@@ -119,11 +119,12 @@ Worked examples per framework, the tag conventions and the async patterns:
 <summary><strong>OpenCode</strong></summary>
 
 ```bash
-MCP_ALLOW_ANONYMOUS_ACCESS=true memory server --http
+memory install opencode
 ```
 
-The plugin ships as repository files for the local plugin directory, so clone the
-repository once even if you installed from PyPI. Install steps, the `/memory` slash
+One command after `pip install mcp-memory-service`: it writes the MCP registration,
+the memory plugin, the managed `AGENTS.md` block and the `mms-uso` skill, and probes
+the write path before claiming success. Install steps, the `/memory` slash
 command and the endpoint override:
 **[opencode/README.md](https://github.com/doobidoo/mcp-memory-service/blob/main/opencode/README.md)**
 

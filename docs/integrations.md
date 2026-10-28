@@ -32,6 +32,16 @@ project context, capture learnings, and checkpoint session outcomes.
 Hermes has an installer that registers the server and verifies a round trip:
 [`agents/hermes/README.md`](../agents/hermes/README.md).
 
+OpenCode's installer ships in the wheel itself: it registers the MCP entry without
+touching JSONC comments, deposits the memory plugin, the `mms-uso` skill and a
+managed `AGENTS.md` block, and probes the write path before reporting success:
+
+```bash
+memory install opencode
+```
+
+[`opencode/README.md`](../opencode/README.md)
+
 ### Desktop and IDE (MCP)
 
 Claude Desktop · VS Code · Cursor · Windsurf · Kilo Code · Raycast · JetBrains · Replit ·

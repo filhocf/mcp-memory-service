@@ -11,7 +11,8 @@ This integration provides:
 
 ## First-class status
 
-The plugin is prior art contributed earlier and is not being replaced. It already
+The `memory-plugin.js` plugin (a V1/V2 adapter) is prior art contributed earlier
+and is not being replaced. It already
 covers connectivity, the connector, and lifecycle hooks. What makes the
 integration first-class — one command that registers and deposits, surgical
 uninstall, XDG-aware paths, agent authorship, and a usage toolkit — ships in
@@ -22,7 +23,7 @@ in [`agents/README.md`](../agents/README.md#the-five-layers).
 | Layer | Status | Where |
 |---|---|---|
 | 1. Connectivity | ✅ MCP and REST | [Discussion #520](https://github.com/doobidoo/mcp-memory-service/discussions/520) |
-| 2. Connector | ✅ `memory install opencode` — wheel-shipped installer, JSONC-safe V2 registration, surgical uninstall, XDG paths | [Install in one command](#install-in-one-command) |
+| 2. Connector | ✅ `memory install opencode` — wheel-shipped installer, JSONC-safe V2 registration, surgical uninstall, XDG paths | [Install](#install) |
 | 3. Lifecycle hooks | ✅ load, capture, session summary, harvest — install verified in the clean-room E2E | the deposited plugin |
 | 4. Preference override | ✅ by architecture — OpenCode keeps no native memory store (RFC D1) | — |
 | 5. Usage toolkit | ✅ `mms-uso` skill, managed `AGENTS.md` block, `initialize.instructions` — deposited by the installer | the installer payload |
@@ -31,7 +32,8 @@ The public issue is added to the pull request that introduces this section; the
 roadmap above is the source of truth for status.
 
 Not claimed by this work: a model-backed end-to-end session (it needs credentials
-and is non-deterministic), the optional TUI sidebar, and layer 4.
+and is non-deterministic) and the optional TUI sidebar — layer 4 is claimed by
+architecture above, because OpenCode keeps no native memory store.
 
 ## OpenCode V1 and V2
 
@@ -90,7 +92,7 @@ include `-H "X-API-Key: $OPENCODE_MEMORY_API_KEY"` when testing protected API ro
 
 `http://127.0.0.1:8000` is only the default fallback. The plugin can target any reachable HTTP deployment of `mcp-memory-service`.
 
-## Install in one command
+## Install
 
 From 12.3.1 the installer ships inside the wheel — no checkout, no manual copy:
 
@@ -169,6 +171,23 @@ cp /absolute/path/to/mcp-memory-service/opencode/memory-plugin.js .opencode/plug
 Fully exit and restart OpenCode after installation or configuration changes.
 Launch it from the project whose context you want to load.
 
+## What gets installed
+
+`memory install opencode` writes every surface the agent reads, prints the plan
+before writing, and records what it did in a `mms-install-manifest.json` beside
+the config:
+
+| Surface | Resolved path (default root) |
+|---|---|
+| MCP registration — V2 `mcp.servers.mms` entry, JSONC comments preserved | `opencode.json` in the OpenCode config directory (`~/.config/opencode/`) |
+| Memory plugin (load, capture, session summary, harvest) | `plugins/opencode-memory/` (`index.js`, `package.json`) |
+| Plugin configuration (`agentId`, endpoint) | `memory-plugin.json` in the config directory |
+| Session-awareness block | `AGENTS.md` in the config directory |
+| `mms-uso` skill | `skills/mms-uso/` |
+
+`--root` points every surface at a sandbox (the XDG configuration directory by
+default); `--dry-run` prints the plan and writes nothing.
+
 ## Behaviours that cost a clean-room run to find
 
 Measured on mms 12.3.1 + OpenCode 2.1.3, Linux, October 2026. These are
@@ -193,6 +212,22 @@ change between releases — the date is part of the claim.
    carry server names directly under `mcp` (V1). OpenCode 2.x reads both shapes
    at once, so a mixed file works — but the mixed state is a migration debt the
    owner should settle, not something the installer rewrites.
+
+## Authentication and agent identity
+
+The released service build requires authentication by default: set `MCP_API_KEY`
+(the installer records it in the V2 entry) or run the service with
+`MCP_ALLOW_ANONYMOUS_ACCESS=true`. A `/mcp` answer of 401 means auth is missing —
+nothing was written.
+
+Authorship falls back to the process-level `MCP_AGENT_ID` unless the caller
+passes an explicit `agent_id`; the installer pins the plugin's `agentId`
+configuration. The `X-Agent-ID` header is honoured in the source tree but not in
+the released build
+([#1598](https://github.com/doobidoo/mcp-memory-service/discussions/1598)
+tracks the header); argument-level authorship via a plugin transform is designed
+but not shipped. The install probe carries the `mms-install-probe` tag with the
+installer's own `agent_id` and always cleans up after itself.
 
 ## Configuration
 
@@ -326,18 +361,33 @@ One JSON object per line, with `&`, `<` and `>` escaped as `&`, `<` and `>`, so 
 
 The successful-check marker, the seen set, and the lower bound of the query window are stored in `~/.local/state/opencode/.memory-inbox-state.json`; the first run looks back 24 hours. The last successful check time is stored alongside them so a client clock rollback can be detected, including for state files that only hold a marker. The window bound only moves forward, so paging through a backlog cannot reach back into rows that were already delivered and pruned, and seen entries older than the bound are pruned so the set stays bounded. A client clock that jumps backwards past the window, or leaves a persisted marker after the current time, resets the window and may replay the jumped-over interval once. A state file written before this change carries no seen set, so the first check after upgrading may re-inject messages from the overlap window once. Markers are isolated by Memory Service endpoint, tag set, and agent ID. Each check re-reads the state file, so a second OpenCode instance normally sees what the first one delivered; only two overlapping checks can both deliver the same message. Updates use a cross-process lock and an atomic file replacement so simultaneous OpenCode instances cannot overwrite one another's markers; locks abandoned for 30 seconds are atomically moved to a unique quarantine path before removal, so competing recovery attempts cannot delete a fresh lock. Failed queries do not advance the marker. A sync lag or clock offset larger than the configured overlap can still skip a message, so set `overlapMinutes` above the deployment's worst case; raising it takes effect as the marker advances. See [Tags as inter-agent signals](../docs/agents/README.md#tags-as-inter-agent-signals) for the shared message-bus convention and a storage example.
 
-## Verification
+## Verify
 
-1. Check `/api/health` before launching OpenCode.
-2. Install the plugin in one of the directories above and restart OpenCode.
+1. `opencode mcp list` — the `mms` entry answers connected.
+2. The installer proves the write path on every run: it stores a tagged probe,
+   reads it back by search and deletes it. A failed probe is reported (with the
+   orphan hash when cleanup fails) and the install exits 1 — success is never
+   claimed unproved.
 3. Start OpenCode in your project. After the first response, check the loaded count
    with the optional `/memory` command. A new or unrelated project can have zero matches.
 4. Make a substantive decision, wait for the turn to finish, and confirm a capture
    or summary appears in the Memory Service dashboard. Check `/memory` for the
    capture count and last summary time.
 5. If using the sidebar, check the status JSON file before investigating rendering.
+6. Clean-room lab (shipped): `pytest tests/harness/` exercises the installer against
+   a scripted service over real HTTP, and `memory install opencode --dry-run --root
+   <sandbox>` plans an install into a throwaway root without touching `~/.config`.
 
 If `verbose` is enabled, the plugin writes structured logs through `client.app.log()` under the `opencode-memory` service name.
+
+## Uninstall
+
+`memory install opencode --uninstall` removes the MCP registration by key and
+only the installer-owned files: the plugin directory, the skill, the managed
+`AGENTS.md` block and the plugin configuration. A file whose contents the
+installer does not recognize — your own edits — is retained in place, and the
+manifest records exactly what was removed. Memories stored in the service itself
+are never touched.
 
 ## Slash Command: `/memory`
 
