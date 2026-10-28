@@ -1449,7 +1449,12 @@ def main(argv: list[str] | None = None) -> int:
                     raise
                 _healthy("/api/health")
         except urllib.error.HTTPError as exc:
-            hint = " (the server requires a key: set MCP_API_KEY)" if exc.code == 401 else ""
+            hint = (
+                " (the server requires auth: set MCP_API_KEY or "
+                "MCP_ALLOW_ANONYMOUS_ACCESS=true)"
+                if exc.code == 401
+                else ""
+            )
             print(f"error: /health returned {exc.code}{hint}; nothing was written")
             return 1
         except Exception as exc:  # noqa: BLE001

@@ -24,7 +24,7 @@ in [`agents/README.md`](../agents/README.md#the-five-layers).
 | 1. Connectivity | ✅ MCP and REST | [Discussion #520](https://github.com/doobidoo/mcp-memory-service/discussions/520) |
 | 2. Connector | ✅ `memory install opencode` — wheel-shipped installer, JSONC-safe V2 registration, surgical uninstall, XDG paths | [Install in one command](#install-in-one-command) |
 | 3. Lifecycle hooks | ✅ load, capture, session summary, harvest — install verified in the clean-room E2E | the deposited plugin |
-| 4. Preference override | 🔴 not observed | OpenCode keeps no native memory store we could override |
+| 4. Preference override | ✅ by architecture — OpenCode keeps no native memory store (RFC D1) | — |
 | 5. Usage toolkit | ✅ `mms-uso` skill, managed `AGENTS.md` block, `initialize.instructions` — deposited by the installer | the installer payload |
 
 The public issue is added to the pull request that introduces this section; the
@@ -184,9 +184,10 @@ change between releases — the date is part of the claim.
    but refuses to talk. A long-running unit typically opts out in its env file.
 3. **The `X-Agent-ID` header does not author writes on this build.** The header
    is honoured in the source tree but not in the released build, so writes fall
-   back to the process-level `MCP_AGENT_ID`. The plugin's transform passes an
-   explicit `agent_id` argument instead, and correlates the session through
-   `_meta["ai.opencode/sessionID"]` ([#1598](https://github.com/doobidoo/mcp-memory-service/discussions/1598)
+   back to the process-level `MCP_AGENT_ID` unless the caller passes an explicit
+   `agent_id` argument. The deposited plugin does not yet transform writes:
+   argument-level authorship and `_meta["ai.opencode/sessionID"]` correlation
+   are designed (RFC D4) but not shipped ([#1598](https://github.com/doobidoo/mcp-memory-service/discussions/1598)
    tracks the header).
 4. **V1 and V2 MCP shapes coexist.** A config written before this installer may
    carry server names directly under `mcp` (V1). OpenCode 2.x reads both shapes

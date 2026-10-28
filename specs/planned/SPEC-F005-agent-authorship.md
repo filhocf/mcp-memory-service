@@ -69,6 +69,14 @@ search, store, delete, harvest, and health.
 EARS: WHEN the plugin calls any `/api/...` endpoint, THE request SHALL include
 `X-Agent-ID: <id>`.
 
+> **Emenda de versão (28/out/2026, revisão adversarial).** R3 e R4 são
+> efetivos apenas em um server que leia o header — no build de release
+> 12.3.1 o header é ignorado e a autoria cai no `MCP_AGENT_ID` de processo
+> ou num `agent_id` explícito na chamada. Os testes fixam a *escrita* do
+> header (contrato de registro), não o efeito de autoria; a prova de efeito
+> fica para a sonda (SPEC-F011) e o transform do plugin (RFC D4) segue
+> em aberto.
+
 **R5 — Plugin configuration precedence.**
 The plugin resolves the identity from `OPENCODE_MEMORY_AGENT_ID`, then
 `memoryService.agentId` in the config file, then the literal `opencode`.

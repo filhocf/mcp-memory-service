@@ -73,11 +73,12 @@ EARS: THE section SHALL name the existing plugin and SHALL state which layers it
 already covers.
 
 **R3 — No overclaim.**
-Layer 4 is marked 🔴 with the reason; the document does not claim a model-backed
+Layer 4 is marked ✅ by architecture — OpenCode keeps no native memory store
+(RFC D1) — with the reason stated; the document does not claim a model-backed
 session test, and the sidebar is labelled optional.
 
-EARS: THE section SHALL mark layer 4 as 🔴 and SHALL NOT claim a model-backed
-session test.
+EARS: THE section SHALL mark layer 4 as ✅ by architecture (no native store,
+RFC D1) and SHALL NOT claim a model-backed session test.
 
 **R4 — Index row updated.**
 The OpenCode row in `agents/README.md` reflects the final state of this work:
