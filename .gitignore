@@ -277,3 +277,4 @@ scripts/demo/SPEAKER_NOTES_EN.md
 # Exception: ship the per-store NER vocabulary (StoreTermsExtractor)
 !src/mcp_memory_service/data/
 !src/mcp_memory_service/data/store_terms.json
+.codebase-memory/
