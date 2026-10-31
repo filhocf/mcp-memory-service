@@ -237,7 +237,9 @@ def _cosine(a, b) -> float:
 
 def _desc_str(s: str) -> tuple:
     """Sort key that orders strings DESCENDING inside an ascending sorted():
-    invert each code point. Used for updated_at (most-recent-first) as a tie-break."""
+    invert each code point. Used for updated_at (most-recent-first) as a tie-break.
+    Correct only for fixed-width ISO-8601 timestamps (the belief updated_at shape);
+    not a general-purpose descending key."""
     return tuple(-ord(c) for c in (s or ""))
 
 
@@ -1424,6 +1426,13 @@ class BeliefService:
         if not os.environ.get("MCP_BELIEF_DEDUP"):
             return report
 
+        # B.2b (apply) is not implemented yet: fail loud rather than silently
+        # no-op, so a future caller never believes a merge happened (tuvok P3).
+        if not dry_run:
+            raise NotImplementedError(
+                "dedup_beliefs apply path (B.2b) not implemented; use dry_run=True"
+            )
+
         try:
             threshold = float(os.environ.get("MCP_BELIEF_DEDUP_THRESHOLD", "0.90"))
         except (ValueError, TypeError):
@@ -1436,9 +1445,14 @@ class BeliefService:
 
         try:
             conn = self.storage.conn
+            # ORDER BY belief_hash makes the greedy single-linkage grouping
+            # STABLE across runs (SQLite has no implicit row order): without it
+            # the group count / collapsible total would depend on physical row
+            # order — and that total is the very metric B.2a reports (tuvok P2).
             rows = conn.execute(
                 "SELECT belief_hash, content, confidence, status, updated_at, "
-                "derived_from, embedding FROM beliefs WHERE status IN ('active', 'candidate')"
+                "derived_from, embedding FROM beliefs WHERE status IN ('active', 'candidate') "
+                "ORDER BY belief_hash"
             ).fetchall()
 
             # Deserialize embeddings; NULL-embedding beliefs are not dedupable.
@@ -1463,7 +1477,11 @@ class BeliefService:
                     report["errors"].append(f"belief {bhash}: {e}")
                     report["skipped"] += 1
 
-            # Greedy single-pass grouping by cosine >= threshold.
+            # Greedy single-linkage grouping by cosine >= threshold. Each later
+            # belief is tested against the seed only (approximation, NOT exact
+            # clustering): a chain A~B, B~C with A≁C groups {A,B} and leaves C a
+            # singleton. Stable because rows are ORDER BY belief_hash. The RFC
+            # documents this as an intentional approximation (tuvok P2).
             used = set()
             for i in range(len(items)):
                 if items[i][0] in used:
@@ -1515,7 +1533,7 @@ class BeliefService:
         try:
             import struct
             n = len(blob) // 4
-            return list(struct.unpack(f"{n}f", blob))
+            return list(struct.unpack(f"<{n}f", blob))  # little-endian: matches serialize_float32
         except Exception:
             return None
 

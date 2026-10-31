@@ -256,3 +256,35 @@ def test_r6_dry_run_does_not_mutate_corpus(storage, monkeypatch):
 
     after = _snapshot(storage.conn)
     assert after == before, f"dry-run mutou o corpus: before={before} after={after}"
+
+
+# ── G5 (tuvok) P3: apply path (B.2b) not implemented -> fail loud, not silent no-op ──
+
+def test_dry_run_false_raises_not_implemented(storage, monkeypatch):
+    """B.2b apply not implemented: dedup_beliefs(dry_run=False) must raise, not no-op."""
+    monkeypatch.setenv("MCP_BELIEF_DEDUP", "1")
+    _seed_two_dupes_one_distinct(storage.conn)
+    svc = BeliefService(storage)
+    with pytest.raises(NotImplementedError):
+        svc.dedup_beliefs(dry_run=False)
+
+
+def test_grouping_is_stable_across_insertion_order(monkeypatch):
+    """P2 regression: ORDER BY belief_hash makes group count independent of
+    physical insertion order (same corpus -> same groups)."""
+    monkeypatch.setenv("MCP_BELIEF_DEDUP", "1")
+
+    def _count_groups(order):
+        conn = sqlite3.connect(":memory:")
+        conn.executescript((MIGRATIONS / "012_add_belief_store.sql").read_text())
+        conn.executescript((MIGRATIONS / "021_add_belief_embedding.sql").read_text())
+        for h in order:
+            v = {"a": _V_A, "b": _V_A_NEAR, "c": _V_B}[h]
+            _insert_belief(conn, h, f"belief {h}", confidence=0.5, embedding=_vec_blob(v))
+
+        class _S:
+            pass
+        s = _S(); s.conn = conn; s.graph = None; s.embedding_model = None
+        return BeliefService(s).dedup_beliefs(dry_run=True)["groups"]
+
+    assert _count_groups(["a", "b", "c"]) == _count_groups(["c", "b", "a"])

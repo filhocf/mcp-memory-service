@@ -95,6 +95,25 @@ derivação (slice posterior) — o que resolve o backlog de 151 grupos já no b
 
 ## 6. Critério de aceite
 
-Dry-run relata, no corpus vivo, ≥ 50 grupos com 2+ membros (medição atual: 151) e a composição
-(quantos beliefs seriam superseded, quantos canônicos restariam). Testes G3 cobrem R1–R6 com
-fixtures sintéticas (embeddings controlados), incluindo o caminho flag-OFF (R1) e embedding-NULL (R3).
+Dry-run relata, no corpus vivo, ≥ 50 grupos com 2+ membros (medição 31/out: **208 grupos,
+459 beliefs colapsáveis, −15%**). Testes G3 cobrem R1–R6 + guard de apply (B.2b NotImplementedError)
++ estabilidade de ordem, com fixtures sintéticas (embeddings controlados), incluindo flag-OFF (R1)
+e embedding-NULL (R3). 10 testes, suíte belief 214 passed.
+
+## 7. Nota de performance (medida 31/out, G5 tuvok P3)
+
+O agrupamento é O(n²) em Python puro sobre active+candidate (3058 beliefs no vivo),
+com cosseno sobre 384 dims por par. Medido: o sweep completo sem cap estoura 120s —
+**aceitável para B.2a (dry-run manual, offline, não hot-path)**, mas o **B.2b/B.2c
+devem usar o KNN nativo do sqlite-vec** (`vec0`/MATCH) em vez do laço O(n²), ou um cap
+operacional. Prova funcional com `MCP_BELIEF_DEDUP_CAP=20`: 20 grupos, 103 colapsáveis,
+`capped=true` — o cap corta corretamente. Não wired em nenhum caminho de request (só
+sob flag, chamada manual).
+
+## 8. Grouping é aproximação (greedy single-linkage)
+
+Cada belief posterior é testado contra o SEED do grupo, não contra todos os membros —
+uma cadeia A~B, B~C com A≁C agrupa {A,B} e deixa C singleton. É intencional (não
+clustering exato). Estável entre execuções porque o SELECT é `ORDER BY belief_hash`
+(sem isso, a contagem dependeria da ordem física das linhas — SQLite não garante ordem).
+A eleição do canônico (R4) é determinística DENTRO do grupo.
