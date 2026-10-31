@@ -41,7 +41,7 @@
 | spec-fase0-kiro-yaml-triagem | harvest | SPEC — Fase 0: perfil Kiro em YAML + triagem de sessão |
 | spec-store-visibility | backlog-ideias | spec-store-visibility — busca padrão enxerga todos os stores |
 
-## planned/ (38)
+## planned/ (39)
 
 | RFC | Arco | Evidencia / nota |
 |-----|------|------------------|
@@ -66,6 +66,7 @@
 | rfc-mm-03-gap-detection | learning-loop | RFC-MM-03: Gap Detection Proativa |
 | rfc-multimodal-memory | backlog-ideias | RFC: Multimodal Memory (imagem/vídeo/áudio → texto recalláve |
 | rfc-onboarding-discoverable | backlog-ideias | RFC: Onboarding Discovery Protocol — Agent-Native MCP Usage  |
+| rfc-opencode-first-class | portabilidade | RFC: OpenCode como cliente de primeira classe — MCP V2 (mcp.servers), plugin, autoria por agent_id (header não funciona no build), bloco AGENTS.md, skill mms-uso, `memory install opencode`; irmã da rfc-hermes-first-class. Branch feat/opencode-installer (F001–F010) |
 | rfc-persona-tier | backlog-ideias | RFC: Persona Tier (identidade portável auto-gerada) |
 | rfc-ranking-upgrades | backlog-ideias | RFC: Ranking — Weibull Decay + Polyphonic Recall |
 | rfc-s2-belief-store | belief | Spec: §2 Belief Store (Incremental Approach) |
