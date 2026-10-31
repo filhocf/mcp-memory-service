@@ -222,6 +222,25 @@ def _is_meta_statistic(content: str) -> bool:
     return bool(_META_STAT_PATTERN.search(text))
 
 
+def _cosine(a, b) -> float:
+    """Cosine similarity of two equal-length float vectors. 0.0 on degenerate input."""
+    if not a or not b or len(a) != len(b):
+        return 0.0
+    import math
+    dot = sum(x * y for x, y in zip(a, b))
+    na = math.sqrt(sum(x * x for x in a))
+    nb = math.sqrt(sum(y * y for y in b))
+    if na == 0.0 or nb == 0.0:
+        return 0.0
+    return dot / (na * nb)
+
+
+def _desc_str(s: str) -> tuple:
+    """Sort key that orders strings DESCENDING inside an ascending sorted():
+    invert each code point. Used for updated_at (most-recent-first) as a tie-break."""
+    return tuple(-ord(c) for c in (s or ""))
+
+
 def _content_entropy(content: str) -> float:
     """Unique-token ratio as proxy for information density.
 
@@ -1385,6 +1404,120 @@ class BeliefService:
             logger.error("[belief] sweep failed: %s", _sanitize_log_value(str(e)))
         
         return stats
+
+    def dedup_beliefs(self, dry_run: bool = True) -> dict:
+        """Semantic dedup of beliefs by embedding cosine (ARCO SÍNTESE B.2a).
+
+        Opt-in behind MCP_BELIEF_DEDUP. Groups active/candidate beliefs whose
+        cosine similarity over the persisted ``beliefs.embedding`` is >=
+        MCP_BELIEF_DEDUP_THRESHOLD (default 0.90), elects a deterministic
+        canonical per group, and reports the groups. dry_run=True (B.2a) never
+        writes — it only measures, to corroborate the numbers before any apply
+        (B.2b) or PR. Models sweep_degenerate_beliefs (flag/cap/per-row guard).
+
+        Report dict: {"evaluated", "groups", "skipped", "capped",
+        "group_details": [{"canonical": hash, "superseded": [hashes]}]}.
+        """
+        report = {"evaluated": 0, "groups": 0, "skipped": 0, "capped": False,
+                  "group_details": [], "errors": []}
+
+        if not os.environ.get("MCP_BELIEF_DEDUP"):
+            return report
+
+        try:
+            threshold = float(os.environ.get("MCP_BELIEF_DEDUP_THRESHOLD", "0.90"))
+        except (ValueError, TypeError):
+            threshold = 0.90
+        try:
+            cap_str = os.environ.get("MCP_BELIEF_DEDUP_CAP", "1000")
+            cap = int(cap_str) if cap_str else 1000
+        except (ValueError, TypeError):
+            cap = 1000
+
+        try:
+            conn = self.storage.conn
+            rows = conn.execute(
+                "SELECT belief_hash, content, confidence, status, updated_at, "
+                "derived_from, embedding FROM beliefs WHERE status IN ('active', 'candidate')"
+            ).fetchall()
+
+            # Deserialize embeddings; NULL-embedding beliefs are not dedupable.
+            items = []  # (hash, confidence, updated_at, n_sources, vec)
+            for bhash, content, confidence, status, updated_at, derived_from, emb in rows:
+                report["evaluated"] += 1
+                if emb is None:
+                    report["skipped"] += 1
+                    continue
+                try:
+                    vec = self._deserialize_embedding(emb)
+                    if vec is None:
+                        report["skipped"] += 1
+                        continue
+                    try:
+                        n_src = len(json.loads(derived_from) if derived_from else [])
+                    except (ValueError, TypeError):
+                        n_src = 0
+                    items.append((bhash, float(confidence or 0.0),
+                                  updated_at or "", n_src, vec))
+                except Exception as e:  # pragma: no cover - defensive
+                    report["errors"].append(f"belief {bhash}: {e}")
+                    report["skipped"] += 1
+
+            # Greedy single-pass grouping by cosine >= threshold.
+            used = set()
+            for i in range(len(items)):
+                if items[i][0] in used:
+                    continue
+                members = [items[i]]
+                for j in range(i + 1, len(items)):
+                    if items[j][0] in used:
+                        continue
+                    if _cosine(items[i][4], items[j][4]) >= threshold:
+                        members.append(items[j])
+                if len(members) < 2:
+                    continue
+                # R4: canonical = confidence desc, |derived_from| desc,
+                # updated_at desc, belief_hash asc (deterministic; NO utility_prior).
+                # Sort key: negate numeric fields for desc; updated_at desc via reverse
+                # string compare is handled by picking max on updated_at then min on hash.
+                members_sorted = sorted(
+                    members,
+                    key=lambda m: (-m[1], -m[3], _desc_str(m[2]), m[0]),
+                )
+                canonical = members_sorted[0][0]
+                for m in members:
+                    used.add(m[0])
+                losers = [m[0] for m in members_sorted[1:]]
+                report["group_details"].append(
+                    {"canonical": canonical, "superseded": losers}
+                )
+                report["groups"] += 1
+                if report["groups"] >= cap:
+                    report["capped"] = True
+                    break
+
+            logger.info(
+                "[belief] dedup (dry_run=%s): evaluated=%d groups=%d skipped=%d capped=%s",
+                dry_run, report["evaluated"], report["groups"],
+                report["skipped"], report["capped"],
+            )
+        except Exception as e:
+            report["errors"].append(str(e))
+            logger.error("[belief] dedup failed: %s", _sanitize_log_value(str(e)))
+
+        return report
+
+    @staticmethod
+    def _deserialize_embedding(blob):
+        """Deserialize a sqlite_vec float32 BLOB into a list of floats, or None."""
+        if blob is None:
+            return None
+        try:
+            import struct
+            n = len(blob) // 4
+            return list(struct.unpack(f"{n}f", blob))
+        except Exception:
+            return None
 
     # --- Internal helpers ---
 
