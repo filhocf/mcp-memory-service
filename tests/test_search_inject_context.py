@@ -152,11 +152,19 @@ async def test_context_injection_error_non_fatal(mock_server, mock_storage, monk
     
 @pytest.mark.asyncio
 async def test_flag_off_preserves_truncated_format_legacy_behavior(mock_server, mock_storage, monkeypatch):
-    """Flag OFF + max_response_chars pequeno + 3 mems → resposta deve conter 'Showing 1 of' (fit-at-least-one preservado), NÃO 'Showing 0 of'."""
+    """Flag OFF → caminho bounded unificado do upstream (#1701), orçamento estrito.
+
+    DECISÃO (opção A, 31/out, Claudio): adotamos o comportamento do upstream.
+    Toda resposta com limite positivo passa por ``format_bounded_response``,
+    que RESPEITA o orçamento de chars. O antigo fit-at-least-one (que podia
+    estourar o cap para sempre mostrar >=1 resultado) foi abandonado: estourar
+    o limite de resposta e anti-padrao para o cliente (contexto/custo). Com um
+    cap apertado e memorias grandes, a resposta mostra 'Showing 0 of N' e o
+    total fica dentro do cap. Era 'Showing 1 of 3' no path legado; agora nao.
+    """
     # Ensure flag is OFF (default behavior)
     monkeypatch.delenv("MCP_SEARCH_INJECT_CONTEXT", raising=False)
-    
-    # Mock search with 3 memories and a smaller limit to force format_bounded_response to show 0 results
+
     mock_storage.search_memories.return_value = {
         "memories": [
             {"content": "Memory content 1 - " + "x" * 400, "content_hash": "hash1", "similarity_score": 0.9, "created_at": "2024-01-01T00:00:00Z", "tags": []},
@@ -167,22 +175,19 @@ async def test_flag_off_preserves_truncated_format_legacy_behavior(mock_server, 
         "query": "test query",
         "mode": "semantic",
     }
-    
-    # Use very small max_response_chars to trigger the regression where format_bounded_response
-    # would return 0 results instead of the legacy truncate_memories fit-at-least-one behavior
+
+    # Cap apertado: nenhuma memoria de 400+ chars cabe com header+notice.
     result = await handle_memory_search(mock_server, {"query": "test query", "max_response_chars": 200})
-    
+
     response_text = result[0].text
-    
-    # With the current bug (format_bounded_response used unconditionally),
-    # this would show "Showing 0 of 3" instead of the legacy "Showing 1 of 3"
     print(f"Response length: {len(response_text)}")
     print(f"Response text: {response_text}")
-    
-    # This test will initially FAIL because the bug is present
-    # After the fix, it should show fit-at-least-one behavior: "Showing 1 of 3"
-    assert "Showing 1 of 3" in response_text, f"Expected 'Showing 1 of 3' (legacy fit-at-least-one) but got: {response_text}"
-    assert "Showing 0 of 3" not in response_text, f"Regression detected: 'Showing 0 of 3' found in: {response_text}"
+
+    # Comportamento bounded do upstream: orcamento estrito, nao fit-at-least-one.
+    assert "Showing 0 of 3" in response_text, \
+        f"Esperado bounded 'Showing 0 of 3' (orcamento estrito) mas got: {response_text}"
+    assert "Showing 1 of 3" not in response_text, \
+        f"Path legado nao deveria mais ser usado: {response_text}"
 
 
 @pytest.mark.asyncio

@@ -1565,6 +1565,41 @@ def _format_memory_search_debug(result: dict) -> str:
                 f"\n  Time range: {time_filter.get('start_timestamp')} - "
                 f"{time_filter.get('end_timestamp')}"
             )
+    text += _format_rerank_timing(debug.get("rerank_timing"))
+    return text
+
+
+def _format_rerank_timing(timing) -> str:
+    """One block per stage of the rerank path (issue #1669); empty when the
+    stage did not run under include_debug."""
+    if not timing:
+        return ""
+    text = "\n  Rerank timing (ms):"
+    if "search_ms" in timing:
+        text += f"\n    search: {timing['search_ms']} (pool {timing.get('pool')})"
+        text += f"\n    filters: {timing['filters_ms']}"
+    if "resolve_ms" in timing:
+        text += (
+            f"\n    scorer resolve: {timing['resolve_ms']}"
+            f" ({'cold' if timing.get('scorer_cold') else 'warm'},"
+            f" hop {timing.get('resolve_hop_ms')})"
+        )
+    if "score_ms" in timing:
+        text += (
+            f"\n    score: {timing['score_ms']} (hop {timing.get('score_hop_ms')},"
+            f" {timing.get('candidates')} candidates)"
+        )
+        for chunk in timing.get("chunks") or ():
+            text += (
+                f"\n      chunk of {chunk.get('items')} x {chunk.get('max_len')} tokens:"
+                f" tokenize {chunk.get('tokenize_ms')}, run {chunk.get('run_ms')}"
+            )
+    if "rerank_ms" in timing:
+        text += f"\n    rerank stage total: {timing['rerank_ms']}"
+        # The fallback note means the scorer was asked and the baseline order
+        # was kept; an empty pool never asked it, so it says nothing.
+        if "candidates" in timing and not timing.get("applied", True):
+            text += " (fell back to the unreranked order)"
     return text
 
 
@@ -1590,11 +1625,7 @@ async def _format_truncated_memory_search(
     fallback_used: bool, max_response_chars: int, summary_warning: str,
 ) -> types.TextContent:
     """Format search results through the configured response-length limiter."""
-    from ..utils.response_limiter import (
-        format_bounded_response,
-        format_truncated_response,
-        truncate_memories,
-    )
+    from ..utils.response_limiter import format_bounded_response
 
     memory_dicts = [
         {
@@ -1606,37 +1637,36 @@ async def _format_truncated_memory_search(
         }
         for memory in memories
     ]
+    # Under a limit the diagnostics asked for with include_debug ride after
+    # the results as the optional section, never in the required header: the
+    # limiter drops an optional section before it drops a memory (Greptile
+    # on #1701: in the header a long debug block could leave only the header).
     header = _build_memory_search_header(result, total, fallback_used) + "\n\n"
+    # [fork-only learning-loop] context injection in footer, alongside the
+    # upstream debug section (#1701) and beliefs.
     beliefs_section = await _format_beliefs_section(arguments, storage)
-    
-    # Add context injection section if enabled  
     query = arguments.get("query", "") or result.get("query", "")
     context_injection_section = await _format_context_injection_section(storage, query)
-    footer = beliefs_section + context_injection_section
-    
-    if summary_warning:
-        response_text = format_bounded_response(
-            memory_dicts,
-            max_response_chars,
-            header=summary_warning + header,
-            footer=footer,
-        )
-        return types.TextContent(type="text", text=response_text)
-
-    # Gate the format_bounded_response by the search inject context flag
-    if _search_inject_enabled():
-        # When flag is ON: use format_bounded_response (for footer injection budget)
-        response_text = format_bounded_response(
-            memory_dicts,
-            max_response_chars,
-            header=header,
-            footer=footer,
-        )
-    else:
-        # When flag is OFF: use legacy path (restore byte-exact original behavior)
-        truncated, meta = truncate_memories(memory_dicts, max_response_chars)
-        response_text = header + format_truncated_response(truncated, meta) + footer
-    
+    optional_section = (
+        _format_memory_search_debug(result)
+        + beliefs_section
+        + context_injection_section
+    )
+    # Every positive limit goes through the bounded formatter, with or
+    # without a summarization warning in front: the no-warning branch used to
+    # budget only the memories and append the header, the truncation notice
+    # and the optional section uncounted (doobidoo and ducanhnguyen223 on
+    # #1701), so a response could exceed the limit by the whole debug block.
+    # [fork-only] context injection rides in the footer via optional_section;
+    # the gate lives inside _format_context_injection_section (empty when OFF),
+    # so the bounded path is used uniformly (opção A, 31/out — alinhado ao
+    # upstream #1701: orçamento estrito protege o contexto/custo do cliente).
+    response_text = format_bounded_response(
+        memory_dicts,
+        max_response_chars,
+        header=summary_warning + header,
+        footer=optional_section,
+    )
     return types.TextContent(type="text", text=response_text)
 
 
@@ -1651,13 +1681,21 @@ async def _format_empty_memory_search(
     if result.get("query"):
         response += f" for query: '{result['query']}'"
     beliefs_section = await _format_beliefs_section(arguments, storage)
-    
-    # Add context injection section if enabled
+    # Add context injection section if enabled [fork-only learning-loop]
     query = arguments.get("query", "") or result.get("query", "")
     context_injection_section = await _format_context_injection_section(storage, query)
-    footer = beliefs_section + context_injection_section
-    
-    if summary_warning and max_response_chars > 0:
+    # A zero-hit search still carries the diagnostics the caller asked for
+    # (filter counts, and the search/filter timing of #1669): a slow empty
+    # search is the one that needs them (Greptile on #1701).
+    optional_section = (
+        _format_memory_search_debug(result)
+        + beliefs_section
+        + context_injection_section
+    )
+    footer = optional_section
+    # Every positive limit goes through the limiter, with or without a
+    # summarization warning in front (doobidoo and ducanhnguyen223 on #1701).
+    if max_response_chars > 0:
         response = format_bounded_response(
             [],
             max_response_chars,
@@ -1707,19 +1745,23 @@ async def handle_memory_search(server, arguments: dict) -> List[types.TextConten
         # Get max_response_chars for truncation
         max_response_chars = _get_max_response_chars(arguments)
         query = arguments.get("query")
+        t_begin = time.perf_counter()
         result, fallback_used = await _retrieve_search_results(
             storage, arguments, normalize_tags
         )
+        t_searched = time.perf_counter()
 
         # Check for errors
         if "error" in result:
             return [types.TextContent(type="text", text=f"Error: {result['error']}")]
+        pool = len(result.get("memories") or ())
 
         memories, total, filter_error = await _apply_memory_search_filters(
             server, arguments, query, result, MemoryService
         )
         if filter_error:
             return [types.TextContent(type="text", text=filter_error)]
+        t_filtered = time.perf_counter()
 
         # Optional second-stage rerank (issue #1602): per-call opt-in, gated by
         # MCP_RERANK_ENABLED. Runs after every narrowing stage, before gap
@@ -1731,34 +1773,67 @@ async def handle_memory_search(server, arguments: dict) -> List[types.TextConten
         )
 
         # Gap detection: record gaps when top score is below threshold (M3.1)
+        # [fork-only, learning-loop] runs after rerank, before format.
         await _maybe_record_gap(server, arguments, query, memories)
 
-        # Summarize only after retrieval, filters, and plugins. The helper keeps
-        # raw results intact as a safe fallback when the provider is unavailable.
-        summary_response, summary_warning = await _summarize_memory_search(
+        t_reranked = time.perf_counter()
+        # Stage timing for the rerank path (issue #1669): present only when the
+        # rerank stage ran under include_debug. The stages before it are added
+        # here, where they are measured; formatting comes after the response is
+        # built, so it can only be logged.
+        rerank_timing = (result.get("debug") or {}).get("rerank_timing")
+        if rerank_timing is not None:
+            rerank_timing["search_ms"] = round((t_searched - t_begin) * 1000, 1)
+            rerank_timing["pool"] = pool
+            rerank_timing["filters_ms"] = round((t_filtered - t_searched) * 1000, 1)
+            rerank_timing["rerank_ms"] = round((t_reranked - t_filtered) * 1000, 1)
+        response = await _finish_memory_search(
             arguments, query, memories, total, result, fallback_used, storage,
             max_response_chars,
         )
-        if summary_response is not None:
-            return [summary_response]
-
-        if max_response_chars > 0 and memories:
-            return [await _format_truncated_memory_search(
-                arguments, storage, memories, total, result, fallback_used,
-                max_response_chars, summary_warning,
-            )]
-        if not memories:
-            return [await _format_empty_memory_search(
-                arguments, storage, result, max_response_chars, summary_warning
-            )]
-        return [await _format_full_memory_search(
-            arguments, storage, memories, total, result, fallback_used,
-            summary_warning,
-        )]
+        if rerank_timing is not None:
+            logger.debug(
+                "memory_search rerank timing: search %.1f ms (pool %d) | filters %.1f ms"
+                " | rerank %.1f ms | format %.1f ms",
+                rerank_timing["search_ms"], pool, rerank_timing["filters_ms"],
+                rerank_timing["rerank_ms"], (time.perf_counter() - t_reranked) * 1000,
+            )
+        return response
 
     except Exception as e:
         logger.error("Error in memory_search: %s\n%s", _sanitize_log_value(e), traceback.format_exc())
         return [types.TextContent(type="text", text=f"Error searching memories: {str(e)}")]
+
+
+async def _finish_memory_search(
+    arguments, query, memories, total, result, fallback_used, storage,
+    max_response_chars,
+) -> List[types.TextContent]:
+    """Summarize, truncate or format the search result: the tail of
+    ``handle_memory_search``, moved out so the handler can time the stages
+    before it (issue #1669). Behaviour unchanged."""
+    # Summarize only after retrieval, filters, and plugins. The helper keeps
+    # raw results intact as a safe fallback when the provider is unavailable.
+    summary_response, summary_warning = await _summarize_memory_search(
+        arguments, query, memories, total, result, fallback_used, storage,
+        max_response_chars,
+    )
+    if summary_response is not None:
+        return [summary_response]
+
+    if max_response_chars > 0 and memories:
+        return [await _format_truncated_memory_search(
+            arguments, storage, memories, total, result, fallback_used,
+            max_response_chars, summary_warning,
+        )]
+    if not memories:
+        return [await _format_empty_memory_search(
+            arguments, storage, result, max_response_chars, summary_warning
+        )]
+    return [await _format_full_memory_search(
+        arguments, storage, memories, total, result, fallback_used,
+        summary_warning,
+    )]
 
 
 async def handle_update_memory_metadata(server, arguments: dict) -> List[types.TextContent]:
