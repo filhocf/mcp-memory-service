@@ -86,3 +86,36 @@ class TestLegitBeliefsNotNoise:
 
     def test_sentence_mentioning_pattern_not_noise(self):
         assert _is_noise(LEGIT_MENTIONS_PATTERN) is False
+
+
+class TestOverReachBoundaries:
+    """G5 (tuvok) over-reach probes: pin down the accepted trade-offs.
+
+    The bracket prefixes match on `startswith`, so a belief that *opens* with
+    `[PATTERN]`/`[GAP]`/`[TREND]` is rejected by design — those markers are
+    reserved for the consolidation engine's auto-insights, so a genuine belief
+    has no reason to lead with them. We assert that contract here (True = noise)
+    rather than leave it undocumented. A mid-text mention of the same marker is
+    NOT at the start, so it stays a valid belief (False).
+    """
+
+    def test_belief_opening_with_bracket_is_rejected_by_design(self):
+        # Accepted trade-off: leading [PATTERN]/[GAP]/[TREND] == consolidation
+        # marker, so rejected. Documented, not accidental.
+        assert _is_noise("[PATTERN] matching deve usar regex ancorado.") is True
+        assert _is_noise("[GAP] analysis is a technique we should adopt.") is True
+
+    def test_marker_mentioned_mid_text_is_not_noise(self):
+        # startswith is literal: a marker cited mid-sentence is real knowledge.
+        assert _is_noise(
+            "Ao derivar beliefs, o marker [GAP] que o consolidation gera não "
+            "deve virar conhecimento — filtrar no _is_noise."
+        ) is False
+
+    def test_prose_mentioning_share_tags_across_paragraphs_not_noise(self):
+        # The bounded, non-DOTALL pattern must NOT catch legit prose that only
+        # mentions both expressions far apart (tuvok P2 regression guard).
+        assert _is_noise(
+            "Beliefs onde memories share tags demais são suspeitos de over-tagging.\n\n"
+            "Isso pode indicar um recurring theme de disciplina de tags fraca."
+        ) is False
