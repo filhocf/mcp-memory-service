@@ -39,7 +39,7 @@ def belief_db():
     """In-memory DB com a tabela beliefs (012) + coluna embedding (021)."""
     conn = sqlite3.connect(":memory:")
     conn.executescript((MIGRATIONS / "012_add_belief_store.sql").read_text())
-    conn.executescript((MIGRATIONS / "021_add_belief_embedding.sql").read_text())
+    conn.executescript((MIGRATIONS / "020_add_belief_embedding.sql").read_text())
     return conn
 
 
@@ -282,7 +282,7 @@ def test_grouping_is_stable_across_insertion_order(monkeypatch):
     def _count_groups(order):
         conn = sqlite3.connect(":memory:")
         conn.executescript((MIGRATIONS / "012_add_belief_store.sql").read_text())
-        conn.executescript((MIGRATIONS / "021_add_belief_embedding.sql").read_text())
+        conn.executescript((MIGRATIONS / "020_add_belief_embedding.sql").read_text())
         for h in order:
             v = {"a": _V_A, "b": _V_A_NEAR, "c": _V_B}[h]
             _insert_belief(conn, h, f"belief {h}", confidence=0.5, embedding=_vec_blob(v))

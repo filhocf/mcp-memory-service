@@ -1,0 +1,12 @@
+{
+    "schema_version": 2,
+    "commit": "c34df2725fdd59dd024f15121022a84be8c9a2bc",
+    "indexed_at": "2026-10-31T12:27:52Z",
+    "project": "mms-fork-live",
+    "nodes": 17198,
+    "edges": 78769,
+    "original_size": 52297728,
+    "compressed_size": 10037315,
+    "compression_level": 9,
+    "reconcile_basis": "git-clean-head"
+}

@@ -47,7 +47,7 @@ def belief_db():
     """In-memory DB com a tabela beliefs (012) + coluna embedding (021)."""
     conn = sqlite3.connect(":memory:")
     conn.executescript((MIGRATIONS / "012_add_belief_store.sql").read_text())
-    conn.executescript((MIGRATIONS / "021_add_belief_embedding.sql").read_text())
+    conn.executescript((MIGRATIONS / "020_add_belief_embedding.sql").read_text())
     return conn
 
 

@@ -1,4 +1,4 @@
--- Migration 020: Add facts_extracted_at column for incremental fact extraction (RFC-MM-02)
+-- Migration 022: Add facts_extracted_at column for incremental fact extraction (RFC-MM-02)
 -- Tracks which memories have already been processed by the LLM fact extraction pipeline.
 -- NULL = pending processing. Timestamp = already processed (never reprocess).
 

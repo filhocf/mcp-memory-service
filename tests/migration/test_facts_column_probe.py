@@ -1,21 +1,27 @@
-"""Regression test for the migration 020 probe (H3).
+"""Regression test for the facts_extracted_at migration probe.
 
 The hub DB already has memories.facts_extracted_at (added by the original fork
-migration in July) but migration_registry has no row for version 20. Without a
+migration in July) but migration_registry has no row for its version. Without a
 probe entry, run_pending re-runs the unconditional
 `ALTER TABLE memories ADD COLUMN facts_extracted_at`, hits `duplicate column
 name`, rolls back and breaks every later migration.
 
-The fix adds version 20 to delta_probes so _stamp_probes recognizes the
-pre-existing column and stamps 20 as applied instead of re-running the ALTER.
-This test exercises the probe directly (the full run_pending needs the whole
-008-019 schema; the probe behaviour is what matters here).
+The fix adds the facts version to delta_probes so _stamp_probes recognizes the
+pre-existing column and stamps it as applied instead of re-running the ALTER.
+
+NOTE (31/out): the facts migration was renumbered 020 -> 022 after upstream #1729
+landed `020_add_belief_embedding.sql` (a real numbering collision — two fork/upstream
+migrations both claimed 020). The probe and this test now use version 22.
 """
 import sqlite3
 
 from pathlib import Path
 import mcp_memory_service.storage as storage_pkg
 from mcp_memory_service.storage.migration_runner import MigrationRunner
+
+
+FACTS_VERSION = 22
+FACTS_PROBE = {FACTS_VERSION: "SELECT 1 FROM pragma_table_info('memories') WHERE name='facts_extracted_at'"}
 
 
 def _runner():
@@ -32,8 +38,8 @@ def _registry(conn):
     conn.commit()
 
 
-def test_probe_020_stamps_when_facts_column_preexists(tmp_path):
-    """Column already present + no v20 row -> probe stamps 20, no duplicate-column crash."""
+def test_probe_stamps_when_facts_column_preexists(tmp_path):
+    """Column already present + no facts-version row -> probe stamps it, no duplicate-column crash."""
     db = tmp_path / "hub_like.db"
     conn = sqlite3.connect(str(db))
     conn.execute(
@@ -43,16 +49,15 @@ def test_probe_020_stamps_when_facts_column_preexists(tmp_path):
     _registry(conn)
 
     runner = _runner()
-    probe = {20: "SELECT 1 FROM pragma_table_info('memories') WHERE name='facts_extracted_at'"}
-    stamped = runner._stamp_probes(conn, probe)
+    stamped = runner._stamp_probes(conn, FACTS_PROBE)
 
-    assert 20 in stamped, f"probe did not stamp v20; stamped={stamped}"
+    assert FACTS_VERSION in stamped, f"probe did not stamp v{FACTS_VERSION}; stamped={stamped}"
     applied = {r[0] for r in conn.execute("SELECT version FROM migration_registry").fetchall()}
-    assert 20 in applied
+    assert FACTS_VERSION in applied
     conn.close()
 
 
-def test_probe_020_does_not_stamp_when_column_absent(tmp_path):
+def test_probe_does_not_stamp_when_column_absent(tmp_path):
     """Fresh DB without the column -> probe is a no-op (normal ALTER path applies it later)."""
     db = tmp_path / "fresh.db"
     conn = sqlite3.connect(str(db))
@@ -60,8 +65,7 @@ def test_probe_020_does_not_stamp_when_column_absent(tmp_path):
     _registry(conn)
 
     runner = _runner()
-    probe = {20: "SELECT 1 FROM pragma_table_info('memories') WHERE name='facts_extracted_at'"}
-    stamped = runner._stamp_probes(conn, probe)
+    stamped = runner._stamp_probes(conn, FACTS_PROBE)
 
-    assert 20 not in stamped, "probe stamped v20 on a DB that lacks the column"
+    assert FACTS_VERSION not in stamped, "probe stamped the facts version on a DB that lacks the column"
     conn.close()
