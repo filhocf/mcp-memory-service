@@ -76,6 +76,7 @@ RETURN caller.name, caller.filePath
    (processo de transporte fork→upstream, mecânica de branches, disciplina). Estado dos arcos: `docs/_fork/ARCOS.md`.
 4. **Metodologia de fork (OBRIGATÓRIA):** `docs/_fork/metodologia-fork.md` — 3 rituais (triar upstream, landar feats, não perder trabalho). Antes de QUALQUER sync/merge/reset: rodar o detector de órfãos e consultar `LEDGER-feats.md` + `ORFAOS.md`. INVARIANTE: nenhuma feat fork-only sem linha no LEDGER. Antes de implementar feat nova: conferir no LEDGER se já existe (não reimplementar — lição 3/out: trilogia 2e1978d5 reimplementada por falta de ledger).
 4. **ANTES de analisar/implementar código deste repo — consultar o GRAFO primeiro (codebase-memory, não grep):**
+   ⚠️ **Projeto codebase-memory deste repo = `mms-fork-live`** (root `~/git/mms/mms`, reindexado 31/out). NÃO use `home-claudio-git-mcp-memory-service` — é ÍNDICE ÓRFÃO (aponta para `~/git/mcp-memory-service`, path que não existe mais; o repo vivo migrou para `~/git/mms/mms`). Se `list_projects` mostrar só o órfão/stale, rode `index_repository(repo_path="~/git/mms/mms", name="mms-fork-live", mode="moderate", persistence=true)` antes de confiar no grafo.
    `list_projects`/`index_status` (indexado e fresco?) → roteie a tarefa (entender arquitetura → `get_architecture`;
    quem chama X → `trace_path(inbound)`; o que X chama → `trace_path(outbound)`; impacto de mudança → `detect_changes`;
    achar símbolo → `search_graph`; ler fonte → `get_code_snippet`) → escolha o tier (Scout/Verify/Auditor).
