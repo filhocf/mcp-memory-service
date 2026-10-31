@@ -260,13 +260,18 @@ def test_r6_dry_run_does_not_mutate_corpus(storage, monkeypatch):
 
 # ── G5 (tuvok) P3: apply path (B.2b) not implemented -> fail loud, not silent no-op ──
 
-def test_dry_run_false_raises_not_implemented(storage, monkeypatch):
-    """B.2b apply not implemented: dedup_beliefs(dry_run=False) must raise, not no-op."""
+def test_dry_run_false_applies_merge(storage, monkeypatch):
+    """B.2b implementado: dedup_beliefs(dry_run=False) agora APLICA (supersede dos
+    perdedores + report['merged']), não levanta mais NotImplementedError.
+    (Cobertura detalhada do apply em tests/test_belief_dedup_apply.py.)"""
     monkeypatch.setenv("MCP_BELIEF_DEDUP", "1")
     _seed_two_dupes_one_distinct(storage.conn)
     svc = BeliefService(storage)
-    with pytest.raises(NotImplementedError):
-        svc.dedup_beliefs(dry_run=False)
+    report = svc.dedup_beliefs(dry_run=False)
+    assert report["merged"] == 1  # h_dup_2 superseded sob h_dup_1
+    assert storage.conn.execute(
+        "SELECT status FROM beliefs WHERE belief_hash='h_dup_2'"
+    ).fetchone()[0] == "superseded"
 
 
 def test_grouping_is_stable_across_insertion_order(monkeypatch):

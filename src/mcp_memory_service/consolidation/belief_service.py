@@ -1420,18 +1420,11 @@ class BeliefService:
         Report dict: {"evaluated", "groups", "skipped", "capped",
         "group_details": [{"canonical": hash, "superseded": [hashes]}]}.
         """
-        report = {"evaluated": 0, "groups": 0, "skipped": 0, "capped": False,
-                  "group_details": [], "errors": []}
+        report = {"evaluated": 0, "groups": 0, "merged": 0, "skipped": 0,
+                  "capped": False, "group_details": [], "errors": []}
 
         if not os.environ.get("MCP_BELIEF_DEDUP"):
             return report
-
-        # B.2b (apply) is not implemented yet: fail loud rather than silently
-        # no-op, so a future caller never believes a merge happened (tuvok P3).
-        if not dry_run:
-            raise NotImplementedError(
-                "dedup_beliefs apply path (B.2b) not implemented; use dry_run=True"
-            )
 
         try:
             threshold = float(os.environ.get("MCP_BELIEF_DEDUP_THRESHOLD", "0.90"))
@@ -1445,6 +1438,7 @@ class BeliefService:
 
         try:
             conn = self.storage.conn
+            now = datetime.now(timezone.utc)
             # ORDER BY belief_hash makes the greedy single-linkage grouping
             # STABLE across runs (SQLite has no implicit row order): without it
             # the group count / collapsible total would depend on physical row
@@ -1510,6 +1504,16 @@ class BeliefService:
                     {"canonical": canonical, "superseded": losers}
                 )
                 report["groups"] += 1
+                # B.2b apply: merge losers into canonical + supersede, per-group
+                # transaction (A4). dry_run=True only reports. A failing group is
+                # rolled back and does not stop the others (per-group try/except,
+                # like sweep_degenerate_beliefs).
+                if not dry_run:
+                    try:
+                        self._merge_into_canonical(canonical, losers, now)
+                        report["merged"] += len(losers)
+                    except Exception as e:
+                        report["errors"].append(f"merge group {canonical}: {e}")
                 if report["groups"] >= cap:
                     report["capped"] = True
                     break
@@ -1536,6 +1540,77 @@ class BeliefService:
             return list(struct.unpack(f"<{n}f", blob))  # little-endian: matches serialize_float32
         except Exception:
             return None
+
+    def _merge_into_canonical(self, canonical: str, losers: list, now) -> None:
+        """Merge losers into the canonical belief and supersede them, atomically.
+
+        One transaction per group (B.2b, EARS A1-A4): unions the losers'
+        ``derived_from`` into the canonical (set, no dup — A2), sums the numeric
+        feedback counters in ``metadata`` (e.g. injected_used/unused — A3), writes
+        the canonical, and marks every loser ``superseded`` (A1, never deleted). On
+        any error the whole group rolls back (A4) and the exception propagates so
+        the caller records it and moves on. Confidence/content of the canonical are
+        left untouched (dedup is identity consolidation, not re-derivation).
+        """
+        conn = self.storage.conn
+        rows = {
+            r[0]: (json.loads(r[1] or "[]"), json.loads(r[2] or "{}"))
+            for r in conn.execute(
+                "SELECT belief_hash, derived_from, metadata FROM beliefs "
+                "WHERE belief_hash IN (%s)" % ",".join("?" * (len(losers) + 1)),
+                (canonical, *losers),
+            ).fetchall()
+        }
+        if canonical not in rows:
+            raise ValueError(f"canonical {canonical} not found")
+
+        canon_df, canon_meta = rows[canonical]
+        merged_df = list(canon_df)
+        seen = set(merged_df)
+        merged_meta = dict(canon_meta)
+
+        for lh in losers:
+            if lh not in rows:
+                continue
+            l_df, l_meta = rows[lh]
+            for h in l_df:
+                if h not in seen:
+                    merged_df.append(h)
+                    seen.add(h)
+            # Sum numeric counters; non-numeric loser keys are ignored, and a
+            # non-numeric canonical value is NEVER overwritten by a loser number
+            # (tuvok nit: the canonical's own value wins for non-counters).
+            for k, v in l_meta.items():
+                if isinstance(v, (int, float)) and not isinstance(v, bool):
+                    base = merged_meta.get(k, 0)
+                    if isinstance(base, (int, float)) and not isinstance(base, bool):
+                        merged_meta[k] = base + v
+                    # else: canonical holds a non-numeric value for k -> keep it.
+
+        now_iso = now.isoformat()
+        try:
+            # Guard against a stale open transaction on the shared connection
+            # (check_same_thread=False): a dangling BEGIN would raise "cannot
+            # start a transaction within a transaction". Same defense as
+            # storage/sqlite_vec store.py before an explicit BEGIN (tuvok MEDIUM).
+            if getattr(conn, "in_transaction", False):
+                conn.rollback()
+            conn.execute("BEGIN")
+            conn.execute(
+                "UPDATE beliefs SET derived_from = ?, metadata = ?, updated_at = ? "
+                "WHERE belief_hash = ?",
+                (json.dumps(merged_df), json.dumps(merged_meta), now_iso, canonical),
+            )
+            for lh in losers:
+                conn.execute(
+                    "UPDATE beliefs SET status = 'superseded', updated_at = ? "
+                    "WHERE belief_hash = ?",
+                    (now_iso, lh),
+                )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
 
     # --- Internal helpers ---
 
