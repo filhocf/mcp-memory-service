@@ -69,6 +69,8 @@ mcp-memory-service (fork) ── 21/out
 
 ## ✅ Feito (ordem inversa do tempo, mais recente primeiro)
 
+- **31/out** — sync upstream (11 commits, main 492 à frente / 0 atrás). Conflitos resolvidos em `harvest/rewriter.py` (adotado `build_openai_compatible_payload` do #1725, superset do nosso inline) e `server/handlers/memory.py` (fundidas feats fork-only learning-loop — `_maybe_record_gap`, context injection — com a refatoração #1701/#1669 do upstream: `_finish_memory_search`, debug per-stage, rerank timing). **DECISÃO (opção A, Claudio):** no conflito fit-at-least-one legado vs orçamento estrito do upstream, adotado o upstream (`format_bounded_response` sempre; estourar cap é anti-padrão de contexto/custo); teste fork-only ajustado. Testes: harvest 363, sync 70, search/inject/rerank 425 OK. 9 falhas pré-existentes herdadas (8 integração summarization sem provider LLM + 1 mock async `get_stores` — confirmadas no backup, não-regressão). Serviço reiniciado e provado a quente (ONNX dim 384, storage OK, busca MCP verde). **Nosso PR #1721 (delta-sync compaction) MERGED por doobidoo 30/out.** Inbox triado: 23 ruído → done, 10 acionáveis. Backup: `backup/sirdata-pre-sync-31out`.
+
 - **20/out** — UIAA/hermes fechado: D3 (mms-doctor, 49 testes, G6 6/6), D7 (instalador, 22 testes, E2E em Hermes limpo + banco zerado, idempotente, uninstall cirúrgico), D8 (docs/agents/hermes.md).
 - **19/out** — Índice uniforme em produção (vectors re-embedados para paraphrase-multilingual); régua Recall@10 0,567 / @30 0,675 / @100 0,750.
 - **18/out** — baseline de recall com régua consolidada (18/out); importador do state.db (G6); chunking testado (resolvido na amostra, falha em escala).
