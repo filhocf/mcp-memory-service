@@ -1,7 +1,7 @@
 # ARCOS — mapa de trabalho (agente)
 
 > Doc DENSO para carga rápida do agente. Onde estamos, por arco, cruzando RFC ↔ estado ↔ próximo passo.
-> Regra: mudou → atualiza AQUI (e no ESTADO.md a árvore). Atualizado: 2026-10-09.
+> Regra: mudou → atualiza AQUI (e no ESTADO.md a árvore). Atualizado: 2026-11-01.
 > Fonte de verdade dos arcos. RFCs em `docs/rfc/{planned,implemented}/`. Estado operacional em `pilha-prs-runbook.md`.
 
 ## Snapshot
@@ -15,6 +15,12 @@
 - **⭐ ARCO SÍNTESE DE BELIEF (NOVO, 14/out — a DOENÇA do learning-loop, não o sintoma):** medido no vivo que derive_beliefs NÃO destila, COPIA (314/314 verbatim); Recall@pool=0.30 (7/10 temas trabalhados não têm belief que responda); 15/314 beliefs têm fonte decision/learning (observation domina). TODO o maquinário de ranking (re-rank A, util, grafo, NER, cosine) afinava a recuperação de um corpus sem síntese — "leme perfeito, barco sem motor". Autoria NOSSA (#33). RFC rfc-s2-belief-store nunca foi implementada como escrita (código divergiu dia 1) → RFC nova docs/rfc/planned/rfc-belief-synthesis.md (G1): sintetizar claim abstrato (não copiar) + ingerir decision/learning + singular path. Resgatado da rfc-s2: subtipos de belief, scope global vs project, promoção emerging→active. Baseline de aceite: Recall@pool 0.30→≥0.8. INC5/INC7/ligar-grafo ficam ABAIXO (ranking sobre corpus-sem-síntese reencena rich-get-richer). mem 0ab1aff0/bcbc468b/25a0766.
 
 ## Arcos
+
+<!-- ARCO embedding-belief (#1728) — FECHADO 01/nov. 3 PRs 1-feat-por-vez, raiz B.2 (duplicação semântica ~13%) do veredito-corpus 31/out:
+- #1729 (coluna beliefs.embedding + rollback) MERGED 31/out.
+- #1733 (dedup semântico, biblioteca: dedup_beliefs/_group_by_cosine/_elect_canonical/_merge_into_canonical/backfill/_compute_belief_embedding) MERGED 01/nov. Convergido na main via git merge upstream/main (não cherry-pick); camadas fork-only (ARCO SÍNTESE/singular/noise) preservadas; landmine _compute_belief_embedding sync-duplicado eliminada.
+- #1771 (wiring no scheduler: backfill→dedup após derive_beliefs, dry-run default, apply opt-in via MCP_BELIEF_DEDUP_APPLY) ABERTO, review final. 2 rodadas Greptile OK (P1 to_thread, P1 double-count idempotente, 3 P2). Shell Tests vermelho = ambiental (dirname/ubuntu-26.04), avisado ao Henry.
+AO MERGEAR #1771: git merge upstream/main na main + remover worktrees /tmp/mms-pr-dedup2 e /tmp/mms-pr-wiring. Detalhe: LEDGER-feats.md + ESTADO.md (01/nov). -->
 
 | Arco | Estado | RFCs (docs/rfc/) | Próximo passo |
 |------|--------|------------------|---------------|
