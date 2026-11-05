@@ -46,11 +46,15 @@
 
 Concluir G0 com dois agentes independentes (arquiteto e revisor), ou registrar a indisponibilidade e analisar os três conflitos em cópias isoladas. Depois aplicar a resolução na branch `integration/upstream-20261104`, nunca em `main`.
 
+## Intervenções
+
+- G0 arquitetos/revisor: duas execuções falharam antes de iniciar por `reasoning_effort=medium` incompatível com o provedor `deepseek_v41`. G0 foi cumprido localmente com análise dirigida; a delegação não é pré-requisito.
+
 ## Diário de gates
 
 | Gate | Estado | Evidência |
 |---|---|---|
-| G0 | em análise | delegação arquitetural parcial; uma tarefa falhou por infraestrutura |
+| G0 | concluído por intervenção local | delegações falharam por infraestrutura; invariantes e escopo foram confirmados por análise Git dirigida |
 | G1 | decidido | regras fork-first e invariantes fixadas acima |
 | G2 | pendente | branch criada; merge ainda não reaplicado nesta branch |
 | G3 | pendente | — |
