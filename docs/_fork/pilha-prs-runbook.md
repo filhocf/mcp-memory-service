@@ -5,6 +5,7 @@
 > **Escopo deste doc:** o PROCESSO de transporte fork→upstream (mecânica de branches, protocolo de saúde, disciplina de transporte). **NÃO** duplica estado dos arcos (isso é `ESTADO.md`/`ARCOS.md`) nem backlog de épicos (`roadmap.md`). Regra: mexeu → documenta no lugar certo.
 
 ## Estado atual (2/out)
+- **OpenCode 1ª classe EM PREPARAÇÃO (08/nov) — PR ainda NÃO aberto.** Branch `feat/opencode-installer` (worktree `~/git/mms/opencode-first-class`); merge com `upstream/main` 04/nov já feito (branch 0 atrás / 20 à frente → diff do PR = só os nossos commits); `opencode/`→`agents/opencode/`; recorte só-OpenCode. **Ao abrir: PR em DRAFT** (regra inviolável) e título terminando em `(#N)` se houver issue. Falta: commit do worktree, revalidação clean-room + serviço :8000.
 - **1 PR nosso ABERTO: #1418** (rewriter TYPE: leak, issue #1417). Gate: reg G0-G4 → tuvok G5 (2 iter, APROVADO). CI tests-prove-fix PASS + changelog PASS. BLOCKED/REVIEW_REQUIRED, aguarda Henry. Branch `pr/rewriter-type-leak` (worktree `-dev`), commit recortado de upstream/main limpo.
 - **#1404/#1352 (supersession) MERGEADO** pelo Henry — fechou o arco rating.
 - **main fork** sincronizada (merge 2/out 4eb2d4e2, 0 atrás). **2 fixes locais NÃO pushados:** 10071cb1 (rewriter, = PR #1418) e f83c6bf4 (flag triagem, fork-only, vai no PR de feat). A main carrega os 2 como linha viva.

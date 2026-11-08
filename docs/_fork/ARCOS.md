@@ -5,6 +5,7 @@
 > Fonte de verdade dos arcos. RFCs em `docs/rfc/{planned,implemented}/`. Estado operacional em `pilha-prs-runbook.md`.
 
 ## Snapshot
+- **⭐ ARCO OPENCODE 1ª CLASSE (08/nov, branch `feat/opencode-installer` @ worktree `~/git/mms/opencode-first-class`):** o MMS como cliente de 1ª classe do OpenCode. Merge com `upstream/main` 04/nov (único conflito: import em `web/api/mcp.py`); **`opencode/`→`agents/opencode/`** (layout do discussion #1614); **recorte só-OpenCode** (Hermes/Kiro fora — upstream já tem `scripts/hermes/install.py` + `agents/hermes/README.md`). Superfícies depositadas e verificadas: MCP JSONC-safe, plugin, `AGENTS.md` gerenciado, skill `mms-uso`, autoria `X-Agent-ID`, `initialize.instructions` (SPEC-F001–F010). Verde: `tests/harness tests/docs` 173p/2s; node 13p; web 10p. **PR em preparação — regra: sempre DRAFT.**
 - **main fork:** 0 atrás do upstream, 246 à frente (09/out). Reconciliada pós-#1489 + L4 quality-recompute preservado.
 - **ARCO DELTA-SYNC (#1345): 4/5 fases MERGED** — #1478 (F1 event-log), #1485 (F2 HLC+resolver), #1487 (F3 embedding consistency), #1489 (F4 pull+push+scheduler). **Fase 5 (per-spoke identity + bootstrap) é o próximo e FECHA o arco.**
 - **ARCO #1304 (hybrid HTTP secondary): FECHADO** — 4 fases MERGED (#1470/#1471/#1474/#1476). Raiz que destravou o delta-sync. PR #1480 (CF-guard) pode estar pendente.
@@ -24,6 +25,7 @@ AO MERGEAR #1771: git merge upstream/main na main + remover worktrees /tmp/mms-p
 
 | Arco | Estado | RFCs (docs/rfc/) | Próximo passo |
 |------|--------|------------------|---------------|
+| **OpenCode 1ª classe (instalador + plugin + skill)** | 🟡 **PR em preparação (DRAFT)** | `specs/planned/SPEC-F001..F010` (specs, não RFCs) | finalizar bookkeeping → revalidar clean-room + serviço :8000 → commit no worktree → push + PR **DRAFT** (merge com `upstream/main` já feito); decidir se o move `agents/opencode/` vira PR próprio |
 | **Delta-sync (#1345)** | ✅ 4/5 fases MERGED | planned/rfc-delta-sync (v0.4) + spec-fase1..4d | **Fase 5: per-spoke identity (§8.4) + bootstrap (§9.3)** — fecha o arco; depois op (schedule regime, 3 máquinas, aposentar Insync) |
 | **Ingestão multi-agente** (NOVO guarda-chuva) | 🟡 design + Henry respondeu via #1346 | planned/rfc-ingestao-multi-agente v0.3 — discussion #1393 (só nosso comentário) | PR ponto-1 de #1346: coverage_report() visível no resultado+log do harvest; depois update RFC (compat #2, kill-switch #3, legacy ToolResult #4) e comentar #1393 linkando |
 | ├ Camada 1: registro/descoberta de fontes N | 🔴 design | implemented/rfc-harvest-source-identity (ABSORVIDA) | declarativo + auto-descoberta assistida |

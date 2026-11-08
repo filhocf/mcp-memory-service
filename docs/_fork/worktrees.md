@@ -3,7 +3,7 @@
 > Registro canônico. Worktree é área de trabalho **de uma sessão por vez** — trabalhar no
 > worktree de outra sessão causa colisão de branch e perda de estado. Antes de criar um novo,
 > verifique esta lista; ao criar, **adicione a linha aqui no mesmo commit**.
-> Atualizado: 21/out/2026.
+> Atualizado: 08/nov/2026.
 
 ## Lista medida
 
@@ -11,7 +11,7 @@
 |---|---|---|---|
 | `~/git/mms/mms` | `main` | **LINHA VIVA** — o serviço systemd roda daqui (venv editable ONNX) | ativo, serviço |
 | `~/git/mms/mms-dev` | — | removida 21/out (trabalho de tracker já entregue na main) | suprimida |
-| `~/git/mms/opencode-first-class` | `feat/opencode-installer` | bancada do embarque OpenCode 1ª classe: instalador no pacote, CLI `memory install opencode`, specs F001–F010, E2E clean-room | ativa, 12 commits (28/out) |
+| `~/git/mms/opencode-first-class` | `feat/opencode-installer` | bancada do embarque OpenCode 1ª classe: instalador no pacote, CLI `memory install opencode`, specs F001–F010, E2E clean-room | ativa; merge com `upstream/main` 04/nov (0 atrás / 20 à frente); `opencode/`→`agents/opencode/`; recorte só-OpenCode **não-commitado** (08/nov) |
 
 Rastreio: `git -C ~/git/mms/mms worktree list --porcelain` é a fonte de verdade; esta tabela
 explica **para quê** cada um existe, o que o comando não diz.
@@ -31,6 +31,10 @@ explica **para quê** cada um existe, o que o comando não diz.
 
 ## Histórico
 
+- **08/nov/2026** — bancada OpenCode: merge com `upstream/main` (só um conflito de import em
+  `web/api/mcp.py`), `opencode/` movido para `agents/opencode/` (layout do discussion #1614),
+  recorte só-OpenCode em preparação no worktree `~/git/mms/opencode-first-class`.
+  **Regra de embarque: nada vai ao upstream sem PR em DRAFT.**
 - **21/out/2026** — reorganização do workspace (pedida pelo Claudio): repo principal movido
   de `~/git/mcp-memory-service` para `~/git/mms/mms`; 15 worktrees de PR removidas, branches
   fully merged deletados local + remoto; unit systemd (`~/.config/systemd/user/memory-service.service`)
