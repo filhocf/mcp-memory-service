@@ -116,7 +116,7 @@ is_docs_only() {
     local f
     while IFS= read -r f; do
         case "$f" in
-            docs/*|changelog.d/*|.github/*.md|LICENSE|NOTICE|.gitignore|site/*) ;;
+            docs/*|changelog.d/*|.github/*.md|.github/CODEOWNERS|LICENSE|NOTICE|.gitignore|site/*) ;;
             */*) return 1 ;;
             *.md) ;;
             *) return 1 ;;
@@ -425,6 +425,26 @@ else
     check_status "Path literals match tracked case" "$CASE_EXIT"
     if [ "$CASE_EXIT" -ne 0 ]; then
         echo "$CASE_OUTPUT" | sed 's/^/     /'
+    fi
+fi
+
+# Check 6.11: changelog fragment. The same script as changelog.yml, run against the
+# index because the commit does not exist yet. It failed #1884 and #1885 in CI on a
+# fragment without a "- " list item, which nothing here caught. Exit 2 means no
+# origin/main to diff against: skipped, CI still runs it. A maintainer exemption by
+# the skip-changelog label is only visible to CI, so a FAIL here can be one.
+echo -e "\n${YELLOW}[6.11/9]${NC} Checking changelog fragment..."
+set +e
+CL_OUTPUT=$(PYTHON="$PYTHON_BIN" bash scripts/ci/check_changelog_entry.sh --staged origin/main 2>&1)
+CL_EXIT=$?
+set -e
+if [ $CL_EXIT -eq 2 ]; then
+    check_status "Changelog fragment" 3
+    echo -e "${YELLOW}   Could not diff against origin/main - CI still checks it${NC}"
+else
+    check_status "Changelog fragment" "$CL_EXIT"
+    if [ "$CL_EXIT" -ne 0 ]; then
+        echo "$CL_OUTPUT" | sed 's/^/     /'
     fi
 fi
 

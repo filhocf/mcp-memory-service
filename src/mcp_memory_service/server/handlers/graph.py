@@ -34,10 +34,7 @@ from ...config import SQLITE_VEC_PATH, STORAGE_BACKEND
 logger = logging.getLogger(__name__)
 
 
-def _sanitize_log_value(value: object) -> str:
-    """Sanitize a user-provided value for safe inclusion in log messages."""
-    return str(value).replace("\n", "\\n").replace("\r", "\\r").replace("\x1b", "\\x1b")
-
+from ...compat import _sanitize_log_value
 
 async def get_graph_storage() -> Optional[GraphStorage]:
     """
@@ -74,6 +71,20 @@ async def get_graph_storage() -> Optional[GraphStorage]:
     return None
 
 
+# Every action handle_memory_graph accepts. The tool schema enum in
+# tools/registry.py and the write-scope exemption in server_impl.py both
+# derive from this list — tests/web/api/test_mcp_transport_consistency.py
+# pins the three against each other so they cannot drift again.
+GRAPH_ACTIONS = [
+    "connected", "path", "subgraph", "extract_entities", "infer",
+    "suggest", "abduct", "list_entities", "entity_profile",
+]
+
+# Actions that only read the graph. extract_entities stores entity links,
+# so it is deliberately absent (GHSA-2mw6-h564-86wv).
+GRAPH_READ_ACTIONS = tuple(a for a in GRAPH_ACTIONS if a != "extract_entities")
+
+
 async def handle_memory_graph(server, arguments: dict) -> List[types.TextContent]:
     """Unified handler for graph operations."""
     action = arguments.get("action")
@@ -82,7 +93,7 @@ async def handle_memory_graph(server, arguments: dict) -> List[types.TextContent
         return [types.TextContent(type="text", text="Error: action parameter is required")]
 
     # Validate action
-    valid_actions = ["connected", "path", "subgraph", "extract_entities", "infer", "suggest", "abduct", "list_entities", "entity_profile"]
+    valid_actions = GRAPH_ACTIONS
     if action not in valid_actions:
         return [types.TextContent(
             type="text",
@@ -99,7 +110,10 @@ async def handle_memory_graph(server, arguments: dict) -> List[types.TextContent
 
             return await handle_find_connected_memories(server, {
                 "hash": hash_val,
-                "max_hops": arguments.get("max_hops", 2)
+                "max_hops": arguments.get("max_hops", 2),
+                # Issue #1724: forward the point-in-time bound — dropping it
+                # here silently disabled as_of for the memory_graph tool.
+                "as_of": arguments.get("as_of"),
             })
 
         elif action == "path":
@@ -373,10 +387,32 @@ async def handle_find_connected_memories(
 
     # Get optional parameters
     max_hops = arguments.get("max_hops", 2)
+    as_of = arguments.get("as_of")
 
     try:
+        # Parse as_of (issue #1724): point-in-time traversal. Invalid values
+        # fail the call rather than silently ignoring the bound.
+        as_of_ts = None
+        if as_of is not None:
+            from ...utils.time_parser import parse_as_of
+            try:
+                as_of_ts = parse_as_of(as_of)
+            except ValueError as e:
+                result = {
+                    "success": False,
+                    "error": f"Invalid as_of value: {e}",
+                    "connected": [],
+                    "count": 0,
+                }
+                return [types.TextContent(
+                    type="text",
+                    text=json.dumps(result, indent=2)
+                )]
+
         # Perform graph traversal
-        connected = await graph.find_connected(memory_hash, max_hops=max_hops)
+        connected = await graph.find_connected(
+            memory_hash, max_hops=max_hops, as_of=as_of_ts
+        )
 
         # Format results
         result = {
@@ -628,7 +664,7 @@ async def _retrieve_candidates(storage, query: str, n_results: int, tags, store)
     this composes the moment multi-store scoping reaches the retrieve path
     (#62) without breaking on backends that do not yet support it.
     """
-    import inspect
+    import inspect  # inline import: keep optional dependencies lazy
 
     kwargs = {"n_results": n_results, "tags": tags}
     try:
@@ -687,6 +723,23 @@ async def _select_explore_entities(
     if entities:
         return entities, hashes_by_entity
     return await graph.list_entities(limit=max_entities), {}
+
+
+def extract_extractive_summary(
+    chunks: List[Dict[str, Any]],
+    max_sentences: int = 3,
+    max_len: int = 150,
+) -> str:
+    """Extract a deterministic summary from top chunks (first sentence of up to max_sentences chunks)."""
+    sentences = []
+    for c in chunks[:max_sentences]:
+        text = (c.get("content") or "").strip()
+        # Take first sentence (split on period)
+        first_sent = text.split(". ")[0] if text else ""
+        if first_sent and not first_sent.endswith("."):
+            first_sent += "."
+        sentences.append(first_sent[:max_len])
+    return " ".join(s for s in sentences if s)
 
 
 async def _build_knowledge_map(
@@ -749,15 +802,7 @@ async def _build_knowledge_map(
             top_chunks.sort(key=lambda c: c.get("composite_score", 0), reverse=True)
 
         # Extractive summary: first sentence of top chunks (max 150 chars each, join 3)
-        sentences = []
-        for c in top_chunks[:3]:
-            text = (c.get("content") or "").strip()
-            # Take first sentence (split on period)
-            first_sent = text.split(". ")[0] if text else ""
-            if first_sent and not first_sent.endswith("."):
-                first_sent += "."
-            sentences.append(first_sent[:150])
-        summary = " ".join(s for s in sentences if s)
+        summary = extract_extractive_summary(top_chunks)
 
         knowledge_map.append({
             "entity_id": normalize_entity_id(name),
@@ -932,6 +977,72 @@ async def _discover_related_entities(graph, memory_hashes, max_hops: int):
     return related[:10]
 
 
+async def get_entity_detail(
+    storage,
+    graph,
+    entity_id: str,
+    limit: int = 50,
+    include_related: bool = True,
+    max_hops: int = 1,
+    store: Optional[str] = None,
+    scoring: Optional[str] = None,
+    entity_name: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Fetch full ranked detail for a single entity (read-only, core logic).
+
+    Resolves entity_id -> entity name (or uses entity_name if directly supplied),
+    filters by store when scoped, hydrates memory chunks, and discovers related entities.
+
+    Returns:
+        Dict with "entity_id", "name", "chunks", "related_entities"
+    Raises:
+        ValueError: if entity_id is unknown or store scoping is unsupported
+    """
+    name = entity_name or await _resolve_entity_name(graph, entity_id)
+    if name is None:
+        raise ValueError(f"Unknown entity_id: {entity_id}")
+
+    # Per-store confinement (read). memory_detail has no first-class store
+    # selector and the entity graph is global, so a token scoped to one
+    # store would otherwise receive the entity's chunks from every store.
+    # When a store is claimed (the transport gate has already authorized
+    # it), keep only hashes that resolve within that store; a backend whose
+    # get_by_hash ignores ``store`` can't confine, so fail closed. Real
+    # per-store graph partitioning is the follow-up issue (#1683).
+    if store is not None and store != "all":
+        if not getattr(storage, "get_by_hash_is_store_scoped", False):
+            raise ValueError("store-scoped memory_detail is not supported on this backend")
+        # Filter to the claimed store BEFORE applying the caller's limit:
+        # an entity whose newest links live in another store must not hide
+        # this store's older chunks. Scan a wider window, keep matches up to
+        # the limit.
+        wide = await graph.find_memories_by_entity(name, limit=max(limit * 10, 200))
+        memory_hashes = []
+        for _h in wide:
+            if await storage.get_by_hash(_h, store=store) is not None:
+                memory_hashes.append(_h)
+                if len(memory_hashes) >= limit:
+                    break
+    else:
+        memory_hashes = await graph.find_memories_by_entity(name, limit=limit)
+
+    entity_degree = len(memory_hashes)  # proxy for centrality
+    chunks = await _hydrate_chunks(
+        storage, memory_hashes, scoring=scoring, graph=graph, entity_degree=entity_degree
+    )
+    related_entities = (
+        await _discover_related_entities(graph, memory_hashes, max_hops)
+        if include_related else []
+    )
+
+    return {
+        "entity_id": entity_id,
+        "name": name,
+        "chunks": chunks,
+        "related_entities": related_entities,
+    }
+
+
 async def handle_memory_detail(server, arguments: dict) -> List[types.TextContent]:
     """Full ranked detail for a single entity (read-only).
 
@@ -954,6 +1065,7 @@ async def handle_memory_detail(server, arguments: dict) -> List[types.TextConten
     include_related = arguments.get("include_related", True)
     max_hops = arguments.get("max_hops", 1)
     scoring = arguments.get("scoring")  # opt-in: "composite" (#55)
+    detail_store = arguments.get("store")
 
     graph = await get_graph_storage()
     if graph is None:
@@ -967,41 +1079,35 @@ async def handle_memory_detail(server, arguments: dict) -> List[types.TextConten
         )]
 
     try:
-        name = await _resolve_entity_name(graph, entity_id)
-        if name is None:
-            return [types.TextContent(
-                type="text",
-                text=json.dumps({
-                    "success": False, "error": f"Unknown entity_id: {entity_id}",
-                    "entity_id": entity_id, "chunks": [], "related_entities": [],
-                }, indent=2)
-            )]
-
-        memory_hashes = await graph.find_memories_by_entity(name, limit=limit)
-        entity_degree = len(memory_hashes)  # proxy for centrality
-        chunks = await _hydrate_chunks(
-            server.storage, memory_hashes, scoring=scoring, graph=graph, entity_degree=entity_degree
-        )
-        related_entities = (
-            await _discover_related_entities(graph, memory_hashes, max_hops)
-            if include_related else []
+        detail = await get_entity_detail(
+            server.storage,
+            graph,
+            entity_id=entity_id,
+            limit=limit,
+            include_related=include_related,
+            max_hops=max_hops,
+            store=detail_store,
+            scoring=scoring,
         )
 
         logger.info(
             "memory_detail: entity_id=%s name=%s chunks=%d related=%d",
-            _sanitize_log_value(entity_id), _sanitize_log_value(name),
-            len(chunks), len(related_entities)
+            _sanitize_log_value(entity_id), _sanitize_log_value(detail["name"]),
+            len(detail["chunks"]), len(detail["related_entities"])
         )
         return [types.TextContent(
             type="text",
-            text=json.dumps({
-                "entity_id": entity_id,
-                "name": name,
-                "chunks": chunks,
-                "related_entities": related_entities,
-            }, indent=2)
+            text=json.dumps(detail, indent=2)
         )]
 
+    except ValueError as e:
+        return [types.TextContent(
+            type="text",
+            text=json.dumps({
+                "success": False, "error": str(e),
+                "entity_id": entity_id, "chunks": [], "related_entities": [],
+            }, indent=2)
+        )]
     except Exception as e:
         # See the memory_explore path above: wrap both str(e) and the traceback
         # and drop exc_info so a newline in the message cannot forge a log record.

@@ -21,6 +21,12 @@ cannot tell a trivial fix from a change that needed an issue, so this one
 passes; a maintainer applies `skip-issue` to a small fix and the next run drops
 `no-issue`.
 
+Open issues of this repository that the description only mentions ("Refs #N",
+"Addresses #N", or a "Fixes #N" GitHub did not parse) are checked for the claim
+like closing references. PR #1895 named #1893 that way, so it counted as linked
+for `no-issue` while the claim check saw no issue at all, and it passed with
+neither label.
+
 Unclaimed: adds the `unclaimed` label, posts one comment (found again by a
 hidden marker, so re-runs do not repeat it) and exits 1. Claimed: removes the
 label if present and exits 0. The check is informational, not required.
@@ -42,6 +48,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 
 LABEL = "unclaimed"
 NO_ISSUE_LABEL = "no-issue"
@@ -75,7 +82,7 @@ query($owner: String!, $name: String!, $number: Int!, $cursor: String) {
 """
 
 COMMENT = f"""{MARKER}
-This pull request closes {{issues}}, but @{{author}} is not currently assigned to
+This pull request is for {{issues}}, but @{{author}} is not currently assigned to
 these issues. Assignment is the maintainer's confirmation that the work is
 claimed; a comment alone does not confirm it.
 
@@ -107,9 +114,12 @@ def label_names(pr: dict) -> set[str]:
     return {label["name"] for label in pr["labels"]["nodes"]}
 
 
-# ponytail: any "#N" or issue URL in the description counts as a link, PR numbers
-# included; telling issues from PRs would cost an API call per number.
+# ponytail: for no-issue, any "#N" or issue URL in the description counts as a
+# link, PR numbers included. The claim side resolves them: one batched query for
+# up to MAX_TEXT_REFS numbers, keeping open issues of this repository only.
 ISSUE_REF = re.compile(r"(?:^|[^\w&])#\d+\b|/issues/\d+")
+TEXT_REF = re.compile(r"(?:^|[^\w&])#(\d+)\b")
+MAX_TEXT_REFS = 20
 # The PR template's hidden hint reads "Fixes #123"; a description that keeps it
 # links nothing, so HTML comments are dropped before the search.
 HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
@@ -131,30 +141,80 @@ def needs_issue(pr: dict) -> bool:
 
 
 def unclaimed_issues(pr: dict) -> list[int]:
-    """Numbers of closing issues whose assignees do not include the PR author."""
+    """Numbers of closing or referenced issues whose assignees do not include the PR author."""
     if is_exempt(pr) or SKIP_ISSUE_LABEL in label_names(pr):
         return []
     login = (pr["author"] or {}).get("login")
     unclaimed = []
-    for issue in pr["closingIssuesReferences"]["nodes"]:
+    issues = pr["closingIssuesReferences"]["nodes"] + pr.get("referencedIssues", {}).get("nodes", [])
+    for issue in issues:
         assigned = any(a["login"] == login for a in issue["assignees"]["nodes"])
         if not assigned:
             unclaimed.append(issue["number"])
     return unclaimed
 
 
-def gh(*args: str, stdin: str | None = None) -> str:
+def gh(*args: str, stdin: str | None = None, check: bool = True) -> str:
     return subprocess.run(
-        ["gh", *args], input=stdin, capture_output=True, text=True, check=True
+        ["gh", *args], input=stdin, capture_output=True, text=True, check=check
     ).stdout
 
 
+def referenced_numbers(body: str | None, repo: str) -> list[int]:
+    """"#N" and this repository's issue URLs in the description, HTML comments dropped."""
+    text = HTML_COMMENT.sub("", body or "")
+    numbers = {int(n) for n in TEXT_REF.findall(text)}
+    numbers |= {int(n) for n in re.findall(rf"github\.com/{re.escape(repo)}/issues/(\d+)", text)}
+    return sorted(numbers)[:MAX_TEXT_REFS]
+
+
+def reference_query(numbers: list[int]) -> str:
+    """One aliased lookup per number; the numbers are ints, so interpolating them is safe."""
+    fields = " ".join(
+        f"n{n}: issueOrPullRequest(number: {n}) {{ ... on Issue "
+        f"{{ number state assignees(first: 20) {{ nodes {{ login }} }} }} }}"
+        for n in numbers
+    )
+    return f"query($owner: String!, $name: String!) {{ repository(owner: $owner, name: $name) {{ {fields} }} }}"
+
+
+def fetch_referenced_issues(repo: str, numbers: list[int]) -> list[dict]:
+    """The open issues among numbers; PRs, closed issues and unknown numbers are dropped.
+
+    One aliased query for all numbers. A number that does not exist makes GraphQL
+    report an error next to partial data, so the exit code is not checked here.
+    """
+    if not numbers:
+        return []
+    owner, name = repo.split("/")
+    out = gh("api", "graphql", "-f", f"query={reference_query(numbers)}", "-f", f"owner={owner}",
+             "-f", f"name={name}", check=False)
+    return [node for node in reference_nodes(out) if node and node.get("state") == "OPEN"]
+
+
+def reference_nodes(out: str) -> list:
+    """The aliased nodes of a reference query answer; none if gh printed no JSON."""
+    try:
+        data = json.loads(out or "{}").get("data") or {}
+    except json.JSONDecodeError:
+        print("Could not resolve issue references in the description; checking closing references only")
+        return []
+    return list((data.get("repository") or {}).values())
+
+
 ISSUE_QUERY = """
-query($owner: String!, $name: String!, $number: Int!) {
+query($owner: String!, $name: String!, $number: Int!, $cursor: String) {
   repository(owner: $owner, name: $name) {
     issue(number: $number) {
       closedByPullRequestsReferences(first: 10, includeClosedPrs: false) {
         nodes { number headRefOid state }
+      }
+      # PRs that only mention the issue are checked for the claim too, so an
+      # assignment has to re-run their check as well. Paged: an issue can be
+      # mentioned more than 100 times.
+      timelineItems(itemTypes: [CROSS_REFERENCED_EVENT], first: 100, after: $cursor) {
+        pageInfo { hasNextPage endCursor }
+        nodes { ... on CrossReferencedEvent { source { ... on PullRequest { number headRefOid state } } } }
       }
     }
   }
@@ -183,7 +243,17 @@ def fetch_pr(repo: str, number: int) -> dict:
         connection = page["closingIssuesReferences"]
         pr["closingIssuesReferences"]["nodes"].extend(connection["nodes"])
     pr["closingIssuesReferences"]["pageInfo"] = connection["pageInfo"]
+    pr["referencedIssues"] = {"nodes": referenced_issues(pr, repo, number)}
     return pr
+
+
+def referenced_issues(pr: dict, repo: str, number: int) -> list[dict]:
+    """Open issues the description mentions beyond its closing references."""
+    if is_exempt(pr):
+        return []
+    closing = {issue["number"] for issue in pr["closingIssuesReferences"]["nodes"]}
+    numbers = [n for n in referenced_numbers(pr.get("body"), repo) if n not in closing and n != number]
+    return fetch_referenced_issues(repo, numbers)
 
 
 def has_marker(pr: dict, marker: str) -> bool:
@@ -235,18 +305,52 @@ def check_pr(repo: str, number: int, dry_run: bool) -> int:
     return 1
 
 
-def rerun_for_issue(repo: str, number: int, dry_run: bool) -> int:
-    prs = graphql(ISSUE_QUERY, repo, number)["issue"]["closedByPullRequestsReferences"]["nodes"]
-    # includeClosedPrs: false still returns merged PRs.
-    for pr in (p for p in prs if p["state"] == "OPEN"):
+def latest_claim_run(repo: str, sha: str, wait_seconds: int = 0) -> dict | None:
+    """Find a claim run, optionally waiting for an in-flight check to finish."""
+    deadline = time.monotonic() + wait_seconds
+    while True:
         runs = [r for r in json.loads(gh(
-            "api", f"repos/{repo}/actions/runs"
-            f"?event=pull_request_target&head_sha={pr['headRefOid']}"
+            "api", f"repos/{repo}/actions/runs?event=pull_request_target&head_sha={sha}"
         ))["workflow_runs"] if r["path"] == WORKFLOW]
-        if runs and runs[0]["conclusion"] in ("failure", "success"):
-            print(f"Issue #{number}: re-running claim check {runs[0]['id']} of PR #{pr['number']}")
+        if not runs:
+            return None
+        run = runs[0]
+        if run["conclusion"] is not None or not wait_seconds:
+            return run
+        if time.monotonic() >= deadline:
+            raise RuntimeError("claim check is still active; retry the claim workflow")
+        time.sleep(2)
+
+
+def open_prs_for_issue(issue: dict) -> list[dict]:
+    """Open PRs that close or mention the issue, each once."""
+    mentions = [n.get("source") for n in issue.get("timelineItems", {}).get("nodes", [])]
+    prs = {}
+    for p in issue["closedByPullRequestsReferences"]["nodes"] + [m for m in mentions if m]:
+        prs.setdefault(p["number"], p)
+    # includeClosedPrs: false still returns merged PRs.
+    return [p for p in prs.values() if p["state"] == "OPEN"]
+
+
+def fetch_issue(repo: str, number: int) -> dict:
+    """The issue with every page of its cross-reference timeline."""
+    issue = graphql(ISSUE_QUERY, repo, number)["issue"]
+    timeline = issue.get("timelineItems", {})
+    page_info = timeline.get("pageInfo", {})
+    while page_info.get("hasNextPage"):
+        page = graphql(ISSUE_QUERY, repo, number, cursor=page_info["endCursor"])["issue"]["timelineItems"]
+        timeline["nodes"].extend(page["nodes"])
+        page_info = page["pageInfo"]
+    return issue
+
+
+def rerun_for_issue(repo: str, number: int, dry_run: bool, wait_seconds: int = 0) -> int:
+    for pr in open_prs_for_issue(fetch_issue(repo, number)):
+        run = latest_claim_run(repo, pr["headRefOid"], 0 if dry_run else wait_seconds)
+        if run and run["conclusion"] in ("failure", "success"):
+            print(f"Issue #{number}: re-running claim check {run['id']} of PR #{pr['number']}")
             if not dry_run:
-                gh("api", "-X", "POST", f"repos/{repo}/actions/runs/{runs[0]['id']}/rerun")
+                gh("api", "-X", "POST", f"repos/{repo}/actions/runs/{run['id']}/rerun")
     return 0
 
 
@@ -254,11 +358,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("pr", type=int, nargs="?", help="pull request number")
     parser.add_argument("--issue", type=int, help="re-run the checks of open PRs closing this issue")
+    parser.add_argument("--wait-for-check", action="store_true",
+                        help="wait up to 30 seconds for an active claim check before re-running")
     parser.add_argument("--repo", default=os.environ.get("GITHUB_REPOSITORY", "doobidoo/mcp-memory-service"))
     parser.add_argument("--dry-run", action="store_true", help="print the verdict, change nothing")
     args = parser.parse_args()
     if args.issue:
-        return rerun_for_issue(args.repo, args.issue, args.dry_run)
+        return rerun_for_issue(args.repo, args.issue, args.dry_run,
+                               wait_seconds=30 if args.wait_for_check else 0)
     if args.pr is None:
         parser.error("a pull request number or --issue is required")
     return check_pr(args.repo, args.pr, args.dry_run)

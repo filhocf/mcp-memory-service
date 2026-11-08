@@ -62,6 +62,7 @@ GUARDED_MODULES = [
     "mcp_memory_service/storage/mixins/base.py",
     "mcp_memory_service/storage/mixins/metadata.py",
     "mcp_memory_service/web/oauth/middleware.py",
+    "mcp_memory_service/web/oauth/storage/sqlite.py",
     "mcp_memory_service/health/integrity.py",
     "mcp_memory_service/models/memory.py",
     "mcp_memory_service/storage/mixins/delete.py",
@@ -80,10 +81,25 @@ GUARDED_MODULES = [
     "mcp_memory_service/web/sse.py",
     "mcp_memory_service/server/environment.py",
     "mcp_memory_service/mcp_server.py",
+    "mcp_memory_service/lm_studio_compat.py",
     "mcp_memory_service/embeddings/onnx_embeddings.py",
     "mcp_memory_service/config/search.py",
     "mcp_memory_service/config/quality.py",
     "mcp_memory_service/config/backup.py",
+    "mcp_memory_service/ingestion/semtools_loader.py",
+    "mcp_memory_service/ingestion/json_loader.py",
+    "mcp_memory_service/ingestion/csv_loader.py",
+    "mcp_memory_service/ingestion/text_loader.py",
+    "mcp_memory_service/ingestion/pdf_loader.py",
+    "mcp_memory_service/reasoning/inference.py",
+    "mcp_memory_service/reasoning/entity_linker.py",
+    "mcp_memory_service/reasoning/nli.py",
+    "mcp_memory_service/reasoning/multi_strategy.py",
+    "mcp_memory_service/harvest/parser.py",
+    "mcp_memory_service/harvest/patterns/__init__.py",
+    "mcp_memory_service/harvest/harvester.py",
+    "mcp_memory_service/harvest/extractor.py",
+    "mcp_memory_service/harvest/auto_capture.py",
 ]
 
 # The levels check 6.5 looks at, verbatim.
@@ -139,6 +155,12 @@ EXTERNAL_NAMES = frozenset({
     # server at registration, but it is still data the log did not produce.
     "client_id",
     "scope",
+    # web/oauth/storage/sqlite.py logs the authorization `code` a client
+    # presents to the token endpoint when it turns out to be already consumed.
+    # It arrives in the request body, so it is outside data like the two above.
+    # No other guarded module logs a bare `code` (`status_code` is a different
+    # token), so listing it decides for nobody else.
+    "code",
     # web/sse.py logs the address a connection came from, taken off the request.
     "client_ip",
     # ...and the Last-Event-ID header the client resumes from.
@@ -178,6 +200,21 @@ EXTERNAL_NAMES = frozenset({
     "MCP_HYBRID_FUSION_METHOD",
     "MCP_QUALITY_AI_PROVIDER",
     "BACKUP_INTERVAL",
+    # The document a caller asks the ingestion/ loaders to read: every loader
+    # logs it when it starts and when the parser fails. No guarded module logs
+    # the name bare in a %-style call, so listing it decides for nobody else.
+    # `error_msg` above already covers the stderr of the semtools subprocess.
+    "file_path",
+    # What harvest/parser.py and harvest/patterns/ log about files they did not
+    # name: the session or pattern file (`filepath`) and the `memory_type` key
+    # read out of a pattern YAML. No other guarded module logs either bare.
+    "filepath",
+    "memory_type",
+    # An entity name EntityExtractor pulled out of a memory's content or tags
+    # (reasoning/entity_linker.py logs it when the lookup fails and when the
+    # per-entity link cap is hit). No guarded module logs the name bare in a
+    # %-style call, so listing it decides for nobody else.
+    "entity_name",
 })
 
 # Fields of an outside object that cannot carry injectable text. An HTTP status
@@ -449,6 +486,25 @@ def test_lazy_scan_flags_oauth_client_values():
 
 
 @pytest.mark.unit
+def test_lazy_scan_flags_oauth_authorization_code():
+    """The authorization code web/oauth/storage/sqlite.py logs on a reused code.
+
+    It comes from the token request, so a client chooses it. The module's only
+    call that logs it is already wrapped, so the module scan stays green
+    whether or not the name is listed. This is the sample that fails if the
+    entry is dropped from EXTERNAL_NAMES; `status_code` stays a separate token.
+    """
+    bare = 'logger.warning("Authorization code already consumed: %s", code)\n'
+    wrapped = (
+        'logger.warning("Authorization code already consumed: %s", '
+        '_sanitize_log_value(code))\n'
+    )
+    assert _lazy_findings(bare)
+    assert not _lazy_findings(wrapped)
+    assert not _lazy_findings('logger.info("HTTP %s", status_code)\n')
+
+
+@pytest.mark.unit
 def test_lazy_scan_flags_sse_client_address():
     """What web/sse.py logs about a connection: the address and the Last-Event-ID.
 
@@ -584,3 +640,35 @@ def test_lazy_scan_flags_config_environment_strings():
         assert _lazy_findings(bare)
         assert not _lazy_findings(wrapped)
     assert not _lazy_findings('logger.info("Backup configuration: retention=%s days", BACKUP_RETENTION)\n')
+
+
+@pytest.mark.unit
+def test_lazy_scan_flags_ingestion_file_path():
+    """The path the ingestion/ loaders are handed, logged at start and on failure.
+
+    Every guarded logger call in the five loaders already wraps it, so the module
+    scans stay green whether or not the name is listed. This is the sample that
+    fails if `file_path` is dropped from EXTERNAL_NAMES; the character count and
+    the PDF backend name logged next to it stay unlisted on purpose.
+    """
+    bare = 'logger.info("Extracting chunks from JSON file: %s", file_path)\n'
+    wrapped = 'logger.info("Extracting chunks from JSON file: %s", _sanitize_log_value(file_path))\n'
+    assert _lazy_findings(bare)
+    assert not _lazy_findings(wrapped)
+    assert not _lazy_findings('logger.debug("Successfully parsed %s, extracted %d characters", _sanitize_log_value(file_path), len(markdown_content))\n')
+
+
+@pytest.mark.unit
+def test_lazy_scan_flags_reasoning_entity_name():
+    """An entity name pulled out of memory content, logged by reasoning/entity_linker.py.
+
+    Both guarded logger calls that carry it already wrap it, so the module scans
+    stay green whether or not the name is listed. This is the sample that fails
+    if `entity_name` is dropped from EXTERNAL_NAMES; the link cap and the edge
+    count logged next to it stay unlisted on purpose.
+    """
+    bare = 'logger.debug("EntityLinker: hit cap (%s) for entity \'%s\'", MAX_LINKS_PER_ENTITY, entity_name)\n'
+    wrapped = 'logger.debug("EntityLinker: hit cap (%s) for entity \'%s\'", MAX_LINKS_PER_ENTITY, _sanitize_log_value(entity_name))\n'
+    assert _lazy_findings(bare)
+    assert not _lazy_findings(wrapped)
+    assert not _lazy_findings('logger.info("EntityLinker: created %s shares_entity edges for %s", edges_created, memory_hash)\n')

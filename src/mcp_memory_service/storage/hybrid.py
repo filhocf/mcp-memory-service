@@ -29,12 +29,12 @@ import os
 import threading
 import time
 import weakref
-from typing import List, Dict, Any, Sequence, Tuple, Optional
+from typing import List, Dict, Any, Sequence, Set, Tuple, Optional
 from collections import deque
 from dataclasses import dataclass
 from datetime import date, datetime
 
-from .base import MemoryStorage
+from .base import MemoryStorage, recreate_kwargs
 from .sqlite_vec import SqliteVecMemoryStorage
 from ..models.memory import Memory, MemoryQueryResult
 from ..compat import _sanitize_log_value
@@ -139,6 +139,9 @@ class SyncOperation:
     timestamp: float = None
     retries: int = 0
     max_retries: int = 3
+    # #1560: an explicit restore (``store(recreate=True)``) is carried to the secondary
+    # so a remote that deleted the same content restores it too instead of answering 409.
+    recreate: Optional[bool] = None
 
     def __post_init__(self):
         if self.timestamp is None:
@@ -307,9 +310,15 @@ async def _fetch_secondary_sync_state(secondary) -> Optional[Dict[str, Any]]:
 
 
 async def _reconcile_remote_tombstones(
-    primary, tombstones: Dict[str, float]
+    primary,
+    tombstones: Dict[str, float],
+    conflicts: Optional[Set[str]] = None,
 ) -> Dict[str, Any]:
-    """Apply remote deletes without overwriting a newer local edit."""
+    """Apply remote deletes without overwriting a newer local edit.
+
+    ``tombstone_conflict_hashes`` is capped for reporting. A caller that has to act
+    on every conflict passes ``conflicts`` and gets the full set there.
+    """
     counts = {
         "tombstones_applied": 0,
         "tombstone_conflicts": 0,
@@ -340,11 +349,35 @@ async def _reconcile_remote_tombstones(
             counts["tombstones_applied"] += 1
         elif outcome == "conflict":
             counts["tombstone_conflicts"] += 1
+            if conflicts is not None:
+                conflicts.add(content_hash)
             if len(counts["tombstone_conflict_hashes"]) < 100:
                 counts["tombstone_conflict_hashes"].append(content_hash)
         elif outcome not in ("missing", "already_deleted"):
             counts["tombstone_failures"] += 1
     return counts
+
+
+def _select_undelivered_restores(
+    memories: List[Memory], tombstones: Dict[str, float], conflicts: Set[str]
+) -> List[Memory]:
+    """Return the conflicting rows that were stored after the remote delete (#1890).
+
+    A restore is a purge and a fresh insert, so its ``created_at`` is later than the
+    tombstone. A local edit keeps its ``created_at``, so it stays a conflict for
+    ``resolve_tombstone_conflict`` to settle. The row is read rather than the
+    ``recreate_of`` stamp in ``sync_events`` because that log is off by default.
+
+    Clocks are compared as in ``delete_if_not_updated_after``: wall clock against
+    wall clock, strictly, so an equal timestamp leaves the delete standing.
+    """
+    return [
+        memory
+        for memory in memories
+        if memory.content_hash in conflicts
+        and memory.created_at is not None
+        and memory.created_at > tombstones[memory.content_hash]
+    ]
 
 
 async def _secondary_hash_set(secondary) -> Optional[set]:
@@ -567,13 +600,16 @@ class BackgroundSyncService:
             synced_count, failed_count = await self._sync_force_sync_memories(
                 new_memories
             )
+            restored_count, restore_failures = await self._push_undelivered_restores(
+                state
+            )
             return self._force_sync_result(
                 primary_memories,
                 state,
-                synced_count,
-                failed_count,
+                synced_count + restored_count,
+                failed_count + restore_failures,
                 skipped_count,
-                skipped_tombstones,
+                skipped_tombstones - restored_count,
                 sync_start_time,
             )
 
@@ -606,6 +642,7 @@ class BackgroundSyncService:
             }
 
         remote_tombstones: Dict[str, float] = {}
+        undelivered_restores: List[Memory] = []
         if _has_cloudflare_d1(self.secondary):
             sync_state = await _fetch_secondary_sync_state(self.secondary)
             if sync_state is None:
@@ -629,8 +666,12 @@ class BackgroundSyncService:
                     ),
                 }
             remote_tombstones = sync_state['tombstones']
+            conflicts: Set[str] = set()
             tombstone_counts = await _reconcile_remote_tombstones(
-                self.primary, remote_tombstones
+                self.primary, remote_tombstones, conflicts
+            )
+            undelivered_restores = _select_undelivered_restores(
+                primary_memories, remote_tombstones, conflicts
             )
             secondary_hashes = sync_state['live_hashes']
         else:
@@ -647,6 +688,7 @@ class BackgroundSyncService:
             'remote_tombstones': remote_tombstones,
             'secondary_hashes': secondary_hashes,
             'tombstone_counts': tombstone_counts,
+            'undelivered_restores': undelivered_restores,
         }, None
 
     @staticmethod
@@ -682,6 +724,75 @@ class BackgroundSyncService:
             len(new_memories),
         )
         return new_memories, skipped_count, skipped_tombstones
+
+    async def _push_undelivered_restores(
+        self, state: Dict[str, Any]
+    ) -> Tuple[int, int]:
+        """Deliver restores the sync queue gave up on (#1890).
+
+        A pushed restore replaces the tombstone, so it stops being a conflict. A
+        tombstone that changed after the scan is left alone and stays one. So does
+        a row that could not be read again, which is reported as a failure.
+        """
+        restored_count = 0
+        failed_count = 0
+        tombstone_counts = state['tombstone_counts']
+        for memory in state['undelivered_restores']:
+            content_hash = memory.content_hash
+            try:
+                outcome, message = await self._push_one_restore(
+                    memory, state['remote_tombstones'][content_hash]
+                )
+            except Exception as e:
+                outcome, message = 'failed', str(e)
+            if outcome in ('restored', 'deleted'):
+                tombstone_counts['tombstone_conflicts'] -= 1
+                if content_hash in tombstone_counts['tombstone_conflict_hashes']:
+                    tombstone_counts['tombstone_conflict_hashes'].remove(content_hash)
+            if outcome == 'restored':
+                restored_count += 1
+            elif outcome == 'failed':
+                failed_count += 1
+                logger.warning(
+                    "Could not push restored memory %s: %s",
+                    _sanitize_log_value(content_hash[:8]),
+                    _sanitize_log_value(message),
+                )
+        return restored_count, failed_count
+
+    async def _push_one_restore(
+        self, memory: Memory, expected_deleted_at: float
+    ) -> Tuple[str, str]:
+        """Upload one restore unless its row was deleted during this run.
+
+        The row is read again first, because a local delete does not wait for
+        force_sync. That leaves the upload itself: a delete landing while it is in
+        flight meets the old tombstone, changes nothing on Cloudflare and reports
+        success, so the upload would bring the row back. Checking the row afterwards
+        closes that gap. A delete committed before the check is sent again here, and
+        one committed after it is queued behind the upload and finds a live row.
+
+        Returns ``(outcome, message)``, where outcome is ``restored``, ``deleted``
+        (the row is gone locally, so there is no conflict left), ``changed`` (the
+        tombstone moved) or ``failed``.
+        """
+        current = await self._get_current_queued_store_memory(memory)
+        if current is None:
+            return 'deleted', 'The primary row is no longer live'
+        success, message = await self.secondary.store_if_tombstone_matches(
+            current, expected_deleted_at
+        )
+        if success is None:
+            return 'changed', message
+        if not success:
+            return 'failed', message
+        sync_state = await self.primary.get_sync_state_for_hash(current.content_hash)
+        if sync_state is None or sync_state[1] is not None:
+            await self.enqueue_operation(
+                SyncOperation(operation='delete', content_hash=current.content_hash)
+            )
+            return 'deleted', 'The primary row was deleted during the upload'
+        return 'restored', message
 
     async def _sync_one_force_sync_memory(
         self, memory: Memory
@@ -1097,7 +1208,9 @@ class BackgroundSyncService:
                                 return  # Skip this memory permanently
                             raise RuntimeError(validation_error)
 
-                    success, message = await self.secondary.store(memory_to_sync)
+                    success, message = await self.secondary.store(
+                        memory_to_sync, **recreate_kwargs(self.secondary, operation.recreate)
+                    )
                     if not success:
                         raise RuntimeError(f"Store operation failed: {message}")
 
@@ -1397,6 +1510,9 @@ class HybridMemoryStorage(MemoryStorage):
     - Full compatibility with the MemoryStorage interface
     """
 
+    # Delegates get_by_hash to the SQLite-vec primary, which scopes by ``store``.
+    get_by_hash_is_store_scoped = True
+
     @property
     def max_content_length(self) -> Optional[int]:
         """
@@ -1409,6 +1525,20 @@ class HybridMemoryStorage(MemoryStorage):
     def supports_chunking(self) -> bool:
         """Hybrid backend supports content chunking with metadata linking."""
         return True
+
+    async def count_untagged_memories(self) -> int:
+        """Count untagged memories in primary storage."""
+        return await self.primary.count_untagged_memories()
+
+    async def delete_untagged_memories(self, expected_count: Optional[int] = None) -> Tuple[int, str]:
+        """Delegate guarded deletion; primary storage records tombstones and sync events."""
+        return await self.primary.delete_untagged_memories(expected_count=expected_count)
+
+    async def get_db_embedding_dimension(self) -> Optional[int]:
+        """Get the embedding dimension from primary storage."""
+        if hasattr(self.primary, 'get_db_embedding_dimension'):
+            return await self.primary.get_db_embedding_dimension()
+        return None
 
     def __init__(self,
                  sqlite_db_path: str,
@@ -2158,25 +2288,41 @@ class HybridMemoryStorage(MemoryStorage):
             "progress_percentage": round((self.initial_sync_completed / max(self.initial_sync_total, 1)) * 100, 1) if self.initial_sync_total > 0 else 0
         }
 
-    async def store(self, memory: Memory, skip_semantic_dedup: bool = False, store: str = "default") -> Tuple[bool, str]:
+    @property
+    def supports_recreate_refusal(self) -> bool:
+        """Whatever the primary can refuse, the hybrid can (#1560)."""
+        return getattr(self.primary, "supports_recreate_refusal", False) is True
+
+    async def store(self, memory: Memory, skip_semantic_dedup: bool = False, store: str = "default",
+                    recreate: Optional[bool] = None) -> Tuple[bool, str]:
         """Store a memory in primary storage and queue for secondary sync.
 
         Args:
             memory: The Memory object to store.
             skip_semantic_dedup: If True, bypass semantic similarity check on primary storage.
                 Exact hash deduplication is always enforced.
+            recreate: Forwarded to the primary (sqlite-vec) store — see
+                ``MemoryStorage.store`` (#1560). A refusal never reaches the sync queue;
+                an explicit restore (``True``) travels with the queued store so the
+                secondary restores too.
         """
         # Always store in primary first for immediate availability
-        success, message = await self.primary.store(memory, skip_semantic_dedup=skip_semantic_dedup, store=store)
+        success, message = await self.primary.store(
+            memory, skip_semantic_dedup=skip_semantic_dedup, store=store,
+            **recreate_kwargs(self.primary, recreate)
+        )
 
         if success and self.sync_service:
             # Queue for background sync to secondary
-            operation = SyncOperation(operation='store', memory=memory)
+            operation = SyncOperation(
+                operation='store', memory=memory,
+                recreate=True if recreate is True else None,
+            )
             await self.sync_service.enqueue_operation(operation)
 
         return success, message
 
-    async def retrieve(self, query: str, n_results: int = 5, tags: Optional[List[str]] = None, min_confidence: float = 0.0, include_superseded: bool = False, start_time: Optional[float] = None, end_time: Optional[float] = None, store: str = "default") -> List[MemoryQueryResult]:
+    async def retrieve(self, query: str, n_results: int = 5, tags: Optional[List[str]] = None, min_confidence: float = 0.0, include_superseded: bool = False, start_time: Optional[float] = None, end_time: Optional[float] = None, store: str = "default", as_of: Optional[float] = None) -> List[MemoryQueryResult]:
         """Retrieve memories from primary storage (fast)."""
         return await self.primary.retrieve(
             query,
@@ -2187,6 +2333,7 @@ class HybridMemoryStorage(MemoryStorage):
             start_time=start_time,
             end_time=end_time,
             store=store,
+            as_of=as_of,
         )
 
     async def retrieve_hybrid(
@@ -2197,6 +2344,7 @@ class HybridMemoryStorage(MemoryStorage):
         semantic_weight: Optional[float] = None,
         include_superseded: bool = False,
         store: Optional[str] = "default",
+        as_of: Optional[float] = None,
     ) -> List[MemoryQueryResult]:
         """BM25 + vector search on primary storage (#1576).
 
@@ -2211,13 +2359,14 @@ class HybridMemoryStorage(MemoryStorage):
             semantic_weight=semantic_weight,
             include_superseded=include_superseded,
             store=store,
+            as_of=as_of,
         )
 
     async def search(self, query: str, n_results: int = 5, min_similarity: float = 0.0) -> List[MemoryQueryResult]:
         """Search memories in primary storage."""
         return await self.primary.search(query, n_results)
 
-    async def search_by_tag(self, tags: List[str], time_start: Optional[float] = None) -> List[Memory]:
+    async def search_by_tag(self, tags: List[str], time_start: Optional[float] = None, include_superseded: bool = True) -> List[Memory]:
         """Search memories by tags in primary storage with optional time filtering.
 
         This method performs an OR search for tags. The `match_all` (AND) logic
@@ -2230,7 +2379,9 @@ class HybridMemoryStorage(MemoryStorage):
         Returns:
             List of Memory objects matching the tag criteria and time filter
         """
-        return await self.primary.search_by_tag(tags, time_start=time_start)
+        return await self.primary.search_by_tag(
+            tags, time_start=time_start, include_superseded=include_superseded
+        )
 
     async def search_by_tags(
         self,
@@ -2239,6 +2390,7 @@ class HybridMemoryStorage(MemoryStorage):
         time_start: Optional[float] = None,
         time_end: Optional[float] = None,
         include_pending: bool = False,
+        include_superseded: bool = True,
     ) -> List[Memory]:
         """Search memories by tags using consistent operation parameter across backends."""
         normalized_operation = operation.strip().upper() if isinstance(operation, str) else "AND"
@@ -2252,6 +2404,7 @@ class HybridMemoryStorage(MemoryStorage):
             time_start=time_start,
             time_end=time_end,
             include_pending=include_pending,
+            include_superseded=include_superseded,
         )
 
     async def delete(self, content_hash: str, store: Optional[str] = None) -> Tuple[bool, str]:
@@ -2311,6 +2464,13 @@ class HybridMemoryStorage(MemoryStorage):
         """Retrieve memories by exact content match from primary storage."""
         return await self.primary.get_by_exact_content(content, store=store)
 
+    async def _get_supersession_map(self, content_hashes, store=None):
+        """Delegate the issue-#1724 lineage lookup to the primary SQLite storage."""
+        delegate = getattr(self.primary, "_get_supersession_map", None)
+        if delegate is not None:
+            return await delegate(content_hashes, store=store)
+        return {}
+
     async def delete_by_timeframe(self, start_date: date, end_date: date, tag: Optional[str] = None) -> Tuple[int, str]:
         """Delete memories within a specific date range in primary storage and queue for secondary sync."""
         count, message = await self.primary.delete_by_timeframe(start_date, end_date, tag)
@@ -2347,9 +2507,22 @@ class HybridMemoryStorage(MemoryStorage):
         # Only cleanup primary, secondary will sync naturally
         return await self.primary.cleanup_duplicates()
 
-    async def update_memory_metadata(self, content_hash: str, updates: Dict[str, Any], preserve_timestamps: bool = True) -> Tuple[bool, str]:
-        """Update memory metadata in primary storage and queue for secondary sync."""
-        success, message = await self.primary.update_memory_metadata(content_hash, updates, preserve_timestamps)
+    async def update_memory_metadata(
+        self,
+        content_hash: str,
+        updates: Dict[str, Any],
+        preserve_timestamps: bool = True,
+        store: Optional[str] = None,
+    ) -> Tuple[bool, str]:
+        """Update memory metadata in primary storage and queue for secondary sync.
+
+        ``store`` confines the update in the primary. The queued operation needs
+        no store: content_hash is unique across stores, so the secondary applies
+        an update that the primary has already authorized to the same row.
+        """
+        success, message = await self.primary.update_memory_metadata(
+            content_hash, updates, preserve_timestamps, store=store
+        )
 
         # Skip enqueuing if sync is paused (v8.47.1 - fix consolidation hang)
         # Operations will be synced when sync resumes
@@ -2372,6 +2545,31 @@ class HybridMemoryStorage(MemoryStorage):
         Not queued for secondary sync: Cloudflare has no supersession field.
         """
         return await self.primary.mark_superseded_batch(pairs)
+
+    async def get_conflicts(self) -> list[dict[str, Any]]:
+        """Return unresolved conflict pairs from primary storage.
+
+        Conflicts are detected when store() writes to the primary, so they are
+        listed there too. Without this override the base default returns [].
+        """
+        return await self.primary.get_conflicts()
+
+    async def resolve_conflict(
+        self, winner_hash: str, loser_hash: str
+    ) -> tuple[bool, str]:
+        """Resolve a conflict in primary storage.
+
+        Not queued for secondary sync, like mark_superseded_batch(): the
+        supersede is logged as a sync event by the primary itself.
+        """
+        return await self.primary.resolve_conflict(winner_hash, loser_hash)
+
+    async def reconcile_conflict_tags(self, dry_run: bool = True) -> dict[str, Any]:
+        """Clear stale conflict:unresolved tags in primary storage (#1840).
+
+        Conflict tags live only in the primary; they are never synced.
+        """
+        return await self.primary.reconcile_conflict_tags(dry_run=dry_run)
 
     async def update_memories_batch(self, memories: List[Memory], preserve_timestamps: bool = False) -> List[bool]:
         """
@@ -2430,7 +2628,10 @@ class HybridMemoryStorage(MemoryStorage):
             "unique_tags": primary_stats.get("unique_tags", 0),
             "memories_this_week": primary_stats.get("memories_this_week", 0),
             "database_size_bytes": primary_stats.get("database_size_bytes", 0),
-            "database_size_mb": primary_stats.get("database_size_mb", 0),
+            # No default: when the primary cannot read the database it returns only
+            # {"error": ...}, and a filled-in 0 would be indistinguishable from an
+            # empty database. None means "unknown" all the way to the UI.
+            "database_size_mb": primary_stats.get("database_size_mb"),
             "primary_stats": primary_stats,
             "sync_enabled": self.sync_service is not None
         }
@@ -2554,6 +2755,7 @@ class HybridMemoryStorage(MemoryStorage):
         store: str = "default",
         agent_id: Optional[str] = None,
         exclude_pending: bool = False,
+        include_superseded: bool = True,
     ) -> List[Memory]:
         """Get all memories from primary storage.
 
@@ -2571,15 +2773,16 @@ class HybridMemoryStorage(MemoryStorage):
             store=store,
             agent_id=agent_id,
             exclude_pending=exclude_pending,
+            include_superseded=include_superseded,
         )
 
     async def get_by_hash(self, content_hash: str, store: Optional[str] = None) -> Optional[Memory]:
         """Get a memory by its content hash from primary storage."""
         return await self.primary.get_by_hash(content_hash, store=store)
 
-    async def count_all_memories(self, memory_type: Optional[str] = None, tags: Optional[List[str]] = None, tag_match: str = "any", stale_days: Optional[int] = None, store: str = "default", agent_id: Optional[str] = None) -> int:
+    async def count_all_memories(self, memory_type: Optional[str] = None, tags: Optional[List[str]] = None, tag_match: str = "any", stale_days: Optional[int] = None, store: str = "default", agent_id: Optional[str] = None, include_superseded: bool = True) -> int:
         """Get total count of memories from primary storage."""
-        return await self.primary.count_all_memories(memory_type=memory_type, tags=tags, tag_match=tag_match, stale_days=stale_days, store=store, agent_id=agent_id)
+        return await self.primary.count_all_memories(memory_type=memory_type, tags=tags, tag_match=tag_match, stale_days=stale_days, store=store, agent_id=agent_id, include_superseded=include_superseded)
 
     async def get_memories_by_time_range(
         self,

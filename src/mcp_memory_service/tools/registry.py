@@ -10,6 +10,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+# The single source of truth for memory_graph actions. The schema enum below
+# and the write-scope exemption in server_impl both build on this list, so an
+# action added here is everywhere; tests/web/api/test_transport_consistency.py
+# pins the derivation.
+from ..server.handlers.graph import GRAPH_ACTIONS
+
 
 @dataclass(frozen=True)
 class ToolDef:
@@ -66,6 +72,10 @@ TOOL_REGISTRY: list[ToolDef] = [
                 "content": {
                     "type": "string",
                     "description": "The memory content to store, such as a fact, note, or piece of information.",
+                },
+                "restore_deleted": {
+                    "type": "boolean",
+                    "description": "Bring back content that was deleted on this server. Default false: re-sending deleted content is refused with 'Not stored: this content was deleted on <date>; pass restore_deleted=true to bring it back'. Set true only when the user deliberately wants the deleted memory back.",
                 },
                 "conversation_id": {
                     "type": "string",
@@ -186,6 +196,12 @@ USE THIS WHEN:
 - Need semantic, exact, or time-based search
 - User references "last time we discussed", "you should know"
 
+HASH LOOKUP:
+- Provide content_hash instead of query to retrieve one memory by its exact identifier
+- Hash misses return no results; they do not fall back to semantic search
+- query and content_hash are mutually exclusive; store scoping applies to both
+- Only store, entity, limit, max_response_chars, and include_beliefs may accompany content_hash
+
 MODES:
 - semantic (default): Finds conceptually similar content even if exact words differ
 - exact: Finds memories containing the exact query string
@@ -215,6 +231,7 @@ SUMMARIZATION (opt-in):
 
 Examples:
 {"query": "python async patterns"}
+{"content_hash": "aa6caea3d060e736c8b412e6b34a1354148ec04527a4bf547cfd4185140573d0"}
 {"query": "API endpoint", "mode": "exact"}
 {"time_expr": "last week", "limit": 20}
 {"query": "database config", "time_expr": "yesterday"}
@@ -227,7 +244,12 @@ Examples:
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "Search query (required for semantic/exact modes, optional for time-only searches)",
+                    "description": "Text search query (required for semantic/exact modes unless content_hash is supplied, optional for time-only searches)",
+                },
+                "content_hash": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Retrieve one memory by its exact content hash instead of searching text. Only store, entity, limit, max_response_chars, and include_beliefs may accompany content_hash; query and other search arguments are rejected.",
                 },
                 "mode": {
                     "type": "string",
@@ -274,6 +296,16 @@ Examples:
                     "default": 0,
                     "description": "Quality weight for reranking (0.0-1.0)",
                 },
+                "rerank": {
+                    "type": "boolean",
+                    "default": False,
+                    "description": (
+                        "Opt-in second-stage ONNX rerank of the top "
+                        "MCP_RERANK_CANDIDATES results. Requires "
+                        "MCP_RERANK_ENABLED on the server; off by default and a "
+                        "no-op when the server flag is unset."
+                    ),
+                },
                 "ranking_weights": {
                     "type": "object",
                     "description": "Custom weights for ranked mode (keys: semantic, time_decay, access_frequency, quality). Values are normalized to sum=1.0.",
@@ -303,7 +335,18 @@ Examples:
                 "include_superseded": {
                     "type": "boolean",
                     "default": False,
-                    "description": "Include memories that have been superseded by newer contradicting memories. Default: false (superseded memories are hidden).",
+                    "description": "Include memories that have been superseded by newer contradicting memories. Default: false (superseded memories are hidden). When true, each result carries a status field ('current' or 'superseded') plus superseded_by and superseded_at when superseded.",
+                },
+                "as_of": {
+                    "type": "string",
+                    "description": (
+                        "Point-in-time query (issue #1724): return what was known at this moment. "
+                        "Accepts an ISO date/datetime (e.g. '2026-09-15', '2026-09-15T10:00:00Z'), "
+                        "'YYYY' (the whole year, evaluated at its last second), or 'YYYY-MM' "
+                        "(evaluated at that month's last second). Results include memories with "
+                        "created_at <= as_of that had not been superseded by as_of. Status flags "
+                        "with include_superseded=true are evaluated at as_of as well."
+                    ),
                 },
                 "entity": {
                     "type": "string",
@@ -564,7 +607,7 @@ Examples:
                         }
                     }
 
-                    # Create a new version with updated content (sqlite_vec only)
+                    # Create a new version with updated content (sqlite_vec and milvus)
                     {
                         "content_hash": "abc123...",
                         "updates": {
@@ -624,7 +667,7 @@ Examples:
                 "versioned": {
                     "type": "boolean",
                     "default": False,
-                    "description": "When true, creates a new memory version instead of overwriting and marks the old one as superseded. Requires content in updates. Supported backends: sqlite_vec. Unsupported backends return an error.",
+                    "description": "When true, creates a new memory version instead of overwriting and marks the old one as superseded. Requires content in updates. Supported backends: sqlite_vec, milvus. Unsupported backends return an error.",
                 },
             },
             "required": ["content_hash", "updates"],
@@ -924,6 +967,7 @@ ACTIONS:
 - analyze: Analyze quality distribution across all memories
 - maintain: Run maintenance cycle (cleanup + conflicts + stale + quality)
 - maintain_status: Get stats from last maintenance run
+- rebuild_entities: Rebuild has_entity and shares_entity for ALL live memories using current extraction settings. Preview by default (dry_run=true); back up first and pause other writers before dry_run=false. Requires a graph backend.
 
 Examples:
 {"action": "rate", "content_hash": "abc123", "rating": 1, "feedback": "Very useful"}
@@ -933,13 +977,15 @@ Examples:
 {"action": "maintain"}
 {"action": "maintain", "dry_run": false}
 {"action": "maintain_status"}
+{"action": "rebuild_entities"}
+{"action": "rebuild_entities", "dry_run": false}
 """,
         input_schema={
             "type": "object",
             "properties": {
                 "action": {
                     "type": "string",
-                    "enum": ["rate", "get", "analyze", "maintain", "maintain_status"],
+                    "enum": ["rate", "get", "analyze", "maintain", "maintain_status", "rebuild_entities"],
                     "description": "Quality action to perform",
                 },
                 "content_hash": {
@@ -968,12 +1014,12 @@ Examples:
                 "dry_run": {
                     "type": "boolean",
                     "default": True,
-                    "description": "For 'maintain': preview mode — no modifications (default: true)",
+                    "description": "For 'maintain'/'rebuild_entities': preview mode — no modifications (default: true)",
                 },
             },
             "required": ["action"],
         },
-        annotations={"destructiveHint": False},
+        annotations={"destructiveHint": True},
     ),
     ToolDef(
         name="memory_graph",
@@ -983,8 +1029,12 @@ ACTIONS:
 - connected: Find memories connected via associations (BFS traversal)
 - path: Find shortest path between two memories
 - subgraph: Get graph structure around a memory for visualization
+- extract_entities: Manually extract and store entities for a memory (write). Params: hash (string)
 - infer: Find transitive relationships (A→B→C implies A→C). Params: rel_type (string), max_hops (int, default 2)
 - suggest: Suggest potential relationships for a memory based on shared neighbors. Params: hash (string)
+- abduct: Find plausible common-cause explanations for a memory's relationships. Params: hash (string)
+- list_entities: List known entities. Params: limit (int, default 50)
+- entity_profile: Show memories linked to one entity. Params: entity_name (string)
 
 Examples:
 {"action": "connected", "hash": "abc123", "max_hops": 2}
@@ -998,7 +1048,7 @@ Examples:
             "properties": {
                 "action": {
                     "type": "string",
-                    "enum": ["connected", "path", "subgraph", "infer", "suggest"],
+                    "enum": list(GRAPH_ACTIONS),
                     "description": "Graph operation to perform",
                 },
                 "hash": {
@@ -1032,10 +1082,28 @@ Examples:
                     "type": "string",
                     "description": "For 'infer': relationship type to traverse",
                 },
+                "entity_name": {
+                    "type": "string",
+                    "description": "For 'entity_profile': entity to profile",
+                },
+                "limit": {
+                    "type": "integer",
+                    "default": 50,
+                    "description": "For 'list_entities': max entities to return",
+                },
+                "as_of": {
+                    "type": "string",
+                    "description": (
+                        "For 'connected': point-in-time traversal (issue #1724). "
+                        "Only edges valid at this moment are followed (temporal "
+                        "edges carry valid_from/valid_until; untimed edges are "
+                        "always followed). Same formats as memory_search as_of."
+                    ),
+                },
             },
             "required": ["action"],
         },
-        annotations={"readOnlyHint": True},
+        annotations={"readOnlyHint": False},
     ),
     ToolDef(
         name="memory_conflicts",

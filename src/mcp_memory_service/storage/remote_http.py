@@ -18,23 +18,143 @@ Provides HTTP-based storage using REST API calls to remote MCP Memory Service in
 """
 
 import logging
-from typing import List, Dict, Any, Tuple, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
+
 import httpx
 
-from mcp_memory_service.storage.base import MemoryStorage
-from mcp_memory_service.models.memory import Memory, MemoryQueryResult
 from mcp_memory_service.compat import _sanitize_log_value
+from mcp_memory_service.models.memory import Memory, MemoryQueryResult
+from mcp_memory_service.storage.base import MemoryStorage, RecreateRefused
 
 logger = logging.getLogger(__name__)
 
 
+def _read_sync_capabilities(response: httpx.Response) -> dict[str, Any]:
+    """Validate and decode a peer's capabilities response."""
+    from .sync.protocol import SyncProtocolCompatibilityError
+
+    if response.status_code == 404:
+        probed_url = response.request.url.copy_with(
+            username="", password="", query=None, fragment=None
+        )
+        raise SyncProtocolCompatibilityError(
+            f"peer at {probed_url} does not advertise a sync protocol; "
+            "upgrade it to a version that supports /api/sync/capabilities."
+        )
+    response.raise_for_status()
+    if response.status_code != 200:
+        raise SyncProtocolCompatibilityError(
+            f"Peer capabilities endpoint returned HTTP {response.status_code}"
+        )
+
+    try:
+        capabilities = response.json()
+    except (ValueError, TypeError) as exc:
+        raise SyncProtocolCompatibilityError(
+            "Peer returned invalid JSON from /api/sync/capabilities"
+        ) from exc
+    if not isinstance(capabilities, dict):
+        raise SyncProtocolCompatibilityError(
+            "Peer capabilities response must be a JSON object"
+        )
+    peer_version = capabilities.get("version")
+    if not isinstance(peer_version, str) or not peer_version:
+        raise SyncProtocolCompatibilityError("Peer advertises an invalid version value")
+    return capabilities
+
+
+def _check_sync_embedding_identity(
+    capabilities: dict[str, Any], local_storage: MemoryStorage
+) -> tuple[str, int]:
+    """Validate the peer's advertised embedding identity against local storage."""
+    from .base import EmbeddingModelMismatchError
+    from .sync.protocol import (
+        SyncProtocolCompatibilityError,
+        resolve_embedding_identity,
+    )
+
+    remote_model, remote_dimension = _read_sync_embedding_identity(capabilities)
+    local_model, local_dimension = resolve_embedding_identity(local_storage)
+    if remote_model != local_model:
+        raise EmbeddingModelMismatchError(
+            f"Embedding model mismatch: local peer uses '{local_model}' but "
+            f"remote peer uses '{remote_model}'",
+            local_model=local_model,
+            remote_model=remote_model,
+        )
+    if remote_dimension != local_dimension:
+        raise SyncProtocolCompatibilityError(
+            "Embedding dimension mismatch: local peer uses "
+            f"{local_dimension}, remote peer uses {remote_dimension}"
+        )
+    return remote_model, remote_dimension
+
+
+def _read_sync_embedding_identity(
+    capabilities: dict[str, Any],
+) -> tuple[str, int]:
+    """Read and validate the peer's embedding model and vector dimension."""
+    from .sync.protocol import SyncProtocolCompatibilityError
+
+    remote_model = capabilities.get("embedding_model")
+    remote_dimension = capabilities.get("embedding_dimension")
+    if not isinstance(remote_model, str) or not remote_model:
+        raise SyncProtocolCompatibilityError(
+            "Peer advertises an invalid embedding_model value"
+        )
+    if (
+        isinstance(remote_dimension, bool)
+        or not isinstance(remote_dimension, int)
+        or remote_dimension <= 0
+    ):
+        raise SyncProtocolCompatibilityError(
+            "Peer advertises an invalid embedding_dimension value"
+        )
+    return remote_model, remote_dimension
+
+
+_UNSCOPED_PEER_MESSAGE = (
+    "Remote peer does not advertise store_scoped_access; "
+    "upgrade it before sending store-scoped operations"
+)
+
+
+def _is_named_store(store: Optional[str]) -> bool:
+    """Whether ``store`` asks a hash-addressed call to be confined to one store.
+
+    ``None`` and ``"all"`` are unscoped. ``"default"`` is not sent either: a peer
+    that confines resolves a missing ``store`` to ``"default"`` itself, and an
+    older peer keeps serving it as before, so default-store sync keeps working
+    against a hub that has not been upgraded yet.
+    """
+    return store not in (None, "default", "all")
+
+
+def _store_params(store: Optional[str]) -> Dict[str, Any]:
+    """Request kwargs that pass ``store`` to the peer when the call names one."""
+    if store in (None, "default"):
+        return {}
+    return {"params": {"store": store}}
+
+
 class RemoteHTTPStorage(MemoryStorage):
-    """Remote HTTP storage backend using REST API calls."""
+    """Remote HTTP storage backend using REST API calls.
+
+    ``get_by_hash_is_store_scoped`` starts False and becomes True only after the
+    peer advertises ``store_scoped_access`` on ``/api/sync/capabilities``. Until
+    then a call that names a store is refused here, without a request: an older
+    peer ignores the ``store`` query parameter and would answer from every store.
+    """
 
     @property
     def max_content_length(self) -> Optional[int]:
         """No local content limit for HTTP storage."""
         return None
+
+    @property
+    def supports_recreate_refusal(self) -> bool:
+        """The remote server keeps the delete record and answers 409 (#1560)."""
+        return True
 
     @property
     def supports_chunking(self) -> bool:
@@ -77,6 +197,14 @@ class RemoteHTTPStorage(MemoryStorage):
         self.basic_user = basic_user
         self.basic_pass = basic_pass
         self.expected_embedding_model = expected_embedding_model
+        self.get_by_hash_is_store_scoped = False
+        # The capabilities response, or the error that stopped it, read by
+        # initialize() and handed to the check_sync_compatibility() that the
+        # scheduler calls right after it, so the peer is asked once per cycle
+        # and a timeout is waited through once.
+        self._capabilities_response: Optional[httpx.Response] = None
+        self._capabilities_error: Optional[Exception] = None
+        self._unscoped_peer_logged = False
 
         # Set up HTTP client with headers
         headers = {}
@@ -123,13 +251,69 @@ class RemoteHTTPStorage(MemoryStorage):
             sanitized_path = _sanitize_log_value(path)
             sanitized_error = _sanitize_log_value(str(e))
             logger.error(
-                "HTTP request failed: %s %s - %s", 
-                sanitized_method, sanitized_path, sanitized_error
+                "HTTP request failed: %s %s - %s: %s",
+                sanitized_method, sanitized_path,
+                _sanitize_log_value(type(e).__name__), sanitized_error
             )
             raise
 
+    def _peer_label(self) -> str:
+        """The peer's URL without credentials, for log lines."""
+        try:
+            url = httpx.URL(self.base_url).copy_with(
+                username="", password="", query=None, fragment=None
+            )
+        except Exception:
+            return "remote peer"
+        return _sanitize_log_value(str(url))
+
+    def _note_store_scoping(self, capabilities: Dict[str, Any]) -> None:
+        """Trust store scoping only when the peer says so explicitly."""
+        self.get_by_hash_is_store_scoped = capabilities.get("store_scoped_access") is True
+
+    async def _probe_store_scoping(self) -> None:
+        """Read the peer's capabilities and set ``get_by_hash_is_store_scoped``.
+
+        Any failure leaves the flag False, so store-scoped calls fail closed.
+        A request error is kept, not retried: check_sync_compatibility() raises
+        it, so a peer that times out is waited for once, not twice.
+        """
+        self.get_by_hash_is_store_scoped = False
+        self._capabilities_response = None
+        self._capabilities_error = None
+        try:
+            response = await self._request("GET", "/api/sync/capabilities")
+        except Exception as e:
+            # _request() has already logged it.
+            self._capabilities_error = e
+            return
+        self._capabilities_response = response
+        if response.status_code != 200:
+            return
+        try:
+            capabilities = response.json()
+        except (ValueError, TypeError):
+            return
+        if isinstance(capabilities, dict):
+            self._note_store_scoping(capabilities)
+
+    def _refuses_store(self, store: Optional[str], operation: str) -> bool:
+        """Fail closed on a named store the peer has not confirmed it confines."""
+        if not _is_named_store(store) or self.get_by_hash_is_store_scoped:
+            return False
+        if not self._unscoped_peer_logged:
+            self._unscoped_peer_logged = True
+            logger.warning(
+                "%s does not advertise store_scoped_access; refusing store-scoped "
+                "%s and every later store-scoped call to it. Upgrade the peer.",
+                self._peer_label(), operation,
+            )
+        return True
+
     async def initialize(self) -> None:
         """Initialize the HTTP storage backend and validate embedding model if expected."""
+        await self._probe_store_scoping()
+
         # If no expected model is specified, skip validation for backward compatibility
         if self.expected_embedding_model is None:
             return
@@ -195,14 +379,57 @@ class RemoteHTTPStorage(MemoryStorage):
                 remote_model="unknown"
             )
 
+    async def check_sync_compatibility(self, local_storage: MemoryStorage) -> dict[str, Any]:
+        """Negotiate protocol and event compatibility before delta-sync I/O.
+
+        A capabilities 404 is the only response treated as a legacy peer. Other
+        HTTP failures are surfaced so the scheduler can report connectivity or
+        authentication problems instead of silently downgrading the protocol.
+        """
+        from .sync.protocol import (
+            negotiate_sync_protocol,
+            validate_event_schema,
+        )
+
+        response, error = self._capabilities_response, self._capabilities_error
+        self._capabilities_response = None
+        self._capabilities_error = None
+        if error is not None:
+            raise error
+        if response is None:
+            response = await self._request("GET", "/api/sync/capabilities")
+        capabilities = _read_sync_capabilities(response)
+        self._note_store_scoping(capabilities)
+        peer_version = capabilities.get("version")
+        negotiated_protocol = negotiate_sync_protocol(capabilities)
+        event_schema_version = validate_event_schema(capabilities)
+        remote_model, remote_dimension = _check_sync_embedding_identity(
+            capabilities, local_storage
+        )
+
+        return {
+            "negotiated_sync_protocol": negotiated_protocol,
+            "event_schema_version": event_schema_version,
+            "embedding_model": remote_model,
+            "embedding_dimension": remote_dimension,
+            "version": peer_version,
+        }
+
     async def close(self) -> None:
         """Close the HTTP client."""
         await self.client.aclose()
 
     # Serviceable methods (8 methods as per Gate 1 decisions)
 
-    async def store(self, memory: Memory, skip_semantic_dedup: bool = False, store: Optional[str] = "default") -> Tuple[bool, str]:
-        """Store a memory via HTTP POST."""
+    async def store(self, memory: Memory, skip_semantic_dedup: bool = False, store: Optional[str] = "default",
+                    recreate: Optional[bool] = None) -> Tuple[bool, str]:
+        """Store a memory via HTTP POST.
+
+        ``recreate`` (#1560): the remote server decides from its own delete record. The
+        REST entry point refuses by default, so only ``True`` is forwarded (as
+        ``restore_deleted``); a 409 from the server comes back as a ``RecreateRefused``
+        message carrying the delete's event_id and HLC, like the local backend's.
+        """
         try:
             payload = {
                 "content": memory.content,
@@ -211,6 +438,8 @@ class RemoteHTTPStorage(MemoryStorage):
                 "memory_type": memory.memory_type,
                 "metadata": memory.metadata or {}
             }
+            if recreate is True:
+                payload["restore_deleted"] = True
             # TODO Bug #5: POST /api/memories endpoint (MemoryCreateRequest) does not accept 
             # created_at/updated_at fields. Server always assigns current timestamp.
             # This means pulled memories lose their original timestamps on re-store.
@@ -224,6 +453,15 @@ class RemoteHTTPStorage(MemoryStorage):
                     return True, "Memory stored successfully"
                 else:
                     return False, f"Server reported failure: {result}"
+            elif response.status_code == 409:
+                # #1560: the server has a delete on record for this content.
+                detail = response.json().get("detail") or {}
+                if not isinstance(detail, dict):
+                    detail = {}
+                return False, RecreateRefused(
+                    str(detail.get("event_id") or ""), detail.get("hlc") or [],
+                    flag_name="recreate=True",
+                )
             else:
                 response.raise_for_status()
                 return False, f"Unexpected status code: {response.status_code}"
@@ -234,9 +472,13 @@ class RemoteHTTPStorage(MemoryStorage):
             return False, f"Store failed: {_sanitize_log_value(str(e))}"
 
     async def get_by_hash(self, content_hash: str, store: Optional[str] = None) -> Optional[Memory]:
-        """Get a memory by hash via HTTP GET."""
+        """Get a memory by hash via HTTP GET, confined to ``store`` when it names one."""
+        if self._refuses_store(store, "get_by_hash"):
+            return None
         try:
-            response = await self._request("GET", f"/api/memories/{content_hash}")
+            response = await self._request(
+                "GET", f"/api/memories/{content_hash}", **_store_params(store)
+            )
 
             if response.status_code == 404:
                 return None
@@ -290,16 +532,20 @@ class RemoteHTTPStorage(MemoryStorage):
             logger.error("Get by hash failed: HTTP %s", e.response.status_code)
             return None
         except Exception as e:
-            logger.error("Get by hash failed: %s", _sanitize_log_value(str(e)))
+            logger.error(
+                "Get by hash failed: %s: %s",
+                _sanitize_log_value(type(e).__name__), _sanitize_log_value(str(e))
+            )
             return None
 
     async def delete(self, content_hash: str, store: Optional[str] = None) -> Tuple[bool, str]:
         """Delete a memory via HTTP DELETE, scoped to the given store partition."""
+        if self._refuses_store(store, "delete"):
+            return False, _UNSCOPED_PEER_MESSAGE
         try:
-            if store is not None:
-                response = await self._request("DELETE", f"/api/memories/{content_hash}", params={"store": store})
-            else:
-                response = await self._request("DELETE", f"/api/memories/{content_hash}")
+            response = await self._request(
+                "DELETE", f"/api/memories/{content_hash}", **_store_params(store)
+            )
 
             if response.status_code == 200:
                 result = response.json()
@@ -318,15 +564,25 @@ class RemoteHTTPStorage(MemoryStorage):
         except Exception as e:
             return False, f"Delete failed: {_sanitize_log_value(str(e))}"
 
-    async def update_memory_metadata(self, content_hash: str, updates: Dict[str, Any], preserve_timestamps: bool = True) -> Tuple[bool, str]:
-        """Update memory metadata via HTTP PUT."""
+    async def update_memory_metadata(
+        self,
+        content_hash: str,
+        updates: Dict[str, Any],
+        preserve_timestamps: bool = True,
+        store: Optional[str] = None,
+    ) -> Tuple[bool, str]:
+        """Update memory metadata via HTTP PUT, confined to ``store`` when it names one."""
+        if self._refuses_store(store, "update_memory_metadata"):
+            return False, _UNSCOPED_PEER_MESSAGE
         try:
             payload = {
                 **updates,
                 "preserve_timestamps": preserve_timestamps
             }
 
-            response = await self._request("PUT", f"/api/memories/{content_hash}", json=payload)
+            response = await self._request(
+                "PUT", f"/api/memories/{content_hash}", json=payload, **_store_params(store)
+            )
 
             if response.status_code == 200:
                 result = response.json()
@@ -466,7 +722,10 @@ class RemoteHTTPStorage(MemoryStorage):
                 return []
 
         except Exception as e:
-            logger.error("List content hashes page failed: %s", _sanitize_log_value(str(e)))
+            logger.error(
+                "List content hashes page failed: %s: %s",
+                _sanitize_log_value(type(e).__name__), _sanitize_log_value(str(e))
+            )
             return []
 
     async def get_events_since(self, cursor: int, limit: int = 100) -> Tuple[List[Dict[str, Any]], int, bool]:
@@ -506,7 +765,10 @@ class RemoteHTTPStorage(MemoryStorage):
                 raise RuntimeError(msg)
 
         except Exception as e:
-            logger.error("Error getting sync events: %s", _sanitize_log_value(str(e)))
+            logger.error(
+                "Error getting sync events: %s: %s",
+                _sanitize_log_value(type(e).__name__), _sanitize_log_value(str(e))
+            )
             raise
 
     async def get_baseline(self) -> Tuple[List[Dict[str, Any]], int]:
@@ -561,7 +823,10 @@ class RemoteHTTPStorage(MemoryStorage):
                 "failed": len(events), "error": f"status {response.status_code}",
             }
         except Exception as e:
-            logger.error("Error pushing sync events: %s", _sanitize_log_value(str(e)))
+            logger.error(
+                "Error pushing sync events: %s: %s",
+                _sanitize_log_value(type(e).__name__), _sanitize_log_value(str(e))
+            )
             return {
                 "results": [], "applied": 0, "skipped": 0,
                 "failed": len(events), "error": str(e),
@@ -569,15 +834,15 @@ class RemoteHTTPStorage(MemoryStorage):
 
     # Non-serviceable methods (raise NotImplementedError)
 
-    async def retrieve(self, query: str, n_results: int = 5, tags: Optional[List[str]] = None, min_confidence: float = 0.0, include_superseded: bool = False, start_time: Optional[float] = None, end_time: Optional[float] = None, store: Optional[str] = None) -> List[MemoryQueryResult]:
+    async def retrieve(self, query: str, n_results: int = 5, tags: Optional[List[str]] = None, min_confidence: float = 0.0, include_superseded: bool = False, start_time: Optional[float] = None, end_time: Optional[float] = None, store: Optional[str] = None, as_of: Optional[float] = None) -> List[MemoryQueryResult]:
         """Retrieve is not serviceable over RemoteHTTPStorage."""
         raise NotImplementedError('retrieve not serviceable over RemoteHTTPStorage')
 
-    async def search_by_tag(self, tags: List[str], time_start: Optional[float] = None) -> List[Memory]:
+    async def search_by_tag(self, tags: List[str], time_start: Optional[float] = None, include_superseded: bool = True) -> List[Memory]:
         """search_by_tag is not serviceable over RemoteHTTPStorage."""
         raise NotImplementedError('search_by_tag not serviceable over RemoteHTTPStorage')
 
-    async def search_by_tags(self, tags: List[str], operation: str = "AND", time_start: Optional[float] = None, time_end: Optional[float] = None) -> List[Memory]:
+    async def search_by_tags(self, tags: List[str], operation: str = "AND", time_start: Optional[float] = None, time_end: Optional[float] = None, include_superseded: bool = True) -> List[Memory]:
         """search_by_tags is not serviceable over RemoteHTTPStorage."""
         raise NotImplementedError('search_by_tags not serviceable over RemoteHTTPStorage')
 

@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 from urllib.parse import urljoin
 
+import pytest
 from fastapi.testclient import TestClient
 
 from mcp_memory_service.web import app as app_module
@@ -21,7 +22,7 @@ INLINE_HANDLER_RE = re.compile(r"\bon[a-z]+\s*=", re.IGNORECASE)
 def test_dashboard_html_routes_receive_csp_but_api_json_does_not():
     client = TestClient(app_module.create_app())
 
-    for path in ("/", "/api-overview", "/static/index.html", "/static/sse_test.html"):
+    for path in ("/", "/static/index.html", "/static/sse_test.html"):
         response = client.get(path)
 
         assert response.status_code == 200
@@ -30,6 +31,17 @@ def test_dashboard_html_routes_receive_csp_but_api_json_does_not():
     assert '<base href="../">' in client.get("/static/index.html").text
     assert "content-security-policy" not in client.get("/openapi.json").headers
     assert "content-security-policy" not in client.get("/api/docs").headers
+
+
+def test_dashboard_and_static_assets_are_revalidated_after_upgrades():
+    """Browsers must revalidate app.js instead of reusing a stale copy (#1892)."""
+    client = TestClient(app_module.create_app())
+
+    for path in ("/", "/static/index.html", "/static/app.js"):
+        response = client.get(path)
+
+        assert response.status_code == 200
+        assert response.headers.get("cache-control") == "no-cache", path
 
 
 def test_index_import_map_is_the_only_hashed_inline_script():
@@ -65,7 +77,6 @@ def test_dashboard_pages_have_no_inline_scripts_or_event_attributes():
     client = TestClient(app_module.create_app())
     pages = {
         "index": client.get("/").text,
-        "api overview": client.get("/api-overview").text,
         "SSE test": client.get("/static/sse_test.html").text,
     }
 
@@ -83,18 +94,27 @@ def test_dashboard_csp_routes_support_configured_root_path(monkeypatch):
     monkeypatch.setattr(app_module, "HTTP_ROOT_PATH", "/memory")
     client = TestClient(app_module.create_app())
 
-    for path in ("/memory/", "/memory/api-overview", "/memory/static/sse_test.html"):
+    for path in ("/memory/", "/memory/static/sse_test.html"):
         response = client.get(path)
 
         assert response.status_code == 200
         assert response.headers.get("content-security-policy")
 
-    html = client.get("/memory/api-overview").text
-    script_src = re.search(r'<script src="([^"]+)" defer></script>', html)
-    assert script_src
-    assert urljoin("http://testserver/memory/api-overview", script_src.group(1)) == (
-        "http://testserver/memory/static/api-overview.js"
+
+@pytest.mark.parametrize("root_path", ["", "/memory", "/proxy/memory"])
+def test_api_overview_permanently_redirects_to_swagger(monkeypatch, root_path):
+    monkeypatch.setattr(app_module, "HTTP_ROOT_PATH", root_path)
+    client = TestClient(app_module.create_app())
+    old_path = f"{root_path}/api-overview"
+
+    response = client.get(old_path, follow_redirects=False)
+
+    assert response.status_code == 308
+    assert urljoin(f"http://testserver{old_path}", response.headers["location"]) == (
+        f"http://testserver{root_path}/api/docs"
     )
+    assert client.get(old_path).status_code == 200
+    assert "/api-overview" not in client.get(f"{root_path}/openapi.json").json()["paths"]
 
 
 def test_static_dashboard_scripts_are_externalized():
@@ -105,3 +125,32 @@ def test_static_dashboard_scripts_are_externalized():
     assert '<script src="sse_test.js" defer></script>' in sse_html
     assert not INLINE_HANDLER_RE.search(index_html)
     assert not INLINE_HANDLER_RE.search(sse_html)
+
+
+def test_theme_initializer_is_first_body_script_before_app_js():
+    client = TestClient(app_module.create_app())
+    response = client.get("/")
+
+    body = re.search(r"<body\b[^>]*>(.*)", response.text, re.IGNORECASE | re.DOTALL)
+    assert body
+    first_element = re.search(r"<([a-z][a-z0-9-]*)\b", body.group(1), re.IGNORECASE)
+    scripts = list(re.finditer(
+        r'<script\b[^>]*\bsrc="([^"]+)"[^>]*>',
+        body.group(1),
+        re.IGNORECASE,
+    ))
+
+    assert first_element and first_element.group(1).lower() == "script"
+    assert scripts, "dashboard body should load its scripts"
+    assert scripts[0].group(1) == "static/theme-init.js"
+    assert not re.search(
+        r"\b(?:async|defer)\b|\btype=\"module\"",
+        scripts[0].group(0),
+        re.IGNORECASE,
+    )
+    app_script = next(
+        (script for script in scripts if script.group(1).startswith("static/app.js")),
+        None,
+    )
+    assert app_script is not None
+    assert scripts[0].start() < app_script.start()

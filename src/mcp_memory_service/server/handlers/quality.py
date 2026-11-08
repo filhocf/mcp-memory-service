@@ -55,10 +55,7 @@ def _as_tag_list(value: object) -> List[str]:
     return list(value)
 
 
-def _sanitize_log_value(value: object) -> str:
-    """Sanitize a user-provided value for safe inclusion in log messages."""
-    return str(value).replace("\n", "\\n").replace("\r", "\\r").replace("\x1b", "\\x1b")
-
+from ...compat import _sanitize_log_value
 
 async def handle_memory_quality(server, arguments: dict) -> List[types.TextContent]:
     """Unified handler for quality management operations."""
@@ -68,7 +65,9 @@ async def handle_memory_quality(server, arguments: dict) -> List[types.TextConte
         return [types.TextContent(type="text", text="Error: action parameter is required")]
 
     # Validate action
-    valid_actions = ["rate", "get", "analyze", "maintain", "maintain_status"]
+    valid_actions = [
+        "rate", "get", "analyze", "maintain", "maintain_status", "rebuild_entities"
+    ]
     if action not in valid_actions:
         return [types.TextContent(
             type="text",
@@ -76,6 +75,11 @@ async def handle_memory_quality(server, arguments: dict) -> List[types.TextConte
         )]
 
     try:
+        if action == "rebuild_entities":
+            # Keep optional maintenance backends out of ordinary quality calls.
+            from .entity_rebuild import handle_rebuild_entities  # inline import
+            return await handle_rebuild_entities(server, arguments)
+
         # Route to appropriate handler based on action
         if action == "rate":
             # Rate a memory
@@ -484,6 +488,15 @@ async def handle_maintain(server, arguments: dict) -> List[types.TextContent]:
     except Exception as e:
         report["errors"].append(f"conflicts: {e}")
         report["steps"]["conflicts"] = {"error": str(e)}
+
+    # Step 2b: clear conflict:unresolved tags whose conflict is gone (#1840). After
+    # auto-resolve, and guarded on its own so a failure keeps the totals above.
+    try:
+        stale_tags = await storage.reconcile_conflict_tags(dry_run=dry_run)
+    except Exception as e:
+        report["errors"].append(f"conflict_tags: {e}")
+        stale_tags = {"error": str(e)}
+    report["steps"].setdefault("conflicts", {})["stale_tags"] = stale_tags
 
     # Step 3: Stale memory detection
     try:
