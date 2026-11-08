@@ -370,46 +370,6 @@ def test_upgrading_an_existing_registration_keeps_its_headers_and_keys(tmp_path)
     assert data["theme"] == "dark"
 
 
-def test_kiro_merge_keeps_existing_headers_and_other_servers(tmp_path):
-    instalar = _mod()
-    config = tmp_path / "settings" / "mcp.json"
-    _write(
-        config,
-        json.dumps(
-            {
-                "mcpServers": {
-                    "mms": {
-                        "url": f"http://localhost:{PORT}/mcp",
-                        "headers": {
-                            "Authorization": "Bearer kiro-token",
-                            "X-Custom": "keep",
-                        },
-                    },
-                    "other": {"url": "http://127.0.0.1:9000/mcp"},
-                }
-            },
-            indent=2,
-        )
-        + "\n",
-    )
-
-    rc = instalar.main(
-        ["--harness", "kiro", "--root", str(tmp_path), "--port", str(PORT), "--skip-health"]
-    )
-
-    assert rc == 0
-    data = json.loads(config.read_text(encoding="utf-8"))
-    entry = data["mcpServers"]["mms"]
-    assert entry["headers"]["X-Agent-ID"] == DEFAULT_AGENT, (
-        "the Kiro registration carries no X-Agent-ID"
-    )
-    assert entry["headers"]["Authorization"] == "Bearer kiro-token", (
-        "the Kiro merge dropped the existing Authorization header"
-    )
-    assert entry["headers"]["X-Custom"] == "keep", "the Kiro merge dropped a custom header"
-    assert data["mcpServers"]["other"] == {"url": "http://127.0.0.1:9000/mcp"}
-
-
 def test_verify_reports_a_registration_without_the_agent_header(tmp_path):
     """Guard: verify is the post-write effect check, so it must see the header."""
     instalar = _mod()

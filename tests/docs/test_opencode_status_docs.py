@@ -17,7 +17,7 @@ import re
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-STATUS_README = REPO / "opencode" / "README.md"
+STATUS_README = REPO / "agents" / "opencode" / "README.md"
 AGENTS_README = REPO / "agents" / "README.md"
 CONTRIBUTING = REPO / "CONTRIBUTING.md"
 UPSTREAM_FACING = [

@@ -128,7 +128,7 @@ One command after `pip install mcp-memory-service`: it writes the MCP registrati
 the memory plugin, the managed `AGENTS.md` block and the `mms-uso` skill, and probes
 the write path before claiming success. Install steps, the `/memory` slash
 command and the endpoint override:
-**[opencode/README.md](https://github.com/doobidoo/mcp-memory-service/blob/main/opencode/README.md)**
+**[agents/opencode/README.md](https://github.com/doobidoo/mcp-memory-service/blob/main/agents/opencode/README.md)**
 
 </details>
 

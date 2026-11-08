@@ -123,7 +123,7 @@ The response must report `"status": "healthy"`.
 git clone https://github.com/doobidoo/mcp-memory-service.git
 cd mcp-memory-service
 mkdir -p ~/.config/opencode/plugins
-cp opencode/memory-plugin.js ~/.config/opencode/plugins/
+cp agents/opencode/memory-plugin.js ~/.config/opencode/plugins/
 ```
 
 OpenCode loads local plugins automatically from `~/.config/opencode/plugins/` and `.opencode/plugins/`.
@@ -132,7 +132,7 @@ in `opencode.json` is needed for this local JavaScript file.
 
 For a local anonymous service, no memory configuration file is required: the
 default endpoint is `http://127.0.0.1:8000`. To customize settings, copy the
-[example configuration](../opencode/memory-plugin.config.example.json) to
+[example configuration](../agents/opencode/memory-plugin.config.example.json) to
 `~/.config/opencode/memory-plugin.json` only if that file does not already exist.
 The example now uses the same local endpoint; older copies may contain the
 placeholder `https://memory.example.com`, which must be replaced.
@@ -156,7 +156,7 @@ Fully restart OpenCode after installation or configuration changes. Start it in
 your project directory, not in the cloned service repository unless that is the
 project you want to work on.
 
-Register the optional [`/memory` command](../opencode/README.md#slash-command-memory)
+Register the optional [`/memory` command](../agents/opencode/README.md#slash-command-memory)
 by merging its `command.memory` entry into your existing `opencode.json`. Then:
 
 1. Run `/memory health` and confirm the endpoint and service status.
@@ -167,7 +167,7 @@ by merging its `command.memory` entry into your existing `opencode.json`. Then:
    dashboard for an auto-capture or session summary. `/memory` also shows capture
    activity and the last summary time.
 
-The [full OpenCode guide](../opencode/README.md) includes project-local setup,
+The [full OpenCode guide](../agents/opencode/README.md) includes project-local setup,
 configuration precedence, troubleshooting, optional MCP tools, and the separate
 TUI sidebar build. The sidebar and `/memory` command are not required for the
 automatic memory hooks.

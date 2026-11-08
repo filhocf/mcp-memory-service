@@ -58,10 +58,10 @@ def test_list_names_every_harness_its_default_root_and_its_surfaces():
 
     assert result.exit_code == 0, result.output
     output = result.output
-    for harness in ("hermes", "kiro", "opencode"):
+    for harness in ("opencode",):
         assert harness in output, f"`install list` does not name {harness}:\n{output}"
 
-    for default_root in (Path.home() / ".hermes", Path.home() / ".kiro", _opencode_default_root()):
+    for default_root in (_opencode_default_root(),):
         assert str(default_root) in output, (
             f"`install list` does not print the default root {default_root}:\n{output}"
         )
@@ -70,8 +70,6 @@ def test_list_names_every_harness_its_default_root_and_its_surfaces():
     assert "mms-uso" in output, "the skill surface is missing from the list"
     assert "SKILL.md" in output, "the skill surface is missing from the list"
     assert "AGENTS.md" in output, "the OpenCode AGENTS.md surface is missing"
-    assert "hooks" in output, "the Hermes hooks surface is missing"
-    assert "steering" in output, "the Kiro steering surface is missing"
 
 
 # --- R3 / AC2: dry run -------------------------------------------------------
@@ -230,8 +228,7 @@ def test_payload_and_modules_live_inside_the_package():
     for relative in (
         Path("skills") / "mms-uso" / "SKILL.md",
         Path("opencode") / "AGENTS.md",
-        Path("steering") / "mms.md",
-        Path("agent-hooks") / "mms_agent_stamp.py",
+        Path("opencode") / "memory-plugin.js",
     ):
         assert (payload / relative).is_file(), f"the packaged payload is missing {relative}"
 
@@ -247,9 +244,8 @@ REQUIRED_WHEEL_ENTRIES = (
     "mcp_memory_service/installers/jsonc.py",
     "mcp_memory_service/installers/harnesses.py",
     "mcp_memory_service/installers/payload/skills/mms-uso/SKILL.md",
-    "mcp_memory_service/installers/payload/steering/mms.md",
-    "mcp_memory_service/installers/payload/agent-hooks/mms_agent_stamp.py",
     "mcp_memory_service/installers/payload/opencode/AGENTS.md",
+    "mcp_memory_service/installers/payload/opencode/memory-plugin.js",
 )
 
 

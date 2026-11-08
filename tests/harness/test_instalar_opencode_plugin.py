@@ -26,7 +26,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "harness"))
 
-SOURCE_PLUGIN = REPO_ROOT / "opencode" / "memory-plugin.js"
+SOURCE_PLUGIN = REPO_ROOT / "agents" / "opencode" / "memory-plugin.js"
 PORT = 39123
 ENDPOINT = f"http://127.0.0.1:{PORT}"
 NODE = shutil.which("node")

@@ -50,11 +50,29 @@ land before the code, its final claims follow F001–F005.
 | F001 | GREEN, G5 | `jsonc.py` + harness OpenCode; `python3 -m pytest tests/harness/test_jsonc_config.py tests/harness/test_instalar_opencode.py -q` → 41 passed. RED on the pre-change tree: 27 failed. G5: 2 high blockers fixed (CRLF I/O, compact uninstall) plus 6 findings; re-review approved with low-severity reservations. |
 | F002 | GREEN, G5 | Plugin package deposit, config bootstrap, hash-guarded manifest and XDG `resolvePaths`. `python3 -m pytest tests/harness/test_instalar_opencode_plugin.py -q` → 23 passed; combined `tests/harness tests/docs tests/hermes` → 121 passed. G5 first round rejected with 3 blockers (relative `--root`, escaping `plugins` symlink, corrupt `created_dirs`); regression tests added and re-review approved with low/medium residual risks. |
 | F003 | GREEN, G5 | Managed `AGENTS.md` block with marker validation, byte-preserving append/replace, CRLF handling, dry-run, read-only no-op, and ownership-aware uninstall. `python3 -m pytest tests/harness/test_instalar_opencode_agents_md.py -q` → 24 passed; combined Python suite → 168 passed; Node → 72 pass. G5 fixed no-trailing-newline round-trips, read-only partial writes, and read-only no-op/dry-run regressions. |
-| F004 | GREEN, G5 | Harness-neutral English `mms-uso` skill (80 lines) with portable endpoint, measured search limits, authorship rule, and deposit into Kiro, Hermes, and OpenCode. `python3 -m pytest tests/harness/test_payload_skill.py -q` → 16 passed; combined Python suite → 184 passed; Node → 72 pass. Reservations: existing pre-F004 skills are never refreshed, and `memory_context` is absent from this branch's registry although the measured pitfall is preserved by spec. |
-| F005 | GREEN, G5 | Installer writes `X-Agent-ID` (flag > `MMS_AGENT_ID` > `opencode`) on both surfaces, merges an explicit ID into existing plugin configs, and preserves existing registration headers. Plugin resolves env > file > default and sends the header on every REST call. `python3 -m pytest tests/harness/test_agent_id.py -q` → 23 passed; `node --test opencode/tests/agent-id.test.js` → 13 pass; combined Python suite → 144 passed. G5 rounds fixed existing-config propagation, registration-header loss, and uninstall ownership of edited configs. AC3 reproduced against the live service: header-only `memory_store` was found by an `agent_id`-filtered search and not by another agent. |
+| F004 | GREEN, G5 | Harness-neutral English `mms-uso` skill (80 lines) with portable endpoint, measured search limits, authorship rule, and deposit into OpenCode. `python3 -m pytest tests/harness/test_payload_skill.py -q` green; combined Python suite green. Reservations: existing pre-F004 skills are never refreshed, and `memory_context` is absent from this branch's registry although the measured pitfall is preserved by spec. |
+| F005 | GREEN, G5 | Installer writes `X-Agent-ID` (flag > `MMS_AGENT_ID` > `opencode`) on both surfaces, merges an explicit ID into existing plugin configs, and preserves existing registration headers. Plugin resolves env > file > default and sends the header on every REST call. `python3 -m pytest tests/harness/test_agent_id.py -q` green; `node --test agents/opencode/tests/agent-id.test.js` → 13 pass; combined Python suite green. G5 rounds fixed existing-config propagation, registration-header loss, and uninstall ownership of edited configs. AC3 reproduced against the live service: header-only `memory_store` was found by an `agent_id`-filtered search and not by another agent. |
 | F006 | GREEN, G5 | HTTP MCP `initialize` returns a stable 430-character `instructions` string, suppressible with `MCP_DISABLE_INSTRUCTIONS=1/true`. `pytest tests/web/test_mcp_initialize_instructions.py -q` → 10 passed; full `tests/web` → 262 passed; combined harness suite → 184. Test file is force-added because `.gitignore` covers `test_mcp*.py` (same precedent as `test_mcp_shim_rate_limit.py`). |
-| F007–F009 | planned | Specs approved; no implementation yet on `feat/opencode-installer`. |
-| F010 | docs GREEN, final claims pending | `opencode/README.md#first-class-status`, the OpenCode index row with 🚧, the 8-item checklist, and `CONTRIBUTING.md` link are in the tree; `tests/docs/test_opencode_status_docs.py` is 11/11 green. Final ✅ claims follow F001–F005. |
+| F007 | GREEN, G5 | Installer logic moved into the package (`mcp_memory_service.installers`), payload ships in the wheel, and `memory install opencode\|list` expose the CLI. `tests/harness/test_install_cli.py` + `tests/harness/test_instalar_opencode.py` green; `scripts/harness/instalar.py` kept as a thin adapter over `installers.core`. |
+| F008 | GREEN, G5 | Isolated lab boots the real service and the acceptance probe writes/reads/deletes against it. `tests/harness/test_opencode_lab.py` + `tests/harness/test_install_probe.py` green. Clean-room rerun on OpenCode 1.19.5: `opencode mcp list` shows `mms` on `http://127.0.0.1:8000/mcp`. |
+| F009 | GREEN, G5 | Integration guide and upstream surfaces updated for the shipped installer; `tests/docs/test_agent_docs.py` + `tests/docs/test_opencode_status_docs.py` green. |
+| F010 | GREEN | `agents/opencode/README.md#first-class-status`, the OpenCode index row, the 8-item checklist, and the `CONTRIBUTING.md` link are in the tree; `tests/docs/test_opencode_status_docs.py` green. |
 
-The branch was synced with `upstream/main` on 2026-10-23 (merge commit), so
-`agents/README.md` and `agents/hermes/README.md` are present locally.
+### Scope note (feat/opencode-installer)
+
+This branch is **OpenCode-only**. The generic multi-harness installer and the
+Hermes/Kiro surfaces it carried are out of scope: upstream already owns
+`scripts/hermes/install.py` and `agents/hermes/README.md`, so the registry in
+`installers/harnesses.py` exposes only `opencode`, the `steering`/`agent-hooks`
+payload was dropped, and `docs/agents/hermes.md` + `docs/agents/kiro.md` were
+removed.
+
+`opencode/` was moved to `agents/opencode/` (the layout agreed in upstream
+discussion #1614); references across `README.md`, `agents/README.md`,
+`docs/integrations.md`, `docs/setup-guide.md`, CI and the tests were repointed.
+
+The branch was synced with `upstream/main` on 2026-11-04 (merge commit); the
+only conflict was an import in `src/mcp_memory_service/web/api/mcp.py` (kept both
+`get_current_user` and the `MCP_INSTRUCTIONS` import). Post-merge:
+`tests/harness tests/docs` → 173 passed, 2 skipped; `node --test
+agents/opencode/tests/agent-id.test.js` → 13 passed.

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -32,20 +31,6 @@ def _opencode_root(home: Path) -> Path:
 def harnesses() -> dict[str, Harness]:
     home = Path.home()
     return {
-        "hermes": Harness(
-            name="hermes",
-            root_default=home / ".hermes",
-            uses_cli=("hermes", "mcp", "add"),
-            skill=Path("skills") / "mms-uso" / "SKILL.md",
-            hooks=Path("agent-hooks") / "mms_agent_stamp.py",
-        ),
-        "kiro": Harness(
-            name="kiro",
-            root_default=home / ".kiro",
-            mcp_file=Path("settings") / "mcp.json",
-            steering=Path("steering") / "mms.md",
-            skill=Path("skills") / "mms-uso" / "SKILL.md",
-        ),
         "opencode": Harness(
             name="opencode",
             root_default=_opencode_root(home),

@@ -3,7 +3,7 @@
 # Claude Code Hooks Test Runner
 #
 # Runs every *.test.js file under the repo's JS test directories -
-# claude-hooks/tests and opencode/tests - and fails if any of them do.
+# claude-hooks/tests and agents/opencode/tests - and fails if any of them do.
 #
 # Until this existed, CI had no node steps at all: the three PR jobs were
 # `pytest tests/`, a site/index.html version-string diff, and a release-only
@@ -22,13 +22,13 @@
 #    test-code-execution.js and test-permission-request.js are deliberately
 #    outside the *.test.js glob: they expect a live memory service. Do not widen
 #    the glob to pull them in.
-# 3. opencode/ is ESM and claude-hooks/ is CommonJS. node runs each file on its
+# 3. agents/opencode/ is ESM and claude-hooks/ is CommonJS. node runs each file on its
 #    own, so the two styles coexist without configuration - which is why one
 #    runner can cover both.
 #
 # Env overrides (for tests):
 #   MCS_HOOKS_TEST_DIRS space-separated directories to scan
-#                       (default: "claude-hooks/tests opencode/tests codex/tests")
+#                       (default: "claude-hooks/tests agents/opencode/tests codex/tests")
 #   MCS_HOOKS_TEST_DIR  a single directory, overriding the list above
 #   MCS_NODE_BIN        node binary to use (default: node)
 #
@@ -41,7 +41,7 @@ set -uo pipefail
 # Every directory of JS tests in the repo. MCS_HOOKS_TEST_DIR overrides with a
 # single directory (used by the test harness); MCS_HOOKS_TEST_DIRS with a
 # space-separated list.
-DEFAULT_TEST_DIRS="claude-hooks/tests opencode/tests codex/tests"
+DEFAULT_TEST_DIRS="claude-hooks/tests agents/opencode/tests codex/tests"
 if [ -n "${MCS_HOOKS_TEST_DIR:-}" ]; then
   TEST_DIRS="$MCS_HOOKS_TEST_DIR"
 else

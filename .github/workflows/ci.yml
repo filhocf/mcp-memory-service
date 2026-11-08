@@ -147,7 +147,7 @@ jobs:
 
   hooks-tests:
     runs-on: ubuntu-latest
-    name: JS Tests (claude-hooks/, opencode/, codex/)
+    name: JS Tests (claude-hooks/, agents/opencode/, codex/)
     timeout-minutes: 10
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -155,7 +155,7 @@ jobs:
     # deploy-site.yml relies on the same way. Before this job existed CI had no
     # node steps at all, so the claude-hooks/tests files never ran and a JS-only
     # PR got a green board that meant nothing (issue #202). It covered
-    # claude-hooks/ only until #210 landed an untested TLS gate under opencode/.
+    # claude-hooks/ only until #210 landed an untested TLS gate under agents/opencode/.
     - name: Run the JS test suites
       run: bash scripts/ci/run_hooks_tests.sh
 

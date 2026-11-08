@@ -86,13 +86,15 @@ INSTALLED_JSONC_AFTER_UNINSTALL = """{
 # --- 1. detection ------------------------------------------------------------
 
 
-def test_opencode_harness_exists_and_honours_xdg_config_home(tmp_path, monkeypatch):
+def test_opencode_harness_exists_and_uses_the_measured_home(tmp_path, monkeypatch):
     instalar = _mod()
 
     assert "opencode" in instalar.harnesses()
 
+    # Measured: the client reads $HOME/.config/opencode and ignores
+    # XDG_CONFIG_HOME, so the default root follows suit either way.
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
-    assert instalar.harnesses()["opencode"].root_default == tmp_path / "xdg" / "opencode"
+    assert instalar.harnesses()["opencode"].root_default == Path.home() / ".config" / "opencode"
 
     monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
     assert instalar.harnesses()["opencode"].root_default == Path.home() / ".config" / "opencode"

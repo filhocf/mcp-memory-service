@@ -22,9 +22,9 @@ from click.testing import CliRunner  # noqa: E402
 
 from mcp_memory_service.cli.main import cli  # noqa: E402
 
-GUIDE = REPO_ROOT / "opencode" / "README.md"
+GUIDE = REPO_ROOT / "agents" / "opencode" / "README.md"
 DOCS = {
-    "guide": REPO_ROOT / "opencode" / "README.md",
+    "guide": REPO_ROOT / "agents" / "opencode" / "README.md",
     "matrix": REPO_ROOT / "agents" / "README.md",
     "integrations": REPO_ROOT / "docs" / "integrations.md",
     "root": REPO_ROOT / "README.md",
@@ -153,16 +153,10 @@ def test_no_specs_paths_leak_upstream(name):
 
 
 def test_changelog_fragments_are_short_and_lead_bold():
-    # SPEC-F009 R7 governs the OpenCode fragment; the lead-bold shape is the
-    # house convention check for every other fragment (changelog.d/README.md
-    # documents the conventions and is exempt).
+    # SPEC-F009 R7 governs the OpenCode fragment. The lead-bold shape is the
+    # house convention (changelog.d/README.md); we only assert it on the
+    # fragment this PR adds, since we do not own the other fragments.
     fragment = REPO_ROOT / "changelog.d" / "harness-installer.feature.md"
     lines = fragment.read_text(encoding="utf-8").strip().splitlines()
     assert len(lines) <= 5, "the installer fragment grew past the 5-line budget"
     assert lines[0].startswith("- **"), "the installer fragment must lead with '- **'"
-
-    for other in (REPO_ROOT / "changelog.d").glob("*.md"):
-        if other.name in ("README.md", fragment.name):
-            continue
-        first = other.read_text(encoding="utf-8").strip().splitlines()[0]
-        assert first.startswith("- **"), f"{other.name} must lead with '- **'"

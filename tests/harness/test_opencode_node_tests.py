@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-TESTS_DIR = REPO_ROOT / "opencode" / "tests"
+TESTS_DIR = REPO_ROOT / "agents" / "opencode" / "tests"
 
 
 def test_opencode_node_suite_passes():

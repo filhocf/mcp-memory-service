@@ -6,8 +6,7 @@ that declares a skill surface. These tests pin its contract: neutral identity
 endpoint (R5), the authorship rule (R6), the size budget (R7), and the deposit
 path per harness (AC4).
 
-Every install runs in tmp_path via --root: neither ~/.kiro, ~/.hermes, nor
-~/.config/opencode is ever touched.
+Every install runs in tmp_path via --root: ~/.config/opencode is never touched.
 """
 
 from __future__ import annotations
@@ -219,12 +218,11 @@ def test_skill_does_not_reference_the_out_of_scope_cost_skill(raw):
 # --- AC4. deposit per harness ------------------------------------------------
 
 
-@pytest.mark.parametrize("harness_name", ["kiro", "hermes", "opencode"])
+@pytest.mark.parametrize("harness_name", ["opencode"])
 def test_installer_deposits_the_skill_for_each_harness(tmp_path, monkeypatch, harness_name):
     """The skill is a copy action, independent of the harness CLI being present.
 
-    Hermes registers through its CLI, which may not exist on a given machine:
-    stubbing the probe keeps this test about the deposit alone, and the clean
+    Stubbing the probe keeps this test about the deposit alone, and the clean
     root plus --skip-health keep it off the network and out of $HOME.
     """
     instalar = _mod()

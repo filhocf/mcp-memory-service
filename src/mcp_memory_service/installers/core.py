@@ -11,7 +11,7 @@ Method modelled on `codebase-memory-mcp install` (see docs/agents/installer-meth
 Usage:
     python scripts/harness/instalar.py                      # detect and install
     python scripts/harness/instalar.py --dry-run            # print the plan only
-    python scripts/harness/instalar.py --harness kiro       # force one harness
+    python scripts/harness/instalar.py --harness opencode   # force one harness
     python scripts/harness/instalar.py --root /tmp/sandbox  # ad-hoc sandbox
     python scripts/harness/instalar.py --uninstall
     python scripts/harness/instalar.py --list
@@ -37,6 +37,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from mcp_memory_service.installers import jsonc
+from mcp_memory_service.installers.harnesses import Harness, harnesses
 
 PAYLOAD = Path(__file__).resolve().parent / "payload"
 DEFAULT_PORT = 8000
@@ -67,53 +68,9 @@ PLUGIN_PACKAGE_NAME = "opencode-memory"
 
 
 # --- harness descriptors -----------------------------------------------------
-
-
-@dataclass(frozen=True)
-class Harness:
-    """Where a harness keeps each surface, relative to its root."""
-
-    name: str
-    root_default: Path
-    mcp_file: Path | None = None  # JSON config we can merge
-    mcp_candidates: tuple[Path, ...] = ()  # ordered alternatives; last is the creation target
-    uses_cli: tuple[str, ...] = ()  # CLI used for registration instead of JSON merge
-    steering: Path | None = None
-    skill: Path | None = None
-    hooks: Path | None = None
-    agents: Path | None = None  # a file with a marker-delimited managed block
-
-
-def _opencode_root(home: Path) -> Path:
-    xdg = os.environ.get("XDG_CONFIG_HOME", "").strip()
-    return (Path(xdg) if xdg else home / ".config") / "opencode"
-
-
-def harnesses() -> dict[str, Harness]:
-    home = Path.home()
-    return {
-        "hermes": Harness(
-            name="hermes",
-            root_default=home / ".hermes",
-            uses_cli=("hermes", "mcp", "add"),
-            skill=Path("skills") / "mms-uso" / "SKILL.md",
-            hooks=Path("agent-hooks") / "mms_agent_stamp.py",
-        ),
-        "kiro": Harness(
-            name="kiro",
-            root_default=home / ".kiro",
-            mcp_file=Path("settings") / "mcp.json",
-            steering=Path("steering") / "mms.md",
-            skill=Path("skills") / "mms-uso" / "SKILL.md",
-        ),
-        "opencode": Harness(
-            name="opencode",
-            root_default=_opencode_root(home),
-            mcp_candidates=(Path("opencode.jsonc"), Path("opencode.json")),
-            skill=Path("skills") / "mms-uso" / "SKILL.md",
-            agents=Path("AGENTS.md"),
-        ),
-    }
+# The registry lives in `harnesses.py`; this module consumes it. Keeping a
+# single definition avoids the two copies drifting (they already disagreed on
+# whether the OpenCode root honours XDG_CONFIG_HOME).
 
 
 def resolve_mcp_file(harness: Harness, root: Path) -> Path | None:
@@ -1563,7 +1520,7 @@ def main(argv: list[str] | None = None) -> int:
 
     names = [args.harness] if args.harness != "auto" else detect()
     if not names:
-        print("no harness detected (looked for ~/.hermes, ~/.kiro, and the OpenCode config)")
+        print("no harness detected (looked for the OpenCode config)")
         return 1
 
     # Uninstalling must work with the service down: that is often why you are uninstalling.

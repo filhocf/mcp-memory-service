@@ -9,7 +9,7 @@ by path.
 Usage:
     python scripts/harness/instalar.py                      # detect and install
     python scripts/harness/instalar.py --dry-run            # print the plan only
-    python scripts/harness/instalar.py --harness kiro       # force one harness
+    python scripts/harness/instalar.py --harness opencode   # force the harness
     python scripts/harness/instalar.py --root /tmp/sandbox  # ad-hoc sandbox
     python scripts/harness/instalar.py --uninstall
     python scripts/harness/instalar.py --list
